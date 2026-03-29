@@ -112,7 +112,7 @@ class UsageService: ObservableObject {
             if let usageError = error as? UsageError {
                 switch usageError {
                 case .rateLimited:
-                    // Silent backoff - don't show error, wait 10 minutes
+                    self.error = "Rate limited. Retrying in 10 minutes."
                     startAutoRefresh(interval: 600)
                 case .unauthorized:
                     if let (newToken, _) = readClaudeCodeCredentials() {
