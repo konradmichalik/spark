@@ -2,12 +2,7 @@ import Foundation
 
 // MARK: - API Response Models
 
-struct OrganizationResponse: Codable {
-    let uuid: String
-    let name: String
-}
-
-struct UsageAPIResponse: Codable {
+struct UsageAPIResponse: Codable, Sendable {
     let fiveHour: UsageBucket?
     let sevenDay: UsageBucket?
     let sevenDaySonnet: UsageBucket?
@@ -19,7 +14,7 @@ struct UsageAPIResponse: Codable {
     }
 }
 
-struct UsageBucket: Codable {
+struct UsageBucket: Codable, Sendable {
     let utilization: Double // 0-100
     let resetsAt: String?
 
@@ -41,8 +36,13 @@ struct UsageBucket: Codable {
         guard let date = resetsAtDate else { return nil }
         let interval = date.timeIntervalSinceNow
         if interval <= 0 { return "now" }
-        let hours = Int(interval) / 3600
-        let minutes = (Int(interval) % 3600) / 60
+        let totalMinutes = Int(interval) / 60
+        let days = totalMinutes / 1440
+        let hours = (totalMinutes % 1440) / 60
+        let minutes = totalMinutes % 60
+        if days > 0 {
+            return hours > 0 ? "\(days)d \(hours)h" : "\(days)d"
+        }
         if hours > 0 {
             return "\(hours)h \(minutes)m"
         }
@@ -52,27 +52,11 @@ struct UsageBucket: Codable {
 
 // MARK: - App Models
 
-enum UsageLevel: String {
+enum UsageLevel: String, Sendable {
     case ok, warning, critical
-
-    var color: String {
-        switch self {
-        case .ok: return "green"
-        case .warning: return "yellow"
-        case .critical: return "red"
-        }
-    }
-
-    var threshold: Double {
-        switch self {
-        case .ok: return 0
-        case .warning: return 75
-        case .critical: return 90
-        }
-    }
 }
 
-struct UsageData {
+struct UsageData: Sendable {
     var session: UsageBucket?
     var weekly: UsageBucket?
     var weeklySonnet: UsageBucket?
@@ -96,7 +80,7 @@ struct UsageData {
 
 // MARK: - Usage History
 
-struct UsageSnapshot: Codable, Identifiable {
+struct UsageSnapshot: Codable, Identifiable, Sendable {
     let id: UUID
     let timestamp: Date
     let sessionUtilization: Double
@@ -110,11 +94,57 @@ struct UsageSnapshot: Codable, Identifiable {
     }
 }
 
+// MARK: - Session Projection
+
+enum ProjectionResult: Sendable {
+    case limitReached(TimeInterval)
+    case safe(Double)
+    case insufficientData
+}
+
+enum SessionProjection {
+    /// Calculate projection from history snapshots (last 60 min), current utilization, and reset date.
+    static func calculate(
+        history: [UsageSnapshot],
+        currentUtilization: Double,
+        resetsAt: Date?
+    ) -> ProjectionResult {
+        guard let resetsAt else { return .insufficientData }
+
+        let hoursUntilReset = resetsAt.timeIntervalSinceNow / 3600
+        guard hoursUntilReset > 0 else { return .insufficientData }
+
+        let cutoff = Date().addingTimeInterval(-3600) // last 60 minutes
+        let recent = history.filter { $0.timestamp > cutoff }
+
+        guard recent.count >= 2,
+              let oldest = recent.first,
+              let newest = recent.last else {
+            return .insufficientData
+        }
+
+        let timeDiffHours = newest.timestamp.timeIntervalSince(oldest.timestamp) / 3600
+        guard timeDiffHours > 0 else { return .insufficientData }
+
+        let rate = (newest.sessionUtilization - oldest.sessionUtilization) / timeDiffHours
+        guard rate > 0 else { return .insufficientData }
+
+        let projectedAtReset = currentUtilization + (rate * hoursUntilReset)
+
+        if projectedAtReset >= 100 {
+            let hoursToLimit = (100 - currentUtilization) / rate
+            return .limitReached(hoursToLimit * 3600)
+        }
+
+        return .safe(min(projectedAtReset, 100))
+    }
+}
+
 // MARK: - Claude Status
 
-enum ClaudeServiceStatus: String, Codable {
+enum ClaudeServiceStatus: String, Codable, Sendable {
     case operational = "operational"
-    case none = "none" // "none" means all systems operational
+    case none = "none"
     case degradedPerformance = "degraded_performance"
     case partialOutage = "partial_outage"
     case majorOutage = "major_outage"
@@ -122,11 +152,11 @@ enum ClaudeServiceStatus: String, Codable {
 
     var displayName: String {
         switch self {
-        case .operational, .none: return "Operational"
-        case .degradedPerformance: return "Degraded"
-        case .partialOutage: return "Partial Outage"
-        case .majorOutage: return "Major Outage"
-        case .unknown: return "Unknown"
+        case .operational, .none: "Operational"
+        case .degradedPerformance: "Degraded"
+        case .partialOutage: "Partial Outage"
+        case .majorOutage: "Major Outage"
+        case .unknown: "Unknown"
         }
     }
 
@@ -136,40 +166,26 @@ enum ClaudeServiceStatus: String, Codable {
 
     var emoji: String {
         switch self {
-        case .operational, .none: return "checkmark.circle.fill"
-        case .degradedPerformance: return "exclamationmark.triangle.fill"
-        case .partialOutage: return "bolt.trianglebadge.exclamationmark.fill"
-        case .majorOutage: return "xmark.circle.fill"
-        case .unknown: return "questionmark.circle.fill"
+        case .operational, .none: "checkmark.circle.fill"
+        case .degradedPerformance: "exclamationmark.triangle.fill"
+        case .partialOutage: "bolt.trianglebadge.exclamationmark.fill"
+        case .majorOutage: "xmark.circle.fill"
+        case .unknown: "questionmark.circle.fill"
         }
     }
 }
 
-struct StatusPageResponse: Codable {
+struct StatusPageResponse: Codable, Sendable {
     let status: StatusIndicator
     let components: [StatusComponent]?
 }
 
-struct StatusIndicator: Codable {
+struct StatusIndicator: Codable, Sendable {
     let indicator: String
     let description: String
 }
 
-struct StatusComponent: Codable {
+struct StatusComponent: Codable, Sendable {
     let name: String
     let status: String
-}
-
-// MARK: - Settings
-
-struct AppSettings: Codable {
-    var sessionKey: String = ""
-    var organizationId: String = ""
-    var refreshInterval: TimeInterval = 60
-    var warningThreshold: Double = 75
-    var criticalThreshold: Double = 90
-    var notificationsEnabled: Bool = true
-    var launchAtLogin: Bool = false
-
-    static let defaultSettings = AppSettings()
 }

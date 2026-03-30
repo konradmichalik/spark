@@ -3,11 +3,11 @@
 <plist version="1.0">
 <dict>
     <key>CFBundleName</key>
-    <string>CC Usage Bar</string>
+    <string>Spark</string>
     <key>CFBundleDisplayName</key>
-    <string>CC Usage Bar</string>
+    <string>Spark</string>
     <key>CFBundleIdentifier</key>
-    <string>com.konradmichalik.cc-usage-bar</string>
+    <string>com.konradmichalik.spark</string>
     <key>CFBundleVersion</key>
     <string>1</string>
     <key>CFBundleShortVersionString</key>

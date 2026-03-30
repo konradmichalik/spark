@@ -1,32 +1,39 @@
-name: CCUsageBar
+name: Spark
 options:
   bundleIdPrefix: com.konradmichalik
   deploymentTarget:
     macOS: "14.0"
-  xcodeVersion: "16.0"
-  minimumXcodeGenVersion: "2.35.0"
-
+  xcodeVersion: "16"
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    MARKETING_VERSION: "1.0.0"
+    CURRENT_PROJECT_VERSION: "1"
 targets:
-  CCUsageBar:
+  Spark:
     type: application
     platform: macOS
     sources:
-      - CCUsageBar/Sources
-    resources:
-      - CCUsageBar/Assets.xcassets
+      - Spark
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.konradmichalik.cc-usage-bar
-        PRODUCT_NAME: CC Usage Bar
-        MARKETING_VERSION: "1.0.0"
-        CURRENT_PROJECT_VERSION: "1"
-        INFOPLIST_FILE: CCUsageBar/Info.plist
-        SWIFT_VERSION: "5.9"
-        MACOSX_DEPLOYMENT_TARGET: "14.0"
-        CODE_SIGN_ENTITLEMENTS: CCUsageBar/CCUsageBar.entitlements
-        CODE_SIGN_STYLE: Automatic
-        CODE_SIGN_IDENTITY: "Apple Development"
-        DEVELOPMENT_TEAM: ""
-        ENABLE_APP_SANDBOX: "YES"
-        LD_RUNPATH_SEARCH_PATHS: "$(inherited) @executable_path/../Frameworks"
-        COMBINE_HIDPI_IMAGES: "YES"
+        PRODUCT_BUNDLE_IDENTIFIER: com.konradmichalik.spark
+        INFOPLIST_FILE: Spark/Info.plist
+        CODE_SIGN_ENTITLEMENTS: Spark/Spark.entitlements
+        PRODUCT_NAME: Spark
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+    scheme:
+      testTargets:
+        - SparkTests
+  SparkTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - SparkTests
+    dependencies:
+      - target: Spark
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.konradmichalik.spark.tests
+        GENERATE_INFOPLIST_FILE: true
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/Spark.app/Contents/MacOS/Spark"

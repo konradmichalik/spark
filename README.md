@@ -1,4 +1,8 @@
-# CC Usage Bar
+<p align="center">
+  <img src="assets/spark-logo.png" width="128" alt="Spark Logo">
+</p>
+
+# Spark
 
 A native macOS menu bar app that shows your Claude Code usage at a glance.
 
@@ -28,11 +32,11 @@ A native macOS menu bar app that shows your Claude Code usage at a glance.
 ### Build from Source
 
 ```bash
-git clone https://github.com/konradmichalik/cc-usage-bar.git
-cd cc-usage-bar
+git clone https://github.com/konradmichalik/spark.git
+cd spark
 brew install xcodegen
 xcodegen generate
-open CCUsageBar.xcodeproj
+open Spark.xcodeproj
 ```
 
 In Xcode:
@@ -100,15 +104,15 @@ No browser session cookies or web scraping required.
 ## Project Structure
 
 ```
-CCUsageBar/
+Spark/
   Sources/
-    App/          CCUsageBarApp.swift (entry point, menu bar label)
+    App/          SparkApp.swift (entry point, menu bar label)
     Models/       Models.swift (API responses, usage data, status)
-    Services/     UsageService, StatusService, NotificationManager, OAuthService
+    Services/     UsageClient, KeychainService
     Views/        MenuBarView, UsageGraphView, SettingsView, ClaudeLogoShape
   Assets.xcassets/
   Info.plist
-  CCUsageBar.entitlements
+  Spark.entitlements
 ```
 
 ## Acknowledgments
