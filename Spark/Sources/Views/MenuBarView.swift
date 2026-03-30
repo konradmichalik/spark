@@ -1,0 +1,429 @@
+import AppKit
+import SwiftUI
+
+struct MenuBarView: View {
+    @EnvironmentObject var state: AppState
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            // Header
+            HStack(spacing: 6) {
+                Image("SparkLogo")
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: 22, height: 22)
+                Text("Spark")
+                    .font(.headline)
+                Spacer()
+                SettingsLink {
+                    Image(systemName: "gearshape")
+                        .font(.system(size: 12))
+                }
+                .buttonStyle(.borderless)
+                .help("Settings")
+            }
+
+            // Status - only show when there's a problem
+            if !state.status.isHealthy {
+                Divider()
+                StatusRow(state: state)
+            }
+
+            Divider()
+
+            // Session Usage
+            if let session = state.usageData.session {
+                let sessionProjection = state.showProjection
+                    ? SessionProjection.calculate(
+                        history: state.history,
+                        currentUtilization: session.utilization,
+                        resetsAt: session.resetsAtDate
+                    )
+                    : .insufficientData
+
+                UsageRow(
+                    label: "Session (5h)",
+                    utilization: session.utilization,
+                    resetTime: session.timeUntilReset,
+                    warningThreshold: state.warningThreshold,
+                    criticalThreshold: state.criticalThreshold,
+                    projection: sessionProjection
+                )
+            }
+
+            // Weekly Usage
+            if let weekly = state.usageData.weekly {
+                UsageRow(
+                    label: "Weekly (7 days)",
+                    utilization: weekly.utilization,
+                    resetTime: weekly.timeUntilReset,
+                    warningThreshold: state.warningThreshold,
+                    criticalThreshold: state.criticalThreshold
+                )
+            }
+
+            // Sonnet Usage
+            if state.showSonnetUsage, let sonnet = state.usageData.weeklySonnet {
+                UsageRow(
+                    label: "Sonnet (Weekly)",
+                    utilization: sonnet.utilization,
+                    resetTime: sonnet.timeUntilReset,
+                    warningThreshold: state.warningThreshold,
+                    criticalThreshold: state.criticalThreshold
+                )
+            }
+
+            if state.usageData.session == nil && state.lastError == nil && !state.isLoading {
+                Text("No data available")
+                    .foregroundColor(.secondary)
+                    .font(.caption)
+            }
+
+            // Error
+            if let error = state.lastError {
+                HStack {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .foregroundColor(.orange)
+                    Text(error)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+            }
+
+            Divider()
+
+            // Today's Stats
+            if state.showStats {
+                TodayStatsRow(liveStats: state.liveStats)
+            }
+
+            // Mini Graph
+            if state.showGraph, !state.history.isEmpty {
+                UsageGraphView(history: state.history)
+                Divider()
+            }
+
+            // Footer
+            HStack {
+                if state.isLoading {
+                    ProgressView()
+                        .controlSize(.small)
+                } else {
+                    Button(action: {
+                        Task { await state.fetchUsage() }
+                    }) {
+                        Image(systemName: "arrow.clockwise")
+                            .font(.system(size: 12))
+                    }
+                    .buttonStyle(.borderless)
+                    .help("Refresh")
+                }
+
+                Text("Updated: \(timeAgo(state.usageData.lastUpdated))")
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+                Spacer()
+
+                Button(action: {
+                    NSApplication.shared.terminate(nil)
+                }) {
+                    Image(systemName: "power")
+                        .font(.system(size: 12))
+                }
+                .buttonStyle(.borderless)
+                .help("Quit")
+            }
+        }
+        .padding(12)
+        .frame(width: 300)
+    }
+
+    private func timeAgo(_ date: Date) -> String {
+        let interval = Date().timeIntervalSince(date)
+        if interval < 5 { return "just now" }
+        if interval < 60 { return "\(Int(interval))s ago" }
+        if interval < 3600 { return "\(Int(interval / 60))m ago" }
+        return "\(Int(interval / 3600))h ago"
+    }
+}
+
+// MARK: - Today Stats Row
+
+struct TodayStatsRow: View {
+    let liveStats: LiveDayStats?
+
+    var body: some View {
+        if let live = liveStats {
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 4) {
+                    Image(systemName: "chart.bar.fill")
+                        .font(.caption2)
+                        .foregroundColor(claudeOrange)
+                    Text("Stats (today)")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                }
+
+                StatsLine(label: "Messages", value: "\(live.messageCount)")
+                StatsLine(label: "Sessions", value: "\(live.sessionCount)")
+                StatsLine(label: "Tokens", value: live.formattedTokens)
+            }
+
+            Divider()
+        }
+    }
+}
+
+private struct StatsLine: View {
+    let label: String
+    let value: String
+
+    var body: some View {
+        HStack {
+            Text(label)
+                .font(.caption)
+                .foregroundColor(.secondary)
+            Spacer()
+            Text(value)
+                .font(.system(.caption, design: .monospaced))
+                .fontWeight(.medium)
+        }
+    }
+}
+
+// MARK: - Usage Row
+
+private let claudeOrange = Color(nsColor: NSColor(red: 0.85, green: 0.47, blue: 0.34, alpha: 1))
+
+struct UsageRow: View {
+    let label: String
+    let utilization: Double
+    let resetTime: String?
+    let warningThreshold: Double
+    let criticalThreshold: Double
+    var projection: ProjectionResult = .insufficientData
+
+    private var iconName: String {
+        if label.hasPrefix("Session") { return "bolt.fill" }
+        if label.hasPrefix("Weekly") { return "calendar" }
+        if label.hasPrefix("Sonnet") { return "wand.and.stars" }
+        return "chart.bar.fill"
+    }
+
+    private var color: Color {
+        if utilization >= criticalThreshold { return .red }
+        if utilization >= warningThreshold { return .orange }
+        return .green
+    }
+
+    @State private var showProjectionPopover = false
+
+    private var projectionTitle: String? {
+        switch projection {
+        case .limitReached(let seconds):
+            return "Limit in ~\(formatDuration(seconds))"
+        case .safe(let projected):
+            return "~\(Int(projected))% at reset"
+        case .insufficientData:
+            return nil
+        }
+    }
+
+    private var projectionDetail: String? {
+        switch projection {
+        case .limitReached(let seconds):
+            let rate = ratePerHour
+            return "At the current rate of ~\(Int(rate))%/h, the session limit will be reached in ~\(formatDuration(seconds))."
+        case .safe(let projected):
+            let rate = ratePerHour
+            return "At the current rate of ~\(Int(rate))%/h, usage will be ~\(Int(projected))% when the session resets."
+        case .insufficientData:
+            return nil
+        }
+    }
+
+    private var ratePerHour: Double {
+        switch projection {
+        case .limitReached(let seconds):
+            guard seconds > 0 else { return 0 }
+            return (100 - utilization) / (seconds / 3600)
+        case .safe(let projected):
+            guard let resetTime else { return 0 }
+            // Rough estimate: parse hours from reset string isn't clean, use projected delta
+            let delta = projected - utilization
+            return delta > 0 ? delta : 0
+        case .insufficientData:
+            return 0
+        }
+    }
+
+    private var projectionIconColor: Color {
+        switch projection {
+        case .limitReached: return .red
+        case .safe: return .secondary
+        case .insufficientData: return .clear
+        }
+    }
+
+    private func formatDuration(_ seconds: TimeInterval) -> String {
+        let totalMinutes = Int(seconds) / 60
+        let days = totalMinutes / 1440
+        let hours = (totalMinutes % 1440) / 60
+        let minutes = totalMinutes % 60
+        if days > 0 {
+            return hours > 0 ? "\(days)d \(hours)h" : "\(days)d"
+        }
+        if hours > 0 {
+            return "\(hours)h \(minutes)m"
+        }
+        return "\(minutes)m"
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack {
+                Image(systemName: iconName)
+                    .font(.caption2)
+                    .foregroundColor(claudeOrange)
+                Text(label)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+
+                if projectionTitle != nil {
+                    Button(action: { showProjectionPopover.toggle() }) {
+                        Image(systemName: "chart.line.uptrend.xyaxis")
+                            .font(.system(size: 9))
+                            .foregroundColor(projectionIconColor)
+                            .frame(width: 18, height: 18)
+                            .background(projectionIconColor.opacity(0.12))
+                            .clipShape(Circle())
+                    }
+                    .buttonStyle(.plain)
+                    .popover(isPresented: $showProjectionPopover, arrowEdge: .bottom) {
+                        VStack(alignment: .leading, spacing: 6) {
+                            if let title = projectionTitle {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "chart.line.uptrend.xyaxis")
+                                        .foregroundColor(projectionIconColor)
+                                    Text(title)
+                                        .fontWeight(.medium)
+                                }
+                                .font(.caption)
+                            }
+                            if let detail = projectionDetail {
+                                Text(detail)
+                                    .font(.caption2)
+                                    .foregroundColor(.secondary)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                        }
+                        .padding(10)
+                        .frame(width: 220)
+                    }
+                }
+
+                Spacer()
+                if let resetTime {
+                    HStack(spacing: 4) {
+                        Image(systemName: "clock.arrow.circlepath")
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                        Text(resetTime)
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                    }
+                }
+            }
+
+            HStack(spacing: 8) {
+                ProjectedProgressBar(
+                    utilization: utilization,
+                    color: color,
+                    projection: projection
+                )
+                .frame(height: 6)
+
+                Text("\(Int(utilization))%")
+                    .font(.system(.body, design: .monospaced))
+                    .fontWeight(.medium)
+                    .foregroundColor(color)
+                    .frame(width: 40, alignment: .trailing)
+            }
+        }
+    }
+}
+
+// MARK: - Projected Progress Bar
+
+struct ProjectedProgressBar: View {
+    let utilization: Double
+    let color: Color
+    let projection: ProjectionResult
+
+    private var projectedWidth: Double {
+        switch projection {
+        case .limitReached:
+            return 100
+        case .safe(let projected):
+            return min(projected, 100)
+        case .insufficientData:
+            return 0
+        }
+    }
+
+    private var projectionColor: Color {
+        switch projection {
+        case .limitReached:
+            return .red
+        case .safe:
+            return .primary
+        case .insufficientData:
+            return .clear
+        }
+    }
+
+    var body: some View {
+        GeometryReader { geometry in
+            ZStack(alignment: .leading) {
+                // Track
+                RoundedRectangle(cornerRadius: 3)
+                    .fill(.quaternary)
+
+                // Projection background
+                if projectedWidth > utilization {
+                    RoundedRectangle(cornerRadius: 3)
+                        .fill(projectionColor.opacity(0.15))
+                        .frame(width: geometry.size.width * min(projectedWidth, 100) / 100)
+                }
+
+                // Current utilization
+                RoundedRectangle(cornerRadius: 3)
+                    .fill(color)
+                    .frame(width: geometry.size.width * min(utilization, 100) / 100)
+            }
+        }
+    }
+}
+
+// MARK: - Status Row
+
+struct StatusRow: View {
+    @ObservedObject var state: AppState
+
+    var body: some View {
+        HStack {
+            Image(systemName: state.status.emoji)
+                .foregroundColor(.orange)
+            Text("Claude: \(state.status.displayName)")
+                .font(.caption)
+
+            Spacer()
+
+            if !state.claudeCodeStatus.isHealthy {
+                Text("Code: \(state.claudeCodeStatus.displayName)")
+                    .font(.caption2)
+                    .foregroundColor(.orange)
+            }
+        }
+    }
+}
