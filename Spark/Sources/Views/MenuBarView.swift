@@ -53,6 +53,7 @@ struct MenuBarView: View {
                     label: "Session (5h)",
                     utilization: session.utilization,
                     resetTime: session.timeUntilReset,
+                    resetDate: session.resetsAtDate,
                     warningThreshold: state.warningThreshold,
                     criticalThreshold: state.criticalThreshold,
                     projection: sessionProjection
@@ -65,6 +66,7 @@ struct MenuBarView: View {
                     label: "Weekly (7 days)",
                     utilization: weekly.utilization,
                     resetTime: weekly.timeUntilReset,
+                    resetDate: weekly.resetsAtDate,
                     warningThreshold: state.warningThreshold,
                     criticalThreshold: state.criticalThreshold
                 )
@@ -76,6 +78,7 @@ struct MenuBarView: View {
                     label: "Sonnet (Weekly)",
                     utilization: sonnet.utilization,
                     resetTime: sonnet.timeUntilReset,
+                    resetDate: sonnet.resetsAtDate,
                     warningThreshold: state.warningThreshold,
                     criticalThreshold: state.criticalThreshold
                 )
@@ -208,6 +211,7 @@ struct UsageRow: View {
     let label: String
     let utilization: Double
     let resetTime: String?
+    let resetDate: Date?
     let warningThreshold: Double
     let criticalThreshold: Double
     var projection: ProjectionResult = .insufficientData
@@ -226,6 +230,7 @@ struct UsageRow: View {
     }
 
     @State private var showProjectionPopover = false
+    @State private var showResetPopover = false
 
     private var projectionTitle: String? {
         switch projection {
@@ -323,13 +328,38 @@ struct UsageRow: View {
 
                 Spacer()
                 if let resetTime {
-                    HStack(spacing: 4) {
-                        Image(systemName: "clock.arrow.circlepath")
-                            .font(.caption2)
-                            .foregroundColor(.secondary)
-                        Text(resetTime)
-                            .font(.caption2)
-                            .foregroundColor(.secondary)
+                    Button(action: { showResetPopover.toggle() }) {
+                        HStack(spacing: 4) {
+                            Image(systemName: "clock.arrow.circlepath")
+                                .font(.system(size: 9))
+                                .foregroundColor(.secondary)
+                                .frame(width: 18, height: 18)
+                                .background(Color.secondary.opacity(0.12))
+                                .clipShape(Circle())
+                            Text(resetTime)
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                    .buttonStyle(.plain)
+                    .popover(isPresented: $showResetPopover, arrowEdge: .bottom) {
+                        VStack(alignment: .leading, spacing: 6) {
+                            HStack(spacing: 4) {
+                                Image(systemName: "clock.arrow.circlepath")
+                                    .foregroundColor(.secondary)
+                                Text("Reset in \(resetTime)")
+                                    .fontWeight(.medium)
+                            }
+                            .font(.caption)
+
+                            if let resetDate {
+                                Text(resetDate, format: .dateTime.weekday(.wide).day().month(.wide).hour().minute())
+                                    .font(.caption2)
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                        .padding(10)
+                        .frame(width: 220)
                     }
                 }
             }
