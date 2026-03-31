@@ -47,7 +47,7 @@ enum LiveStatsParser {
     private struct TokenUsage: Decodable {
         let inputTokens: Int?
         let outputTokens: Int?
-
+        // swiftlint:disable:next nesting
         enum CodingKeys: String, CodingKey {
             case inputTokens = "input_tokens"
             case outputTokens = "output_tokens"
@@ -79,6 +79,7 @@ enum LiveStatsParser {
         )
     }
 
+    // swiftlint:disable:next large_tuple
     private static func parseHistoryCounts(url: URL) -> (messages: Int, sessions: Int, sessionIds: Set<String>) {
         guard let data = try? Data(contentsOf: url),
               let content = String(data: data, encoding: .utf8) else {
@@ -142,4 +143,3 @@ enum LiveStatsParser {
         return (totalInput, totalOutput)
     }
 }
-

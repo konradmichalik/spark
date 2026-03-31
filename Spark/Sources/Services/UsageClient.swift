@@ -22,8 +22,13 @@ enum UsageClient {
 
     // MARK: - API
 
+    // swiftlint:disable force_unwrapping
+    private static let usageURL = URL(string: "https://api.anthropic.com/api/oauth/usage")!
+    private static let statusURL = URL(string: "https://status.claude.com/api/v2/summary.json")!
+    // swiftlint:enable force_unwrapping
+
     static func fetchUsage(token: String) async throws -> UsageAPIResponse {
-        let url = URL(string: "https://api.anthropic.com/api/oauth/usage")!
+        let url = usageURL
         var request = URLRequest(url: url)
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         request.setValue("oauth-2025-04-20", forHTTPHeaderField: "anthropic-beta")
@@ -49,7 +54,7 @@ enum UsageClient {
     }
 
     static func fetchStatus() async throws -> StatusPageResponse {
-        let url = URL(string: "https://status.claude.com/api/v2/summary.json")!
+        let url = statusURL
         var request = URLRequest(url: url)
         request.timeoutInterval = 10
         let (data, _) = try await URLSession.shared.data(for: request)
