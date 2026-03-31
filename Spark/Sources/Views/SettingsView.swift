@@ -1,3 +1,4 @@
+// swiftlint:disable file_length
 import SwiftUI
 import ServiceManagement
 import UserNotifications
@@ -94,14 +95,14 @@ struct ConnectionTab: View {
                             Text("Connecting...").font(.caption)
                         }
                     } else {
-                        Button(action: {
+                        Button {
                             isAuthenticating = true
                             authError = nil
                             if !state.loadCredentials() {
                                 authError = "No OAuth token found in Keychain."
                             }
                             isAuthenticating = false
-                        }) {
+                        } label: {
                             HStack {
                                 Image(systemName: "key.fill")
                                 Text("Load Credentials")
@@ -117,9 +118,9 @@ struct ConnectionTab: View {
                         .font(.caption)
                         .foregroundColor(.secondary)
 
-                    Button(action: { state.openCLILogin() }) {
+                    Button(action: { state.openCLILogin() }, label: {
                         Label("Open Terminal & Log In", systemImage: "arrow.up.forward.app.fill")
-                    }
+                    })
                     .font(.callout)
                 }
             }
@@ -553,6 +554,7 @@ struct StatusTab: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 12) {
+                // swiftlint:disable:next line_length
                 Text("Live status of Claude services powered by the Anthropic status page. The main popover only shows a warning when there is an active incident.")
                     .font(.caption)
                     .foregroundColor(.secondary)
@@ -565,14 +567,15 @@ struct StatusTab: View {
                         Text(state.statusDescription)
                             .fontWeight(.medium)
                         Spacer()
-                        Button(action: {
+                        Button {
                             Task { await state.fetchStatus() }
-                        }) {
+                        } label: {
                             Image(systemName: "arrow.clockwise")
                                 .font(.system(size: 11))
                         }
                         .buttonStyle(.borderless)
 
+                        // swiftlint:disable:next force_unwrapping
                         Link(destination: URL(string: "https://status.anthropic.com")!) {
                             Image(systemName: "arrow.up.right.square")
                                 .font(.system(size: 11))
@@ -622,11 +625,7 @@ struct AboutTab: View {
         VStack(spacing: 16) {
             Spacer()
 
-            Image("SparkLogo")
-                .resizable()
-                .interpolation(.high)
-                .aspectRatio(contentMode: .fit)
-                .frame(width: 80, height: 80)
+            SparkLogoView(size: 80)
 
             Text("Spark")
                 .font(.system(size: 22, weight: .semibold))

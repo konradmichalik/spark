@@ -3,6 +3,7 @@ import SwiftUI
 /// The Claude "spark" logo as a SwiftUI Shape, derived from the official SVG path.
 /// Original viewBox: 0 0 24 24
 struct ClaudeLogoShape: Shape {
+    // swiftlint:disable:next function_body_length
     func path(in rect: CGRect) -> Path {
         let scaleX = rect.width / 24.0
         let scaleY = rect.height / 24.0
@@ -172,5 +173,38 @@ struct ClaudeLogoShape: Shape {
 
         path.closeSubpath()
         return path
+    }
+}
+
+/// Native SwiftUI Spark logo: Claude spark + ring, pixel-perfect at any size.
+struct SparkLogoView: View {
+    let size: CGFloat
+
+    private let ringRatio: CGFloat = 0.9
+    private let ringWidth: CGFloat = 0.08
+    private let sparkInset: CGFloat = 0.25
+
+    var body: some View {
+        ZStack {
+            // Ring track (gray, only the gap)
+            Circle()
+                .trim(from: 0, to: 0.22)
+                .stroke(Color.gray.opacity(0.25), lineWidth: size * ringWidth)
+                .rotationEffect(.degrees(-55))
+                .frame(width: size * ringRatio, height: size * ringRatio)
+
+            // Ring arc (orange, ~78% starting from ~35° going clockwise)
+            Circle()
+                .trim(from: 0, to: 0.78)
+                .stroke(Theme.sparkOrange, style: StrokeStyle(lineWidth: size * ringWidth, lineCap: .butt))
+                .rotationEffect(.degrees(-55 + 360 * 0.22))
+                .frame(width: size * ringRatio, height: size * ringRatio)
+
+            // Spark shape
+            ClaudeLogoShape()
+                .fill(Theme.sparkOrange)
+                .frame(width: size * (1 - sparkInset * 2), height: size * (1 - sparkInset * 2))
+        }
+        .frame(width: size, height: size)
     }
 }

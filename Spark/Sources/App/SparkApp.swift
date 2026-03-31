@@ -145,8 +145,7 @@ struct MenuBarLabel: View {
             let transform = AffineTransform(translationByX: sparkRect.minX, byY: sparkRect.minY)
             let bezier = NSBezierPath(cgPath: sparkPath.cgPath)
             bezier.transform(using: transform)
-            let sparkOrange = NSColor(red: 0.85, green: 0.47, blue: 0.34, alpha: 1)
-            sparkOrange.setFill()
+            Theme.sparkOrangeNS.setFill()
             bezier.fill()
 
             return true
