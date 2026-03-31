@@ -17,8 +17,11 @@
 		78B4BB3706C1E08F1CE36470 /* UsageClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1FF02BEED49ADD5E98D7273 /* UsageClient.swift */; };
 		7F0B5FC4C96F4101B071114A /* KeychainService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8E08CC7D6843B465A64E112E /* KeychainService.swift */; };
 		834B133F3196C51149E4392E /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5ED00B7E4898807D3C31E392 /* AppState.swift */; };
+		984973A8CB701A3E370D7E8D /* ThemeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47981BFA0481C7734C2F4910 /* ThemeTests.swift */; };
+		C16DF81A0CD6F250F3CC6C30 /* AccountTierTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7C6AEB39CCABA0D4B4A655D /* AccountTierTests.swift */; };
 		CBD90134453C170527EC1ED4 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB2642E8A08B809575073F98 /* SettingsView.swift */; };
 		D2C762209454112BB4B98294 /* ClaudeLogoShape.swift in Sources */ = {isa = PBXBuildFile; fileRef = 66389C7043A5F5E704F64B03 /* ClaudeLogoShape.swift */; };
+		D400C983072E3B87DBC738F8 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8227C3FD71A94C6C7A1FFD95 /* Theme.swift */; };
 		D4224BCA555578280006F2E8 /* MenuBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC917B43DD2A87E3FC1C9E77 /* MenuBarView.swift */; };
 /* End PBXBuildFile section */
 
@@ -40,13 +43,16 @@
 		32A7C394BCF978609C456945 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		39DD36A41002DD2326D14223 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		3A2927AA5C9E74B2EF59DD2B /* StatsModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatsModels.swift; sourceTree = "<group>"; };
+		47981BFA0481C7734C2F4910 /* ThemeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThemeTests.swift; sourceTree = "<group>"; };
 		5ED00B7E4898807D3C31E392 /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
 		66389C7043A5F5E704F64B03 /* ClaudeLogoShape.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudeLogoShape.swift; sourceTree = "<group>"; };
 		8066DE0FCE569DFBA806F45A /* SparkTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SparkTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		8227C3FD71A94C6C7A1FFD95 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 		8E08CC7D6843B465A64E112E /* KeychainService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainService.swift; sourceTree = "<group>"; };
 		9652B0D23609965E54C5FC30 /* UsageClientTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UsageClientTests.swift; sourceTree = "<group>"; };
 		A2CB3DC178234EDAC2F64F1B /* SparkApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SparkApp.swift; sourceTree = "<group>"; };
 		C1FF02BEED49ADD5E98D7273 /* UsageClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UsageClient.swift; sourceTree = "<group>"; };
+		D7C6AEB39CCABA0D4B4A655D /* AccountTierTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountTierTests.swift; sourceTree = "<group>"; };
 		E86EED62411024E4E2D49149 /* Spark.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Spark.entitlements; sourceTree = "<group>"; };
 		FB2642E8A08B809575073F98 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		FC917B43DD2A87E3FC1C9E77 /* MenuBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarView.swift; sourceTree = "<group>"; };
@@ -107,7 +113,9 @@
 		675B56332E65ED375F3CF6D7 /* SparkTests */ = {
 			isa = PBXGroup;
 			children = (
+				D7C6AEB39CCABA0D4B4A655D /* AccountTierTests.swift */,
 				2F43EB7F3BEA4E064CE613B3 /* ModelsTests.swift */,
+				47981BFA0481C7734C2F4910 /* ThemeTests.swift */,
 				9652B0D23609965E54C5FC30 /* UsageClientTests.swift */,
 			);
 			path = SparkTests;
@@ -119,6 +127,7 @@
 				5ED00B7E4898807D3C31E392 /* AppState.swift */,
 				1AEFF3D8115EF35EAF713CD4 /* Models.swift */,
 				3A2927AA5C9E74B2EF59DD2B /* StatsModels.swift */,
+				8227C3FD71A94C6C7A1FFD95 /* Theme.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -232,6 +241,7 @@
 				CBD90134453C170527EC1ED4 /* SettingsView.swift in Sources */,
 				1F26775BD0D9639ECC720F7A /* SparkApp.swift in Sources */,
 				2E5E195870ED16B75EBE1CE6 /* StatsModels.swift in Sources */,
+				D400C983072E3B87DBC738F8 /* Theme.swift in Sources */,
 				78B4BB3706C1E08F1CE36470 /* UsageClient.swift in Sources */,
 				51EF77F52466A9D14DBA711A /* UsageGraphView.swift in Sources */,
 			);
@@ -241,7 +251,9 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C16DF81A0CD6F250F3CC6C30 /* AccountTierTests.swift in Sources */,
 				51F4BC65749C08B7AAD13F07 /* ModelsTests.swift in Sources */,
+				984973A8CB701A3E370D7E8D /* ThemeTests.swift in Sources */,
 				53B31435CF5F8C0C7F47DA0C /* UsageClientTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
