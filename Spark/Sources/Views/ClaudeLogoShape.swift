@@ -186,18 +186,18 @@ struct SparkLogoView: View {
 
     var body: some View {
         ZStack {
-            // Ring track (gray, only the gap)
+            // Ring track (gray gap — 145°, positioned at top)
             Circle()
-                .trim(from: 0, to: 0.22)
+                .trim(from: 0, to: 145.0 / 360.0)
                 .stroke(Color.gray.opacity(0.25), lineWidth: size * ringWidth)
-                .rotationEffect(.degrees(-55))
+                .rotationEffect(.degrees(-90 - 145))
                 .frame(width: size * ringRatio, height: size * ringRatio)
 
-            // Ring arc (orange, ~78% starting from ~35° going clockwise)
+            // Ring arc (orange, 215° counter-clockwise ending at 12 o'clock)
             Circle()
-                .trim(from: 0, to: 0.78)
+                .trim(from: 0, to: 215.0 / 360.0)
                 .stroke(Theme.sparkOrange, style: StrokeStyle(lineWidth: size * ringWidth, lineCap: .butt))
-                .rotationEffect(.degrees(-55 + 360 * 0.22))
+                .rotationEffect(.degrees(-90 - 215))
                 .frame(width: size * ringRatio, height: size * ringRatio)
 
             // Spark shape
