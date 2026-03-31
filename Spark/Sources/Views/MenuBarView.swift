@@ -1,3 +1,4 @@
+// swiftlint:disable file_length
 import AppKit
 import SwiftUI
 
@@ -8,12 +9,19 @@ struct MenuBarView: View {
         VStack(alignment: .leading, spacing: 12) {
             // Header
             HStack(spacing: 6) {
-                Image("SparkLogo")
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
-                    .frame(width: 22, height: 22)
+                SparkLogoView(size: 20)
                 Text("Spark")
                     .font(.headline)
+
+                Text(state.accountTier.displayName)
+                    .font(.caption2)
+                    .fontWeight(.medium)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(claudeOrange.opacity(0.15))
+                    .foregroundColor(claudeOrange)
+                    .clipShape(Capsule())
+
                 Spacer()
                 SettingsLink {
                     Image(systemName: "gearshape")
@@ -109,9 +117,9 @@ struct MenuBarView: View {
                     ProgressView()
                         .controlSize(.small)
                 } else {
-                    Button(action: {
+                    Button {
                         Task { await state.fetchUsage() }
-                    }) {
+                    } label: {
                         Image(systemName: "arrow.clockwise")
                             .font(.system(size: 12))
                     }
@@ -124,9 +132,9 @@ struct MenuBarView: View {
                     .foregroundColor(.secondary)
                 Spacer()
 
-                Button(action: {
+                Button {
                     NSApplication.shared.terminate(nil)
-                }) {
+                } label: {
                     Image(systemName: "power")
                         .font(.system(size: 12))
                 }
@@ -156,7 +164,7 @@ struct TodayStatsRow: View {
         if let live = liveStats {
             VStack(alignment: .leading, spacing: 4) {
                 HStack(spacing: 4) {
-                    Image(systemName: "chart.bar.fill")
+                    Image(systemName: "number.square")
                         .font(.caption2)
                         .foregroundColor(claudeOrange)
                     Text("Stats (today)")
@@ -193,7 +201,7 @@ private struct StatsLine: View {
 
 // MARK: - Usage Row
 
-private let claudeOrange = Color(nsColor: NSColor(red: 0.85, green: 0.47, blue: 0.34, alpha: 1))
+private let claudeOrange = Theme.sparkOrange
 
 struct UsageRow: View {
     let label: String
@@ -266,17 +274,7 @@ struct UsageRow: View {
     }
 
     private func formatDuration(_ seconds: TimeInterval) -> String {
-        let totalMinutes = Int(seconds) / 60
-        let days = totalMinutes / 1440
-        let hours = (totalMinutes % 1440) / 60
-        let minutes = totalMinutes % 60
-        if days > 0 {
-            return hours > 0 ? "\(days)d \(hours)h" : "\(days)d"
-        }
-        if hours > 0 {
-            return "\(hours)h \(minutes)m"
-        }
-        return "\(minutes)m"
+        seconds.shortDuration
     }
 
     var body: some View {
@@ -290,14 +288,14 @@ struct UsageRow: View {
                     .foregroundColor(.secondary)
 
                 if projectionTitle != nil {
-                    Button(action: { showProjectionPopover.toggle() }) {
+                    Button(action: { showProjectionPopover.toggle() }, label: {
                         Image(systemName: "chart.line.uptrend.xyaxis")
                             .font(.system(size: 9))
                             .foregroundColor(projectionIconColor)
                             .frame(width: 18, height: 18)
                             .background(projectionIconColor.opacity(0.12))
                             .clipShape(Circle())
-                    }
+                    })
                     .buttonStyle(.plain)
                     .popover(isPresented: $showProjectionPopover, arrowEdge: .bottom) {
                         VStack(alignment: .leading, spacing: 6) {

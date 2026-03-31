@@ -2,7 +2,10 @@ import SwiftUI
 import Combine
 import UserNotifications
 
+// swiftlint:disable file_length
+
 @MainActor
+// swiftlint:disable:next type_body_length
 final class AppState: ObservableObject {
 
     // MARK: - Published State
@@ -13,6 +16,7 @@ final class AppState: ObservableObject {
     @Published var lastError: String?
     @Published var isAuthenticated = false
     @Published var authMethod: AuthMethod = .none
+    @Published var accountTier: AccountTier = .free
     @Published var currentRefreshInterval: TimeInterval = 300
 
     // Status
@@ -95,14 +99,20 @@ final class AppState: ObservableObject {
     }
 
     func loadCredentials() -> Bool {
-        if let token = KeychainService.readClaudeCodeToken() {
-            setAuthenticated(token: token)
+        if let credentials = KeychainService.readClaudeCodeCredentials() {
+            accountTier = credentials.accountTier
+            setAuthenticated(token: credentials.accessToken)
             return true
         }
         return false
     }
 
     private func tryAutoLogin() {
+        // Always read credentials to get tier info
+        if let credentials = KeychainService.readClaudeCodeCredentials() {
+            accountTier = credentials.accountTier
+        }
+
         // Try saved token first
         if let token = KeychainService.read(account: "oauth-token"), !token.isEmpty {
             oauthToken = token
@@ -118,6 +128,7 @@ final class AppState: ObservableObject {
 
     // MARK: - Usage Polling
 
+    // swiftlint:disable:next function_body_length
     func fetchUsage() async {
         guard let token = oauthToken else { return }
 
@@ -231,12 +242,14 @@ final class AppState: ObservableObject {
 
             if let comps = response.components {
                 components = comps.map { (name: $0.name, status: ClaudeServiceStatus(rawValue: $0.status) ?? .unknown) }
+                let knownAPINames = ["api", "anthropic api"]
+                let knownCodeNames = ["claude.ai", "claude code", "claude for work"]
                 for (name, compStatus) in components {
                     let nameLower = name.lowercased()
-                    if nameLower.contains("api") {
+                    if knownAPINames.contains(where: { nameLower.contains($0) }) {
                         apiStatus = compStatus
                     }
-                    if nameLower.contains("claude.ai") || nameLower.contains("claude code") {
+                    if knownCodeNames.contains(where: { nameLower.contains($0) }) {
                         claudeCodeStatus = compStatus
                     }
                 }
@@ -364,6 +377,7 @@ final class AppState: ObservableObject {
     }
 
     private var historyFileURL: URL {
+        // swiftlint:disable:next force_unwrapping
         let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
         let dir = appSupport.appendingPathComponent("Spark")
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)

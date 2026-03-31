@@ -46,8 +46,8 @@ enum KeychainService {
         SecItemDelete(query as CFDictionary)
     }
 
-    /// Read Claude Code CLI OAuth token from Keychain
-    static func readClaudeCodeToken() -> String? {
+    /// Read Claude Code CLI credentials from Keychain
+    static func readClaudeCodeCredentials() -> ClaudeCredentials? {
         let query: [CFString: Any] = [
             kSecClass: kSecClassGenericPassword,
             kSecAttrService: "Claude Code-credentials" as CFString,
@@ -67,6 +67,51 @@ enum KeychainService {
             return nil
         }
 
-        return token
+        let subscriptionType = oauth["subscriptionType"] as? String
+        let rateLimitTier = oauth["rateLimitTier"] as? String
+
+        return ClaudeCredentials(
+            accessToken: token,
+            subscriptionType: subscriptionType,
+            rateLimitTier: rateLimitTier
+        )
     }
+
+    /// Convenience: read just the token
+    static func readClaudeCodeToken() -> String? {
+        readClaudeCodeCredentials()?.accessToken
+    }
+}
+
+struct ClaudeCredentials {
+    let accessToken: String
+    let subscriptionType: String?
+    let rateLimitTier: String?
+
+    var accountTier: AccountTier {
+        let plan: String = switch subscriptionType {
+        case "pro": "Pro"
+        case "max": "Max"
+        case "team": "Team"
+        default: "Free"
+        }
+
+        if let tier = rateLimitTier,
+           let range = tier.range(of: #"\d+x"#, options: .regularExpression) {
+            return AccountTier(plan: plan, multiplier: String(tier[range]))
+        }
+        return AccountTier(plan: plan, multiplier: nil)
+    }
+}
+
+struct AccountTier: Equatable {
+    let plan: String
+    let multiplier: String?
+
+    var displayName: String {
+        if let multiplier { return "\(plan) \(multiplier)" }
+        return plan
+    }
+
+    static let free = AccountTier(plan: "Free", multiplier: nil)
 }
