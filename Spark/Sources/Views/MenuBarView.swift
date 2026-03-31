@@ -256,7 +256,7 @@ struct UsageRow: View {
             guard seconds > 0 else { return 0 }
             return (100 - utilization) / (seconds / 3600)
         case .safe(let projected):
-            guard let resetTime else { return 0 }
+            guard resetTime != nil else { return 0 }
             // Rough estimate: parse hours from reset string isn't clean, use projected delta
             let delta = projected - utilization
             return delta > 0 ? delta : 0

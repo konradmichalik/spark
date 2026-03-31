@@ -1,7 +1,7 @@
 // swiftlint:disable file_length
 import SwiftUI
 import ServiceManagement
-import UserNotifications
+@preconcurrency import UserNotifications
 
 // MARK: - Main Settings View
 
