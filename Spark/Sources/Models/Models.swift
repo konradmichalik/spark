@@ -36,17 +36,7 @@ struct UsageBucket: Codable, Sendable {
         guard let date = resetsAtDate else { return nil }
         let interval = date.timeIntervalSinceNow
         if interval <= 0 { return "now" }
-        let totalMinutes = Int(interval) / 60
-        let days = totalMinutes / 1440
-        let hours = (totalMinutes % 1440) / 60
-        let minutes = totalMinutes % 60
-        if days > 0 {
-            return hours > 0 ? "\(days)d \(hours)h" : "\(days)d"
-        }
-        if hours > 0 {
-            return "\(hours)h \(minutes)m"
-        }
-        return "\(minutes)m"
+        return interval.shortDuration
     }
 }
 

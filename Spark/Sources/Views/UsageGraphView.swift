@@ -1,6 +1,6 @@
 import SwiftUI
 
-private let claudeOrange = Color(nsColor: NSColor(red: 0.85, green: 0.47, blue: 0.34, alpha: 1))
+private let claudeOrange = Theme.sparkOrange
 private let weeklyGray = Color(nsColor: NSColor(red: 0.55, green: 0.60, blue: 0.67, alpha: 1))
 private let graphHeight: CGFloat = 80
 private let yAxisWidth: CGFloat = 32
@@ -183,8 +183,16 @@ struct UsageGraphView: View {
                 }
 
                 // Draw time-proportional lines
-                drawTimeLine(context: context, data: data, size: canvasSize, color: weeklyGray, start: start, duration: duration, keyPath: \.weeklyUtilization)
-                drawTimeLine(context: context, data: data, size: canvasSize, color: claudeOrange, start: start, duration: duration, keyPath: \.sessionUtilization)
+                drawTimeLine(
+                    context: context, data: data, size: canvasSize,
+                    color: weeklyGray, start: start, duration: duration,
+                    keyPath: \.weeklyUtilization
+                )
+                drawTimeLine(
+                    context: context, data: data, size: canvasSize,
+                    color: claudeOrange, start: start, duration: duration,
+                    keyPath: \.sessionUtilization
+                )
 
                 // Hover indicator
                 if let idx = hoverIndex, idx < data.count {
@@ -263,6 +271,7 @@ struct UsageGraphView: View {
 
     // MARK: - Drawing
 
+    // swiftlint:disable:next function_parameter_count
     private func drawTimeLine(
         context: GraphicsContext,
         data: [UsageSnapshot],
