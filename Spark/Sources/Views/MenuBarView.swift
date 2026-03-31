@@ -144,6 +144,7 @@ struct MenuBarView: View {
         }
         .padding(12)
         .frame(width: 300)
+        .fixedSize(horizontal: false, vertical: true)
     }
 
     private func timeAgo(_ date: Date) -> String {
