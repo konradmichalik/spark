@@ -328,7 +328,7 @@ struct UsageRow: View {
 
                 Spacer()
                 if let resetTime {
-                    Button(action: { showResetPopover.toggle() }) {
+                    Button(action: { showResetPopover.toggle() }, label: {
                         HStack(spacing: 4) {
                             Image(systemName: "clock.arrow.circlepath")
                                 .font(.system(size: 9))
@@ -340,7 +340,7 @@ struct UsageRow: View {
                                 .font(.caption2)
                                 .foregroundColor(.secondary)
                         }
-                    }
+                    })
                     .buttonStyle(.plain)
                     .popover(isPresented: $showResetPopover, arrowEdge: .bottom) {
                         VStack(alignment: .leading, spacing: 6) {
