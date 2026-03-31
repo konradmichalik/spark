@@ -412,16 +412,24 @@ struct StatusRow: View {
     var body: some View {
         HStack {
             Image(systemName: state.status.emoji)
-                .foregroundColor(.orange)
+                .foregroundColor(Theme.sparkOrange)
             Text("Claude: \(state.status.displayName)")
                 .font(.caption)
 
             Spacer()
 
             if !state.claudeCodeStatus.isHealthy {
-                Text("Code: \(state.claudeCodeStatus.displayName)")
-                    .font(.caption2)
-                    .foregroundColor(.orange)
+                // swiftlint:disable:next force_unwrapping
+                Link(destination: URL(string: "https://status.claude.com")!) {
+                    HStack(spacing: 2) {
+                        Text("Code: \(state.claudeCodeStatus.displayName)")
+                            .font(.caption2)
+                        Image(systemName: "arrow.up.right.square")
+                            .font(.system(size: 9))
+                    }
+                    .foregroundColor(Theme.sparkOrange)
+                }
+                .buttonStyle(.plain)
             }
         }
     }

@@ -576,12 +576,12 @@ struct StatusTab: View {
                         .buttonStyle(.borderless)
 
                         // swiftlint:disable:next force_unwrapping
-                        Link(destination: URL(string: "https://status.anthropic.com")!) {
+                        Link(destination: URL(string: "https://status.claude.com")!) {
                             Image(systemName: "arrow.up.right.square")
                                 .font(.system(size: 11))
                         }
                         .buttonStyle(.borderless)
-                        .help("Open status.anthropic.com")
+                        .help("Open status.claude.com")
                     }
                 }
 
@@ -594,14 +594,14 @@ struct StatusTab: View {
                         ForEach(Array(state.components.enumerated()), id: \.offset) { _, component in
                             HStack {
                                 Image(systemName: component.status.emoji)
-                                    .foregroundColor(component.status.isHealthy ? .green : .orange)
+                                    .foregroundColor(component.status.isHealthy ? .green : Theme.sparkOrange)
                                     .font(.caption)
                                 Text(component.name)
                                     .font(.callout)
                                 Spacer()
                                 Text(component.status.displayName)
                                     .font(.callout)
-                                    .foregroundColor(component.status.isHealthy ? .secondary : .orange)
+                                    .foregroundColor(component.status.isHealthy ? .secondary : Theme.sparkOrange)
                             }
                         }
                     }
