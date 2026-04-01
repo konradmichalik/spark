@@ -138,6 +138,7 @@ struct MenuBarView: View {
         .padding(12)
         .frame(width: 300)
         .fixedSize(horizontal: false, vertical: true)
+        .background(WindowResizer())
     }
 
     private func timeAgo(_ date: Date) -> String {
@@ -455,6 +456,36 @@ struct StatusRow: View {
                 }
                 .buttonStyle(.plain)
             }
+        }
+    }
+}
+
+// MARK: - Window Resizer
+
+/// Measures the SwiftUI content size via GeometryReader and forces the
+/// hosting NSPanel to match, working around the MenuBarExtra resize bug.
+private struct WindowResizer: View {
+    var body: some View {
+        GeometryReader { proxy in
+            Color.clear
+                .onChange(of: proxy.size) { _, newSize in
+                    resizeHostingWindow(to: newSize)
+                }
+                .onAppear {
+                    resizeHostingWindow(to: proxy.size)
+                }
+        }
+    }
+
+    private func resizeHostingWindow(to size: CGSize) {
+        DispatchQueue.main.async {
+            guard let panel = NSApp.windows.first(where: { $0 is NSPanel && $0.isVisible }) else { return }
+            let contentRect = panel.contentRect(forFrameRect: panel.frame)
+            let deltaHeight = size.height - contentRect.size.height
+            var frame = panel.frame
+            frame.origin.y -= deltaHeight
+            frame.size.height += deltaHeight
+            panel.setFrame(frame, display: true)
         }
     }
 }
