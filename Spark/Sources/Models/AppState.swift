@@ -58,6 +58,7 @@ final class AppState: ObservableObject {
     private var lastFetchTime: Date = .distantPast
     private var previousUtilization: Double = 0
     private var idleTicks: Int = 0
+    private var consecutiveRateLimits: Int = 0
     private let maxHistoryEntries = 8640 // ~30 days at 5-min intervals
 
     // Notification tracking
@@ -128,13 +129,12 @@ final class AppState: ObservableObject {
 
     // MARK: - Usage Polling
 
-    // swiftlint:disable:next function_body_length
     func fetchUsage() async {
         guard let token = oauthToken else { return }
 
-        // Debounce: minimum 30 seconds between requests
+        // Debounce: minimum 60 seconds between requests
         let elapsed = Date().timeIntervalSince(lastFetchTime)
-        if elapsed < 30 { return }
+        if elapsed < 60 { return }
         lastFetchTime = Date()
 
         isLoading = true
@@ -151,34 +151,16 @@ final class AppState: ObservableObject {
                 weeklySonnet: response.sevenDaySonnet,
                 lastUpdated: Date()
             )
+            consecutiveRateLimits = 0
             addHistorySnapshot()
             refreshLiveStats()
             scheduleNextRefresh()
         } catch let error as UsageClient.ClientError {
             switch error {
             case .rateLimited:
-                lastError = "Rate limited. Retrying in 10 minutes."
-                startUsagePolling(interval: 600)
+                await handleRateLimited()
             case .unauthorized:
-                if let newToken = KeychainService.readClaudeCodeToken() {
-                    oauthToken = newToken
-                    KeychainService.save(newToken, account: "oauth-token")
-                    do {
-                        let response = try await Task.detached {
-                            try await UsageClient.fetchUsage(token: newToken)
-                        }.value
-                        usageData = UsageData(
-                            session: response.fiveHour,
-                            weekly: response.sevenDay,
-                            weeklySonnet: response.sevenDaySonnet,
-                            lastUpdated: Date()
-                        )
-                    } catch {
-                        lastError = error.localizedDescription
-                    }
-                } else {
-                    lastError = error.localizedDescription
-                }
+                await handleUnauthorized()
             default:
                 lastError = error.localizedDescription
             }
@@ -187,6 +169,53 @@ final class AppState: ObservableObject {
         }
 
         isLoading = false
+    }
+
+    private func refreshTokenAndFetch() async throws {
+        guard let freshToken = KeychainService.readClaudeCodeToken() else {
+            throw UsageClient.ClientError.unauthorized
+        }
+        oauthToken = freshToken
+        KeychainService.save(freshToken, account: "oauth-token")
+        let response = try await Task.detached {
+            try await UsageClient.fetchUsage(token: freshToken)
+        }.value
+        usageData = UsageData(
+            session: response.fiveHour,
+            weekly: response.sevenDay,
+            weeklySonnet: response.sevenDaySonnet,
+            lastUpdated: Date()
+        )
+        consecutiveRateLimits = 0
+        scheduleNextRefresh()
+    }
+
+    private func handleRateLimited() async {
+        consecutiveRateLimits += 1
+
+        // Try refreshing the token — a new token resets the per-token rate limit
+        if let freshToken = KeychainService.readClaudeCodeToken(), freshToken != oauthToken {
+            do {
+                try await refreshTokenAndFetch()
+                return
+            } catch {
+                // Retry also failed — fall through to backoff
+            }
+        }
+
+        // Exponential backoff: 10min → 20min → 40min → 60min (cap)
+        let backoff = min(600 * pow(2.0, Double(consecutiveRateLimits - 1)), 3600)
+        let backoffMinutes = Int(backoff / 60)
+        lastError = "Rate limited. Retrying in \(backoffMinutes) min."
+        startUsagePolling(interval: backoff)
+    }
+
+    private func handleUnauthorized() async {
+        do {
+            try await refreshTokenAndFetch()
+        } catch {
+            lastError = "Token expired. Please re-authenticate."
+        }
     }
 
     private func scheduleNextRefresh() {
