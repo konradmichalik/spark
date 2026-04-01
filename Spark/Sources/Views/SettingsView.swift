@@ -159,6 +159,7 @@ struct AppearanceTab: View {
                         Picker("", selection: $state.iconStyle) {
                             Text("Minimal").tag("minimal")
                             Text("Dot").tag("dot")
+                            Text("Bar").tag("bar")
                             Text("Logo").tag("logo")
                         }
                         .pickerStyle(.segmented)
@@ -169,6 +170,7 @@ struct AppearanceTab: View {
                             Text("Highest").tag("max")
                             Text("Session").tag("session")
                             Text("Weekly").tag("weekly")
+                            Text("None").tag("none")
                         }
                         .pickerStyle(.segmented)
                     }
