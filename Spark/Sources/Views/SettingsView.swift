@@ -643,14 +643,25 @@ struct AboutTab: View {
                 .font(.callout)
                 .foregroundColor(.secondary)
 
-            Button {
-                if let url = URL(string: "https://github.com/konradmichalik/spark") {
-                    NSWorkspace.shared.open(url)
+            HStack(spacing: 8) {
+                Button {
+                    if let url = URL(string: "https://konradmichalik.github.io/spark/") {
+                        NSWorkspace.shared.open(url)
+                    }
+                } label: {
+                    Label("Website", systemImage: "globe")
                 }
-            } label: {
-                Label("GitHub Repository", systemImage: "link")
+                .buttonStyle(.bordered)
+
+                Button {
+                    if let url = URL(string: "https://github.com/konradmichalik/spark") {
+                        NSWorkspace.shared.open(url)
+                    }
+                } label: {
+                    Label("GitHub", systemImage: "link")
+                }
+                .buttonStyle(.bordered)
             }
-            .buttonStyle(.bordered)
 
             updateCheckSection
 
