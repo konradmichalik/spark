@@ -9,6 +9,7 @@
 </p>
 
 <p align="center">
+  <a href="https://konradmichalik.github.io/spark/"><img src="https://img.shields.io/badge/Website-konradmichalik.github.io%2Fspark-d97757" alt="Website"></a>
   <img src="https://img.shields.io/badge/macOS-14%2B-blue" alt="macOS 14+">
   <img src="https://img.shields.io/badge/Swift-5.9-orange" alt="Swift 5.9">
   <img src="https://img.shields.io/badge/license-MIT-green" alt="License">
