@@ -53,7 +53,7 @@ brew install konradmichalik/tap/spark
 To update to the latest version:
 
 ```bash
-brew update && brew upgrade spark
+brew upgrade --cask konradmichalik/tap/spark
 ```
 
 ### Requirements
