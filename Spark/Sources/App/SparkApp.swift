@@ -181,8 +181,38 @@ struct MenuBarLabel: View {
             let transform = AffineTransform(translationByX: sparkRect.minX, byY: sparkRect.minY)
             let bezier = NSBezierPath(cgPath: sparkPath.cgPath)
             bezier.transform(using: transform)
-            Theme.sparkOrangeNS.setFill()
+            let sparkColor: NSColor = self.state.coloredIcon ? .labelColor : Theme.sparkOrangeNS
+            sparkColor.setFill()
             bezier.fill()
+
+            return true
+        }
+        image.isTemplate = !state.coloredIcon
+        return image
+    }
+
+    private var barIcon: NSImage {
+        let utilization = displayValue
+        let imgSize = CGSize(width: 18, height: 12)
+        let image = NSImage(size: imgSize, flipped: false) { rect in
+            let barHeight: CGFloat = 5
+            let barY = (rect.height - barHeight) / 2
+            let cornerRadius: CGFloat = barHeight / 2
+
+            // Track
+            let trackRect = CGRect(x: 0, y: barY, width: rect.width, height: barHeight)
+            let trackPath = NSBezierPath(roundedRect: trackRect, xRadius: cornerRadius, yRadius: cornerRadius)
+            NSColor.gray.withAlphaComponent(0.3).setFill()
+            trackPath.fill()
+
+            // Fill
+            let fillWidth = max(0, rect.width * CGFloat(min(utilization, 100)) / 100)
+            if fillWidth > 0 {
+                let fillRect = CGRect(x: 0, y: barY, width: fillWidth, height: barHeight)
+                let fillPath = NSBezierPath(roundedRect: fillRect, xRadius: cornerRadius, yRadius: cornerRadius)
+                self.iconColor.setFill()
+                fillPath.fill()
+            }
 
             return true
         }
@@ -209,26 +239,40 @@ struct MenuBarLabel: View {
         state.coloredIcon ? Color(nsColor: iconColor) : .primary
     }
 
+    private var showPercentage: Bool {
+        state.menuBarValue != "none"
+    }
+
+    @ViewBuilder
+    private var percentageText: some View {
+        Text("\(Int(displayValue))%")
+            .font(.system(.caption, design: .monospaced))
+            .foregroundColor(percentageColor)
+    }
+
     var body: some View {
         switch state.iconStyle {
         case "minimal":
-            Text("\(Int(displayValue))%")
-                .font(.system(.caption, design: .monospaced))
-                .foregroundColor(percentageColor)
+            if showPercentage {
+                percentageText
+            } else {
+                Image(nsImage: sparkIcon)
+            }
         case "dot":
             HStack(spacing: 6) {
                 Image(nsImage: dotIcon)
                     .frame(width: 16, height: 16)
-                Text("\(Int(displayValue))%")
-                    .font(.system(.caption, design: .monospaced))
-                    .foregroundColor(percentageColor)
+                if showPercentage { percentageText }
+            }
+        case "bar":
+            HStack(spacing: 6) {
+                Image(nsImage: barIcon)
+                if showPercentage { percentageText }
             }
         default:
             HStack(spacing: 6) {
                 Image(nsImage: sparkIcon)
-                Text("\(Int(displayValue))%")
-                    .font(.system(.caption, design: .monospaced))
-                    .foregroundColor(percentageColor)
+                if showPercentage { percentageText }
             }
         }
     }
