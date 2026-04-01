@@ -11,7 +11,7 @@ struct MenuBarView: View {
             HStack(spacing: 6) {
                 SparkLogoView(size: 20)
                 Text("Spark")
-                    .font(.custom("InstrumentSerif-Regular", size: 18))
+                    .font(.custom("InstrumentSerif-Regular", size: 15))
 
                 Text(state.accountTier.displayName)
                     .font(.caption2)
