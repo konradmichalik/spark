@@ -633,7 +633,7 @@ struct AboutTab: View {
             SparkLogoView(size: 80)
 
             Text("Spark")
-                .font(.system(size: 22, weight: .semibold))
+                .font(.custom("InstrumentSerif-Regular", size: 28))
 
             Text("Version \(appVersion)")
                 .font(.caption)
