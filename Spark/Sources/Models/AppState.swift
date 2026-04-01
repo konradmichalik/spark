@@ -64,8 +64,8 @@ final class AppState: ObservableObject {
     private var lastSessionLevel: UsageLevel = .ok
     private var lastWeeklyLevel: UsageLevel = .ok
     private var lastStatusNotification: ClaudeServiceStatus = .operational
-    private var lastSessionResetDate: Date?
-    private var lastWeeklyResetDate: Date?
+    private var hasSentSessionResetNotification = true
+    private var hasSentWeeklyResetNotification = true
 
     // MARK: - Lifecycle
 
@@ -331,18 +331,18 @@ final class AppState: ObservableObject {
     private func checkResetNotification() {
         guard notifyOnReset else { return }
 
-        if let resetDate = usageData.session?.resetsAtDate {
-            if let lastDate = lastSessionResetDate, resetDate != lastDate, usageData.sessionUtilization < 5 {
-                sendNotification(id: "reset-session", title: "Session limit reset", body: "Your Claude Code session usage has been reset.")
-            }
-            lastSessionResetDate = resetDate
+        // Reset the "sent" flags once utilization climbs back above 10%
+        if usageData.sessionUtilization >= 10 { hasSentSessionResetNotification = false }
+        if usageData.weeklyUtilization >= 10 { hasSentWeeklyResetNotification = false }
+
+        if usageData.sessionUtilization < 5, !hasSentSessionResetNotification {
+            sendNotification(id: "reset-session", title: "Session limit reset", body: "Your Claude Code session usage has been reset.")
+            hasSentSessionResetNotification = true
         }
 
-        if let resetDate = usageData.weekly?.resetsAtDate {
-            if let lastDate = lastWeeklyResetDate, resetDate != lastDate, usageData.weeklyUtilization < 5 {
-                sendNotification(id: "reset-weekly", title: "Weekly limit reset", body: "Your Claude Code weekly usage has been reset.")
-            }
-            lastWeeklyResetDate = resetDate
+        if usageData.weeklyUtilization < 5, !hasSentWeeklyResetNotification {
+            sendNotification(id: "reset-weekly", title: "Weekly limit reset", body: "Your Claude Code weekly usage has been reset.")
+            hasSentWeeklyResetNotification = true
         }
     }
 
