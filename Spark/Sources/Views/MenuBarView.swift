@@ -304,7 +304,7 @@ struct UsageRow: View {
                     })
                     .buttonStyle(.plain)
                     .popover(isPresented: $showProjectionPopover, arrowEdge: .bottom) {
-                        VStack(alignment: .leading, spacing: 6) {
+                        VStack(spacing: 6) {
                             if let title = projectionTitle {
                                 HStack(spacing: 4) {
                                     Image(systemName: "chart.line.uptrend.xyaxis")
@@ -343,7 +343,7 @@ struct UsageRow: View {
                     })
                     .buttonStyle(.plain)
                     .popover(isPresented: $showResetPopover, arrowEdge: .bottom) {
-                        VStack(alignment: .leading, spacing: 6) {
+                        VStack(spacing: 6) {
                             HStack(spacing: 4) {
                                 Image(systemName: "clock.arrow.circlepath")
                                     .foregroundColor(.secondary)
