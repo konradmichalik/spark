@@ -375,7 +375,7 @@ struct UsageRow: View {
                 Text("\(Int(utilization))%")
                     .font(.system(.body, design: .monospaced))
                     .fontWeight(.medium)
-                    .foregroundColor(color)
+                    .foregroundColor(utilization >= warningThreshold ? color : .primary)
                     .frame(width: 40, alignment: .trailing)
             }
         }
@@ -414,6 +414,10 @@ struct ProjectedProgressBar: View {
     var body: some View {
         GeometryReader { geometry in
             ZStack(alignment: .leading) {
+                // Opaque backing to prevent vibrancy bleed-through
+                RoundedRectangle(cornerRadius: 3)
+                    .fill(Color(nsColor: .windowBackgroundColor).opacity(0.6))
+
                 // Track
                 RoundedRectangle(cornerRadius: 3)
                     .fill(.quaternary)
