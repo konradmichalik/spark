@@ -116,18 +116,8 @@ struct MenuBarView: View {
 
             // Footer
             HStack {
-                if state.isLoading {
-                    ProgressView()
-                        .controlSize(.small)
-                } else {
-                    Button {
-                        Task { await state.fetchUsage() }
-                    } label: {
-                        Image(systemName: "arrow.clockwise")
-                            .font(.system(size: 12))
-                    }
-                    .buttonStyle(.borderless)
-                    .help("Refresh")
+                RefreshButton(isLoading: state.isLoading) {
+                    Task { await state.fetchUsage() }
                 }
 
                 Text("Updated: \(timeAgo(state.usageData.lastUpdated))")
@@ -464,6 +454,40 @@ struct StatusRow: View {
                     .foregroundColor(Theme.sparkOrange)
                 }
                 .buttonStyle(.plain)
+            }
+        }
+    }
+}
+
+// MARK: - Refresh Button
+
+struct RefreshButton: View {
+    let isLoading: Bool
+    let action: () -> Void
+
+    @State private var rotation: Double = 0
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: "arrow.clockwise")
+                .font(.system(size: 12))
+                .rotationEffect(.degrees(rotation))
+        }
+        .buttonStyle(.borderless)
+        .disabled(isLoading)
+        .opacity(isLoading ? 0.5 : 1)
+        .help(isLoading ? "Refreshing\u{2026}" : "Refresh")
+        .task(id: isLoading) {
+            guard isLoading else { return }
+            while !Task.isCancelled {
+                withAnimation(.linear(duration: 0.8)) {
+                    rotation += 360
+                }
+                do {
+                    try await Task.sleep(for: .seconds(0.8))
+                } catch {
+                    return
+                }
             }
         }
     }
