@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Spark — Claude Code Usage in Your Menu Bar</title>
+  <meta name="description" content="A native macOS menu bar app that shows your Claude Code usage at a glance. Color-coded ring icon, session projections, usage history, smart polling.">
+  <meta property="og:title" content="Spark — Claude Code Usage in Your Menu Bar">
+  <meta property="og:description" content="A native macOS menu bar app that shows your Claude Code usage at a glance.">
+  <meta property="og:type" content="website">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300..700;1,9..40,300..700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Header -->
+  <header class="header">
+    <div class="header-inner">
+      <div class="header-logo">
+        <img src="spark-logo.svg" alt="Spark" width="24" height="24">
+        <span>Spark</span>
+      </div>
+      <nav class="header-nav">
+        <a href="#features" class="hide-mobile">Features</a>
+        <a href="#install" class="hide-mobile">Install</a>
+        <span class="version-badge">v0.2.2</span>
+        <a href="https://github.com/konradmichalik/spark" target="_blank" rel="noopener" class="gh-link" aria-label="GitHub">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+        </a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Hero -->
+  <section class="hero">
+    <h1>Know your<br><em>Claude Code</em> usage</h1>
+    <p class="hero-sub">A native menu bar app that keeps your usage visible, color-coded, and always one glance away.</p>
+    <div class="hero-actions">
+      <a href="#install" class="btn btn-primary">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Install with Homebrew
+      </a>
+      <a href="https://github.com/konradmichalik/spark" target="_blank" rel="noopener" class="btn btn-secondary">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+        View on GitHub
+      </a>
+    </div>
+    <div class="hero-mockup-wrap" role="img" aria-label="Spark app popover showing session and weekly Claude Code usage, today's stats, and a usage history graph">
+      <div class="mockup-desktop">
+        <!-- macOS menu bar -->
+        <div class="mockup-menubar">
+          <div style="display:flex;align-items:center;gap:4px;">
+            <img src="spark-logo.svg" alt="" width="16" height="16" style="opacity:0.9">
+            <span style="font-size:10px;opacity:0.8">69%</span>
+          </div>
+          <span>Wed 14:32</span>
+        </div>
+        <!-- App popover -->
+        <div class="mockup-popover">
+          <div class="pop-header">
+            <img src="spark-logo.svg" alt="" width="22" height="22">
+            <span class="pop-title">Spark</span>
+            <span class="pop-badge">Team 5x</span>
+            <span class="pop-settings"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>
+          </div>
+          <div class="pop-divider"></div>
+          <!-- Session -->
+          <div class="pop-section-label">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+            Session (5h)
+            <span class="pop-timer"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> 32m</span>
+          </div>
+          <div class="pop-progress-row">
+            <div class="pop-progress"><div class="pop-progress-fill green" style="width:63%"></div></div>
+            <div class="pop-percent">63%</div>
+          </div>
+          <div class="pop-divider"></div>
+          <!-- Weekly -->
+          <div class="pop-section-label">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            Weekly (7 days)
+            <span class="pop-timer"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> 5d 21h</span>
+          </div>
+          <div class="pop-progress-row">
+            <div class="pop-progress"><div class="pop-progress-fill green" style="width:11%"></div></div>
+            <div class="pop-percent">11%</div>
+          </div>
+          <div class="pop-divider"></div>
+          <!-- Stats -->
+          <div class="pop-section-label">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 9h4v11H4z"/><path d="M10 4h4v16h-4z"/><path d="M16 13h4v7h-4z"/></svg>
+            Stats (today)
+          </div>
+          <div class="pop-stats">
+            <div class="pop-stat-row"><span class="label">Messages</span><span class="value">152</span></div>
+            <div class="pop-stat-row"><span class="label">Sessions</span><span class="value">25</span></div>
+            <div class="pop-stat-row"><span class="label">Tokens</span><span class="value">536.9K</span></div>
+          </div>
+          <div class="pop-divider"></div>
+          <!-- History -->
+          <div class="pop-section-label">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            History
+            <div class="pop-range-tabs">
+              <span class="pop-range-tab">1h</span>
+              <span class="pop-range-tab active">6h</span>
+              <span class="pop-range-tab">1d</span>
+              <span class="pop-range-tab">7d</span>
+              <span class="pop-range-tab">30d</span>
+            </div>
+          </div>
+          <div class="pop-chart">
+            <div class="pop-chart-labels-y">
+              <span>100%</span><span>75%</span><span>50%</span><span>25%</span><span>0%</span>
+            </div>
+            <svg viewBox="0 0 250 90" preserveAspectRatio="none" style="width:calc(100% - 32px);height:calc(100% - 16px)">
+              <line x1="0" y1="0" x2="250" y2="0" stroke="rgba(255,255,255,0.04)" stroke-width="0.5"/>
+              <line x1="0" y1="22.5" x2="250" y2="22.5" stroke="rgba(255,255,255,0.04)" stroke-width="0.5"/>
+              <line x1="0" y1="45" x2="250" y2="45" stroke="rgba(255,255,255,0.04)" stroke-width="0.5"/>
+              <line x1="0" y1="67.5" x2="250" y2="67.5" stroke="rgba(255,255,255,0.04)" stroke-width="0.5"/>
+              <line x1="0" y1="90" x2="250" y2="90" stroke="rgba(255,255,255,0.04)" stroke-width="0.5"/>
+              <polyline points="0,49 25,50 50,52 75,54 100,52 115,50 130,48 150,44 170,40 185,36 200,30 220,26 240,22 250,20" fill="none" stroke="#d97757" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              <polyline points="0,72 25,72 50,73 75,72 100,72 130,70 150,69 170,68 200,67 230,66 250,65" fill="none" stroke="rgba(136,192,208,0.5)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <div class="pop-chart-labels-x">
+              <span>11:31</span><span>14:31</span><span>17:31</span>
+            </div>
+          </div>
+          <div class="pop-divider"></div>
+          <div class="pop-footer">
+            <span><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="vertical-align:-1px"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg> Updated: 25s ago</span>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/></svg>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features -->
+  <section class="features" id="features">
+    <div class="section-inner">
+      <div class="section-header reveal">
+        <h2>Everything at a glance</h2>
+        <p>Built for developers who live in the terminal and want usage data without context-switching.</p>
+      </div>
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="feature-icon icon-ring">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a10 10 0 0 1 7.07 17.07"/></svg>
+          </div>
+          <h3>Live Usage Ring</h3>
+          <p>The menu bar icon fills as your usage grows. Color shifts from green through orange to red, so you always know where you stand.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon icon-chart">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          </div>
+          <h3>Usage History</h3>
+          <p>Interactive graph with selectable time ranges — 1 hour to 30 days. Hover for precise values at any point in time.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon icon-bolt">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+          </div>
+          <h3>Session Projection</h3>
+          <p>Estimates whether you'll hit the rate limit before the session window resets. Plan your coding sessions accordingly.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon icon-bell">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          </div>
+          <h3>Smart Notifications</h3>
+          <p>Alerts for warning thresholds, critical levels, limit resets, and service incidents. Never get surprised by a rate limit.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon icon-key">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          </div>
+          <h3>Keychain Integration</h3>
+          <p>Reads your existing Claude Code CLI credentials from macOS Keychain. No tokens to paste, no config files to edit.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon icon-stats">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+          </div>
+          <h3>Daily Stats</h3>
+          <p>Messages sent, sessions started, tokens consumed — parsed from your local Claude Code history files. All stays on your machine.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Install -->
+  <section class="install" id="install">
+    <div class="install-inner">
+      <div class="section-header reveal">
+        <h2>Get started in seconds</h2>
+        <p>One command. No dependencies, no sign-up, no config.</p>
+      </div>
+      <div class="install-box reveal">
+        <div class="install-box-header">
+          <span class="dot"></span>
+          <span class="dot"></span>
+          <span class="dot"></span>
+        </div>
+        <div class="install-steps">
+          <div class="install-step">
+            <div class="step-num">1</div>
+            <div class="step-content">
+              <h4>Install via Homebrew</h4>
+              <div class="code-block">
+                <code><span class="prompt">$ </span>brew install konradmichalik/tap/spark</code>
+                <button class="copy-btn" data-cmd="brew install konradmichalik/tap/spark" aria-label="Copy command">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                </button>
+              </div>
+            </div>
+          </div>
+          <div class="install-step">
+            <div class="step-num">2</div>
+            <div class="step-content">
+              <h4>Make sure Claude Code is authenticated</h4>
+              <p>Spark reads the OAuth token stored by Claude Code CLI in macOS Keychain.</p>
+              <div class="code-block">
+                <code><span class="prompt">$ </span>claude auth login</code>
+                <button class="copy-btn" data-cmd="claude auth login" aria-label="Copy command">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                </button>
+              </div>
+            </div>
+          </div>
+          <div class="install-step">
+            <div class="step-num">3</div>
+            <div class="step-content">
+              <h4>Launch Spark</h4>
+              <p>Open from Applications or Spotlight. The usage ring appears in your menu bar — that's it.</p>
+            </div>
+          </div>
+        </div>
+        <div class="install-note">
+          <p>To update: <code style="font-family:var(--font-mono);font-size:12px;color:var(--text-muted)">brew upgrade --cask konradmichalik/tap/spark</code> &middot; Requires macOS 14+ &middot; <a href="https://github.com/konradmichalik/spark/blob/main/docs/DEVELOPMENT.md" target="_blank" rel="noopener">Build from source</a></p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="footer-links">
+      <a href="https://github.com/konradmichalik/spark" target="_blank" rel="noopener">GitHub</a>
+      <span class="footer-dot">&middot;</span>
+      <a href="https://github.com/konradmichalik/spark/releases" target="_blank" rel="noopener">Releases</a>
+      <span class="footer-dot">&middot;</span>
+      <a href="https://github.com/konradmichalik/spark/blob/main/LICENSE" target="_blank" rel="noopener">MIT License</a>
+    </div>
+    <p class="footer-copy">&copy; 2026 Konrad Michalik</p>
+  </footer>
+
+  <script src="main.js"></script>
+
+</body>
+</html>

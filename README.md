@@ -16,6 +16,10 @@
 
 ---
 
+<p align="center">
+  <img src="screenshot.jpg" width="400" alt="Spark — Claude Code usage popover showing session and weekly usage, today's stats, and a usage history graph">
+</p>
+
 > **Why another usage app?**
 > There are several Claude Code usage tools already — and some are great. Spark exists because none of them checked all my boxes: a menu bar icon that doubles as a live usage gauge, session projections, usage history across time ranges, and smart polling that stays out of the way. So I built exactly what I wanted — entirely with Claude Code.
 
@@ -49,7 +53,7 @@ brew install konradmichalik/tap/spark
 To update to the latest version:
 
 ```bash
-brew update && brew upgrade spark
+brew upgrade --cask konradmichalik/tap/spark
 ```
 
 ### Requirements
