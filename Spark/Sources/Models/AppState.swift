@@ -506,4 +506,3 @@ enum AuthMethod: String, Sendable {
     case claudeCode = "Claude Code"
     case oauth = "OAuth (Browser)"
 }
-
