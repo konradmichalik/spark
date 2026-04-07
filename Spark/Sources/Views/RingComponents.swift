@@ -73,7 +73,8 @@ struct RingTooltip: View {
             Text(ring.label)
                 .fontWeight(.medium)
             Text("\(Int(ring.utilization))%")
-                .font(.system(.caption, design: .monospaced))
+                .font(.system(.body, design: .monospaced))
+                .fontWeight(.semibold)
             if showProjection, let projectionText = projectionText {
                 Text(projectionText)
                     .foregroundColor(.secondary)
