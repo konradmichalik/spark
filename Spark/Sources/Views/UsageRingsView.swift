@@ -170,6 +170,8 @@ private struct SeparateRingItem: View {
     let ringWidth: CGFloat
     let ringSize: CGFloat
     @State private var showResetPopover = false
+    @State private var isHovered = false
+    @State private var hoverInProjectionZone = false
 
     var body: some View {
         VStack(spacing: 4) {
@@ -183,9 +185,24 @@ private struct SeparateRingItem: View {
                     size: ringSize
                 )
 
-                Text("\(Int(ring.utilization))%")
-                    .font(.system(.caption2, design: .monospaced))
-                    .fontWeight(.medium)
+                if isHovered {
+                    RingTooltip(ring: ring, showProjection: hoverInProjectionZone)
+                } else {
+                    Text("\(Int(ring.utilization))%")
+                        .font(.system(.caption2, design: .monospaced))
+                        .fontWeight(.medium)
+                }
+            }
+            .onContinuousHover { phase in
+                switch phase {
+                case .active(let location):
+                    let onRing = hitTestRing(location)
+                    isHovered = onRing.hit
+                    hoverInProjectionZone = onRing.inProjectionZone
+                case .ended:
+                    isHovered = false
+                    hoverInProjectionZone = false
+                }
             }
 
             HStack(spacing: 4) {
@@ -233,6 +250,46 @@ private struct SeparateRingItem: View {
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(ring.label) usage \(Int(ring.utilization)) percent")
         .accessibilityValue(ring.resetTime.map { "Resets in \($0)" } ?? "")
+    }
+
+    private struct RingHit {
+        let hit: Bool
+        let inProjectionZone: Bool
+    }
+
+    private func hitTestRing(_ point: CGPoint) -> RingHit {
+        let center = CGPoint(x: ringSize / 2, y: ringSize / 2)
+        let dx = point.x - center.x
+        let dy = point.y - center.y
+        let distance = sqrt(dx * dx + dy * dy)
+
+        let radius = ringSize / 2
+        let innerEdge = radius - ringWidth / 2
+        let outerEdge = radius + ringWidth / 2
+
+        guard distance >= innerEdge && distance <= outerEdge else {
+            return RingHit(hit: false, inProjectionZone: false)
+        }
+
+        let fillFraction = min(ring.utilization, 100) / 100
+        let projectedFraction: Double = {
+            switch ring.projection {
+            case .limitReached: return 1.0
+            case .safe(let projected): return min(projected, 100) / 100
+            case .insufficientData: return 0
+            }
+        }()
+
+        let angle = atan2(dx, -dy)
+        let normalizedAngle = angle < 0 ? angle + 2 * .pi : angle
+        let fraction = normalizedAngle / (2 * .pi)
+
+        let inProjection = showProjection
+            && projectedFraction > fillFraction
+            && fraction > fillFraction
+            && fraction <= projectedFraction
+
+        return RingHit(hit: true, inProjectionZone: inProjection)
     }
 }
 
