@@ -14,9 +14,13 @@ struct SettingsView: View {
                 .environmentObject(state)
                 .tabItem { Label("General", systemImage: "gearshape") }
 
-            AppearanceTab()
+            MenuBarTab()
                 .environmentObject(state)
-                .tabItem { Label("Appearance", systemImage: "paintbrush") }
+                .tabItem { Label("Menu Bar", systemImage: "menubar.rectangle") }
+
+            DisplayTab()
+                .environmentObject(state)
+                .tabItem { Label("Display", systemImage: "square.grid.2x2") }
 
             ConnectionTab()
                 .environmentObject(state)
@@ -33,14 +37,14 @@ struct SettingsView: View {
             AboutTab()
                 .tabItem { Label("About", systemImage: "info.circle") }
         }
-        .frame(width: 480, height: 440)
+        .frame(width: 520, height: 510)
         .onAppear {
             NSApp.activate()
         }
     }
 }
 
-// MARK: - Card Style
+// MARK: - Shared Components
 
 struct CardView<Content: View>: View {
     let content: Content
@@ -54,184 +58,18 @@ struct CardView<Content: View>: View {
     }
 }
 
-// MARK: - Connection Tab
-
-struct ConnectionTab: View {
-    @EnvironmentObject var state: AppState
-    @State private var isAuthenticating = false
-    @State private var authError: String?
+private struct SectionHeader: View {
+    let title: String
+    let icon: String
 
     var body: some View {
-        VStack(spacing: 12) {
-            if state.isAuthenticated {
-                CardView {
-                    HStack {
-                        Image(systemName: "checkmark.circle.fill")
-                            .foregroundColor(.green)
-                            .font(.title2)
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("Connected")
-                                .font(.callout)
-                                .fontWeight(.medium)
-                            Text("Via \(state.authMethod.rawValue)")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
-                        Spacer()
-                        Button("Log Out") { state.logout() }
-                            .foregroundColor(.red)
-                    }
-                }
-            } else {
-                CardView {
-                    Label("Connect to Claude Code", systemImage: "terminal.fill")
-                        .font(.callout)
-                        .fontWeight(.medium)
-
-                    Text("Reads the OAuth token from the Claude Code Keychain.")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-
-                    if isAuthenticating {
-                        HStack {
-                            ProgressView().controlSize(.small)
-                            Text("Connecting...").font(.caption)
-                        }
-                    } else {
-                        Button {
-                            isAuthenticating = true
-                            authError = nil
-                            if !state.loadCredentials() {
-                                authError = "No OAuth token found in Keychain."
-                            }
-                            isAuthenticating = false
-                        } label: {
-                            HStack {
-                                Image(systemName: "key.fill")
-                                Text("Load Credentials")
-                            }
-                            .frame(maxWidth: .infinity)
-                        }
-                        .controlSize(.large)
-                    }
-                }
-
-                CardView {
-                    Label("CLI not installed or not logged in?", systemImage: "questionmark.circle")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-
-                    Button(action: { state.openCLILogin() }, label: {
-                        Label("Open Terminal & Log In", systemImage: "arrow.up.forward.app.fill")
-                    })
-                    .font(.callout)
-                }
-            }
-
-            if let error = authError ?? state.lastError {
-                CardView {
-                    Label(error, systemImage: "exclamationmark.triangle.fill")
-                        .font(.caption)
-                        .foregroundColor(.orange)
-                }
-            }
-
-            Spacer()
-        }
-        .padding()
+        Label(title, systemImage: icon)
+            .font(.subheadline)
+            .fontWeight(.medium)
+            .foregroundColor(.secondary)
+            .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
-
-// MARK: - Appearance Tab
-
-struct AppearanceTab: View {
-    @EnvironmentObject var state: AppState
-
-    var body: some View {
-        ScrollView {
-            VStack(spacing: 12) {
-                CardView {
-                    Label("Menu Bar", systemImage: "menubar.rectangle")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-
-                    SettingRow(title: "Icon Style") {
-                        Picker("", selection: $state.iconStyle) {
-                            Text("Minimal").tag("minimal")
-                            Text("Dot").tag("dot")
-                            Text("Bar").tag("bar")
-                            Text("Logo").tag("logo")
-                        }
-                        .pickerStyle(.segmented)
-                    }
-
-                    SettingRow(title: "Displayed Value") {
-                        Picker("", selection: $state.menuBarValue) {
-                            Text("Highest").tag("max")
-                            Text("Session").tag("session")
-                            Text("Weekly").tag("weekly")
-                            Text("None").tag("none")
-                        }
-                        .pickerStyle(.segmented)
-                    }
-
-                    Toggle(isOn: $state.coloredIcon) {
-                        SettingLabel(
-                            title: "Colored Icon",
-                            subtitle: "Show icon and percentage in color based on usage level."
-                        )
-                    }
-                }
-
-                CardView {
-                    Label("Popover", systemImage: "list.bullet")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-
-                    SettingRow(title: "Usage Display") {
-                        Picker("", selection: $state.usageDisplayStyle) {
-                            Text("Bars").tag("bars")
-                            Text("Rings").tag("rings_concentric")
-                            Text("Rings (Side by Side)").tag("rings_separate")
-                        }
-                        .pickerStyle(.segmented)
-                    }
-
-                    Toggle(isOn: $state.showSonnetUsage) {
-                        SettingLabel(
-                            title: "Sonnet Usage",
-                            subtitle: "Show weekly Sonnet usage."
-                        )
-                    }
-
-                    Toggle(isOn: $state.showGraph) {
-                        SettingLabel(
-                            title: "Usage Graph",
-                            subtitle: "Show usage history graph."
-                        )
-                    }
-
-                    Toggle(isOn: $state.showProjection) {
-                        SettingLabel(
-                            title: "Session Projection",
-                            subtitle: "Estimate whether you'll hit the limit before reset."
-                        )
-                    }
-
-                    Toggle(isOn: $state.showStats) {
-                        SettingLabel(
-                            title: "Today's Stats",
-                            subtitle: "Show token count, messages and sessions."
-                        )
-                    }
-                }
-            }
-            .padding()
-        }
-    }
-}
-
-// MARK: - Setting Helpers
 
 private struct SettingLabel: View {
     let title: String
@@ -266,6 +104,194 @@ private struct SettingRow<Content: View>: View {
     }
 }
 
+// MARK: - Visual Option Card
+
+private struct OptionCard<Preview: View>: View {
+    let label: String
+    let isSelected: Bool
+    let preview: Preview
+    let action: () -> Void
+
+    init(
+        label: String,
+        isSelected: Bool,
+        @ViewBuilder preview: () -> Preview,
+        action: @escaping () -> Void
+    ) {
+        self.label = label
+        self.isSelected = isSelected
+        self.preview = preview()
+        self.action = action
+    }
+
+    var body: some View {
+        Button(action: action) {
+            VStack(spacing: 6) {
+                preview
+                    .frame(height: 36)
+                    .frame(maxWidth: .infinity)
+                Text(label)
+                    .font(.caption2)
+                    .fontWeight(isSelected ? .semibold : .regular)
+            }
+            .padding(.vertical, 8)
+            .padding(.horizontal, 4)
+            .frame(maxWidth: .infinity)
+            .background(
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(isSelected ? Color.accentColor.opacity(0.1) : Color.clear)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 8)
+                    .strokeBorder(
+                        isSelected ? Color.accentColor : Color.secondary.opacity(0.2),
+                        lineWidth: isSelected ? 1.5 : 0.5
+                    )
+            )
+        }
+        .buttonStyle(.plain)
+        .foregroundColor(isSelected ? .primary : .secondary)
+    }
+}
+
+// MARK: - Preview Thumbnails
+
+private struct BarsPreviewThumb: View {
+    var body: some View {
+        VStack(spacing: 4) {
+            BarLine(fill: 0.72, color: .green)
+            BarLine(fill: 0.48, color: .green)
+            BarLine(fill: 0.30, color: .green)
+        }
+    }
+}
+
+private struct BarLine: View {
+    let fill: Double
+    let color: Color
+
+    var body: some View {
+        GeometryReader { geo in
+            ZStack(alignment: .leading) {
+                RoundedRectangle(cornerRadius: 2)
+                    .fill(Color.secondary.opacity(0.12))
+                RoundedRectangle(cornerRadius: 2)
+                    .fill(color)
+                    .frame(width: geo.size.width * fill)
+            }
+        }
+        .frame(height: 6)
+    }
+}
+
+private struct RingsConcentricThumb: View {
+    var body: some View {
+        ZStack {
+            MiniRing(progress: 0.72, color: Color(hue: 0.35, saturation: 0.7, brightness: 0.7), lineWidth: 4, radius: 16)
+            MiniRing(progress: 0.48, color: Color(hue: 0.55, saturation: 0.55, brightness: 0.75), lineWidth: 4, radius: 10.5)
+        }
+        .frame(width: 36, height: 36)
+    }
+}
+
+private struct RingsSeparateThumb: View {
+    var body: some View {
+        HStack(spacing: 4) {
+            MiniRing(progress: 0.72, color: Color(hue: 0.35, saturation: 0.7, brightness: 0.7), lineWidth: 3, radius: 8)
+                .frame(width: 20, height: 20)
+            MiniRing(progress: 0.48, color: Color(hue: 0.55, saturation: 0.55, brightness: 0.75), lineWidth: 3, radius: 8)
+                .frame(width: 20, height: 20)
+        }
+    }
+}
+
+private struct MiniRing: View {
+    let progress: Double
+    let color: Color
+    let lineWidth: CGFloat
+    let radius: CGFloat
+
+    var body: some View {
+        ZStack {
+            Circle()
+                .stroke(Color.secondary.opacity(0.12), lineWidth: lineWidth)
+                .frame(width: radius * 2, height: radius * 2)
+            Circle()
+                .trim(from: 0, to: progress)
+                .stroke(color, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
+                .frame(width: radius * 2, height: radius * 2)
+                .rotationEffect(.degrees(-90))
+        }
+    }
+}
+
+private struct IconMinimalThumb: View {
+    var body: some View {
+        RoundedRectangle(cornerRadius: 1)
+            .fill(Color.primary.opacity(0.6))
+            .frame(width: 14, height: 3)
+    }
+}
+
+private struct IconDotThumb: View {
+    var body: some View {
+        Circle()
+            .fill(Color.primary.opacity(0.6))
+            .frame(width: 8, height: 8)
+    }
+}
+
+private struct IconBarThumb: View {
+    var body: some View {
+        VStack(spacing: 0) {
+            ZStack(alignment: .leading) {
+                RoundedRectangle(cornerRadius: 2.5)
+                    .fill(Color.secondary.opacity(0.15))
+                    .frame(width: 28, height: 5)
+                RoundedRectangle(cornerRadius: 2.5)
+                    .fill(Color.primary.opacity(0.6))
+                    .frame(width: 18, height: 5)
+            }
+        }
+    }
+}
+
+private struct IconLogoThumb: View {
+    var body: some View {
+        ClaudeLogoShape()
+            .fill(Color.primary.opacity(0.6))
+            .frame(width: 18, height: 18)
+    }
+}
+
+private struct ValueHighestThumb: View {
+    var body: some View {
+        Image(systemName: "arrow.up")
+            .font(.system(size: 14, weight: .semibold))
+    }
+}
+
+private struct ValueSessionThumb: View {
+    var body: some View {
+        Image(systemName: "clock")
+            .font(.system(size: 14))
+    }
+}
+
+private struct ValueWeeklyThumb: View {
+    var body: some View {
+        Image(systemName: "calendar")
+            .font(.system(size: 14))
+    }
+}
+
+private struct ValueNoneThumb: View {
+    var body: some View {
+        Image(systemName: "eye.slash")
+            .font(.system(size: 14))
+    }
+}
+
 // MARK: - General Tab
 
 struct GeneralTab: View {
@@ -273,80 +299,109 @@ struct GeneralTab: View {
     @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
 
     var body: some View {
-        VStack(spacing: 12) {
-            CardView {
-                Label("Refresh Mode", systemImage: "clock.arrow.circlepath")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
+        ScrollView {
+            VStack(spacing: 16) {
+                SectionHeader(title: "Refresh", icon: "clock.arrow.circlepath")
 
-                Picker("", selection: $state.refreshMode) {
-                    Text("Smart").tag("smart")
-                    Text("Fixed").tag("fixed")
-                }
-                .pickerStyle(.segmented)
-
-                if state.refreshMode == "smart" {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Automatically adjusts refresh rate based on usage activity.")
-                            .font(.caption2)
-                            .foregroundColor(.secondary)
-
-                        HStack(spacing: 8) {
-                            RefreshTier(label: "Active", interval: "5m")
-                            RefreshTier(label: "Idle", interval: "10m")
-                            RefreshTier(label: "Idle+", interval: "15m")
-                            RefreshTier(label: "Sleep", interval: "30m")
-                        }
-                        .font(.caption2)
-
-                        HStack {
-                            Image(systemName: "bolt.fill")
-                                .foregroundColor(.green)
-                                .font(.caption2)
-                            Text("Current: \(formatInterval(state.currentRefreshInterval))")
-                                .font(.caption2)
-                                .foregroundColor(.secondary)
-                        }
-                    }
-                } else {
-                    Picker("Interval", selection: $state.refreshInterval) {
-                        Text("5 Minutes").tag(300.0)
-                        Text("10 Minutes").tag(600.0)
-                        Text("30 Minutes").tag(1800.0)
+                CardView {
+                    Picker("", selection: $state.refreshMode) {
+                        Text("Smart").tag("smart")
+                        Text("Fixed").tag("fixed")
                     }
                     .pickerStyle(.segmented)
-                    .onChange(of: state.refreshInterval) {
-                        state.startUsagePolling(interval: state.refreshInterval)
-                    }
-                }
-            }
 
-            CardView {
-                Toggle(isOn: $launchAtLogin) {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Launch at Login")
-                            .font(.callout)
-                        Text("Automatically start when your Mac starts.")
+                    if state.refreshMode == "smart" {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Adapts refresh rate based on usage activity.")
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
+
+                            HStack(spacing: 8) {
+                                RefreshTier(label: "Active", interval: "5m")
+                                RefreshTier(label: "Idle", interval: "10m")
+                                RefreshTier(label: "Idle+", interval: "15m")
+                                RefreshTier(label: "Sleep", interval: "30m")
+                            }
                             .font(.caption2)
-                            .foregroundColor(.secondary)
+
+                            HStack {
+                                Image(systemName: "bolt.fill")
+                                    .foregroundColor(.green)
+                                    .font(.caption2)
+                                Text("Current: \(formatInterval(state.currentRefreshInterval))")
+                                    .font(.caption2)
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                    } else {
+                        Picker("Interval", selection: $state.refreshInterval) {
+                            Text("5 Minutes").tag(300.0)
+                            Text("10 Minutes").tag(600.0)
+                            Text("30 Minutes").tag(1800.0)
+                        }
+                        .pickerStyle(.segmented)
+                        .onChange(of: state.refreshInterval) {
+                            state.startUsagePolling(interval: state.refreshInterval)
+                        }
                     }
                 }
-                .onChange(of: launchAtLogin) {
-                    do {
-                        if launchAtLogin {
-                            try SMAppService.mainApp.register()
-                        } else {
-                            try SMAppService.mainApp.unregister()
+
+                SectionHeader(title: "Visible Sections", icon: "eye")
+
+                CardView {
+                    Toggle(isOn: $state.showSonnetUsage) {
+                        SettingLabel(
+                            title: "Sonnet Usage",
+                            subtitle: "Show weekly Sonnet usage."
+                        )
+                    }
+
+                    Toggle(isOn: $state.showGraph) {
+                        SettingLabel(
+                            title: "Usage Graph",
+                            subtitle: "Show usage history graph."
+                        )
+                    }
+
+                    Toggle(isOn: $state.showProjection) {
+                        SettingLabel(
+                            title: "Session Projection",
+                            subtitle: "Estimate whether you'll hit the limit before reset."
+                        )
+                    }
+
+                    Toggle(isOn: $state.showStats) {
+                        SettingLabel(
+                            title: "Today's Stats",
+                            subtitle: "Show token count, messages and sessions."
+                        )
+                    }
+                }
+
+                SectionHeader(title: "Startup", icon: "power")
+
+                CardView {
+                    Toggle(isOn: $launchAtLogin) {
+                        SettingLabel(
+                            title: "Launch at Login",
+                            subtitle: "Automatically start when your Mac starts."
+                        )
+                    }
+                    .onChange(of: launchAtLogin) {
+                        do {
+                            if launchAtLogin {
+                                try SMAppService.mainApp.register()
+                            } else {
+                                try SMAppService.mainApp.unregister()
+                            }
+                        } catch {
+                            launchAtLogin.toggle()
                         }
-                    } catch {
-                        launchAtLogin.toggle()
                     }
                 }
             }
-
-            Spacer()
+            .padding()
         }
-        .padding()
     }
 
     private func formatInterval(_ seconds: TimeInterval) -> String {
@@ -377,6 +432,219 @@ struct RefreshTier: View {
     }
 }
 
+// MARK: - Menu Bar Tab
+
+struct MenuBarTab: View {
+    @EnvironmentObject var state: AppState
+
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 16) {
+                SectionHeader(title: "Icon Style", icon: "square.grid.4x3.fill")
+
+                HStack(spacing: 8) {
+                    OptionCard(
+                        label: "Minimal",
+                        isSelected: state.iconStyle == "minimal",
+                        preview: { IconMinimalThumb() },
+                        action: { state.iconStyle = "minimal" }
+                    )
+                    OptionCard(
+                        label: "Dot",
+                        isSelected: state.iconStyle == "dot",
+                        preview: { IconDotThumb() },
+                        action: { state.iconStyle = "dot" }
+                    )
+                    OptionCard(
+                        label: "Bar",
+                        isSelected: state.iconStyle == "bar",
+                        preview: { IconBarThumb() },
+                        action: { state.iconStyle = "bar" }
+                    )
+                    OptionCard(
+                        label: "Logo",
+                        isSelected: state.iconStyle == "logo",
+                        preview: { IconLogoThumb() },
+                        action: { state.iconStyle = "logo" }
+                    )
+                }
+
+                SectionHeader(title: "Displayed Value", icon: "textformat.123")
+
+                HStack(spacing: 8) {
+                    OptionCard(
+                        label: "Highest",
+                        isSelected: state.menuBarValue == "max",
+                        preview: { ValueHighestThumb() },
+                        action: { state.menuBarValue = "max" }
+                    )
+                    OptionCard(
+                        label: "Session",
+                        isSelected: state.menuBarValue == "session",
+                        preview: { ValueSessionThumb() },
+                        action: { state.menuBarValue = "session" }
+                    )
+                    OptionCard(
+                        label: "Weekly",
+                        isSelected: state.menuBarValue == "weekly",
+                        preview: { ValueWeeklyThumb() },
+                        action: { state.menuBarValue = "weekly" }
+                    )
+                    OptionCard(
+                        label: "None",
+                        isSelected: state.menuBarValue == "none",
+                        preview: { ValueNoneThumb() },
+                        action: { state.menuBarValue = "none" }
+                    )
+                }
+
+                SectionHeader(title: "Options", icon: "slider.horizontal.3")
+
+                CardView {
+                    Toggle(isOn: $state.coloredIcon) {
+                        SettingLabel(
+                            title: "Colored Icon",
+                            subtitle: "Show icon and percentage in color based on usage level."
+                        )
+                    }
+                }
+            }
+            .padding()
+        }
+    }
+}
+
+// MARK: - Display Tab
+
+struct DisplayTab: View {
+    @EnvironmentObject var state: AppState
+
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 16) {
+                SectionHeader(title: "Usage Display", icon: "chart.bar.fill")
+
+                HStack(spacing: 8) {
+                    OptionCard(
+                        label: "Bars",
+                        isSelected: state.usageDisplayStyle == "bars",
+                        preview: { BarsPreviewThumb() },
+                        action: { state.usageDisplayStyle = "bars" }
+                    )
+                    OptionCard(
+                        label: "Rings",
+                        isSelected: state.usageDisplayStyle == "rings_concentric",
+                        preview: { RingsConcentricThumb() },
+                        action: { state.usageDisplayStyle = "rings_concentric" }
+                    )
+                    OptionCard(
+                        label: "Side by Side",
+                        isSelected: state.usageDisplayStyle == "rings_separate",
+                        preview: { RingsSeparateThumb() },
+                        action: { state.usageDisplayStyle = "rings_separate" }
+                    )
+                }
+
+                Text("Choose how usage data is visualized in the popover.")
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .padding()
+        }
+    }
+}
+
+// MARK: - Connection Tab
+
+struct ConnectionTab: View {
+    @EnvironmentObject var state: AppState
+    @State private var isAuthenticating = false
+    @State private var authError: String?
+
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 16) {
+                SectionHeader(title: "Authentication", icon: "key.fill")
+
+                if state.isAuthenticated {
+                    CardView {
+                        HStack {
+                            Image(systemName: "checkmark.circle.fill")
+                                .foregroundColor(.green)
+                                .font(.title2)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Connected")
+                                    .font(.callout)
+                                    .fontWeight(.medium)
+                                Text("Via \(state.authMethod.rawValue)")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                            Spacer()
+                            Button("Log Out") { state.logout() }
+                                .foregroundColor(.red)
+                        }
+                    }
+                } else {
+                    CardView {
+                        Label("Connect to Claude Code", systemImage: "terminal.fill")
+                            .font(.callout)
+                            .fontWeight(.medium)
+
+                        Text("Reads the OAuth token from the Claude Code Keychain.")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+
+                        if isAuthenticating {
+                            HStack {
+                                ProgressView().controlSize(.small)
+                                Text("Connecting...").font(.caption)
+                            }
+                        } else {
+                            Button {
+                                isAuthenticating = true
+                                authError = nil
+                                if !state.loadCredentials() {
+                                    authError = "No OAuth token found in Keychain."
+                                }
+                                isAuthenticating = false
+                            } label: {
+                                HStack {
+                                    Image(systemName: "key.fill")
+                                    Text("Load Credentials")
+                                }
+                                .frame(maxWidth: .infinity)
+                            }
+                            .controlSize(.large)
+                        }
+                    }
+
+                    CardView {
+                        Label("CLI not installed or not logged in?", systemImage: "questionmark.circle")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+
+                        Button(action: { state.openCLILogin() }, label: {
+                            Label("Open Terminal & Log In", systemImage: "arrow.up.forward.app.fill")
+                        })
+                        .font(.callout)
+                    }
+                }
+
+                if let error = authError ?? state.lastError {
+                    CardView {
+                        Label(error, systemImage: "exclamationmark.triangle.fill")
+                            .font(.caption)
+                            .foregroundColor(.orange)
+                    }
+                }
+            }
+            .padding()
+        }
+    }
+}
+
 // MARK: - Notifications Tab
 
 struct NotificationsTab: View {
@@ -387,20 +655,22 @@ struct NotificationsTab: View {
 
     var body: some View {
         ScrollView {
-            VStack(spacing: 12) {
+            VStack(spacing: 16) {
+                SectionHeader(title: "Notifications", icon: "bell.badge")
+
                 CardView {
                     Toggle(isOn: $state.notificationsEnabled) {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("Enable Notifications")
-                                .font(.callout)
-                            Text("Get notified about high usage and status changes.")
-                                .font(.caption2)
-                                .foregroundColor(.secondary)
-                        }
+                        SettingLabel(
+                            title: "Enable Notifications",
+                            subtitle: "Get notified about high usage and status changes."
+                        )
                     }
 
                     HStack {
-                        Image(systemName: permissionDenied ? "exclamationmark.triangle.fill" : "checkmark.circle.fill")
+                        Image(systemName: permissionDenied
+                            ? "exclamationmark.triangle.fill"
+                            : "checkmark.circle.fill"
+                        )
                             .foregroundColor(permissionDenied ? .orange : .green)
                             .font(.caption)
                         Text("System: \(permissionStatus)")
@@ -409,7 +679,9 @@ struct NotificationsTab: View {
                         Spacer()
                         if permissionDenied {
                             Button("Open Settings") {
-                                if let url = URL(string: "x-apple.systempreferences:com.apple.preference.notifications") {
+                                if let url = URL(
+                                    string: "x-apple.systempreferences:com.apple.preference.notifications"
+                                ) {
                                     NSWorkspace.shared.open(url)
                                 }
                             }
@@ -422,11 +694,9 @@ struct NotificationsTab: View {
                     if state.notificationsEnabled { requestAndCheck() }
                 }
 
-                CardView {
-                    Label("Thresholds", systemImage: "chart.bar.fill")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
+                SectionHeader(title: "Thresholds", icon: "chart.bar.fill")
 
+                CardView {
                     VStack(alignment: .leading, spacing: 4) {
                         HStack {
                             Text("Warning")
@@ -456,7 +726,10 @@ struct NotificationsTab: View {
                     }
 
                     if state.criticalThreshold <= state.warningThreshold {
-                        Label("Critical must be higher than Warning.", systemImage: "exclamationmark.triangle")
+                        Label(
+                            "Critical must be higher than Warning.",
+                            systemImage: "exclamationmark.triangle"
+                        )
                             .font(.caption)
                             .foregroundColor(.orange)
                     }
@@ -464,11 +737,9 @@ struct NotificationsTab: View {
                 .opacity(state.notificationsEnabled ? 1 : 0.5)
                 .disabled(!state.notificationsEnabled)
 
-                CardView {
-                    Label("Events", systemImage: "bell.badge")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
+                SectionHeader(title: "Events", icon: "bell.and.waves.left.and.right")
 
+                CardView {
                     Toggle(isOn: $state.notifyOnReset) {
                         Text("Notify on usage reset")
                             .font(.callout)
@@ -476,6 +747,11 @@ struct NotificationsTab: View {
 
                     Toggle(isOn: $state.notifyOnStatusChange) {
                         Text("Notify on status incidents")
+                            .font(.callout)
+                    }
+
+                    Toggle(isOn: $state.notifyOnNewVersion) {
+                        Text("Notify on new app version")
                             .font(.callout)
                     }
                 }
@@ -505,7 +781,8 @@ struct NotificationsTab: View {
 
     private func checkPermission() {
         Task {
-            let status = await UNUserNotificationCenter.current().notificationSettings().authorizationStatus
+            let status = await UNUserNotificationCenter.current()
+                .notificationSettings().authorizationStatus
             switch status {
             case .authorized:
                 permissionStatus = "Allowed"
@@ -531,14 +808,16 @@ struct NotificationsTab: View {
 
     private func requestAndCheck() {
         Task {
-            _ = try? await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge])
+            _ = try? await UNUserNotificationCenter.current()
+                .requestAuthorization(options: [.alert, .sound, .badge])
             checkPermission()
         }
     }
 
     private func sendTestNotification() {
         Task {
-            let granted = try? await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge])
+            let granted = try? await UNUserNotificationCenter.current()
+                .requestAuthorization(options: [.alert, .sound, .badge])
             checkPermission()
             guard granted == true else { return }
 
@@ -548,7 +827,11 @@ struct NotificationsTab: View {
             content.sound = .default
 
             let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 1, repeats: false)
-            let request = UNNotificationRequest(identifier: "test-\(UUID())", content: content, trigger: trigger)
+            let request = UNNotificationRequest(
+                identifier: "test-\(UUID())",
+                content: content,
+                trigger: trigger
+            )
             try? await UNUserNotificationCenter.current().add(request)
         }
 
@@ -567,9 +850,10 @@ struct StatusTab: View {
 
     var body: some View {
         ScrollView {
-            VStack(spacing: 12) {
-                // swiftlint:disable:next line_length
-                Text("Live status of Claude services powered by the Anthropic status page. The main popover only shows a warning when there is an active incident.")
+            VStack(spacing: 16) {
+                SectionHeader(title: "Claude Services", icon: "heart.text.square")
+
+                Text("Live status powered by the Anthropic status page. The popover only shows a warning during active incidents.")
                     .font(.caption)
                     .foregroundColor(.secondary)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -600,22 +884,27 @@ struct StatusTab: View {
                 }
 
                 if !state.components.isEmpty {
-                    CardView {
-                        Label("Components", systemImage: "server.rack")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
+                    SectionHeader(title: "Components", icon: "server.rack")
 
-                        ForEach(Array(state.components.enumerated()), id: \.offset) { _, component in
+                    CardView {
+                        ForEach(
+                            Array(state.components.enumerated()),
+                            id: \.offset
+                        ) { _, component in
                             HStack {
                                 Image(systemName: component.status.emoji)
-                                    .foregroundColor(component.status.isHealthy ? .green : Theme.sparkOrange)
+                                    .foregroundColor(
+                                        component.status.isHealthy ? .green : Theme.sparkOrange
+                                    )
                                     .font(.caption)
                                 Text(component.name)
                                     .font(.callout)
                                 Spacer()
                                 Text(component.status.displayName)
                                     .font(.callout)
-                                    .foregroundColor(component.status.isHealthy ? .secondary : Theme.sparkOrange)
+                                    .foregroundColor(
+                                        component.status.isHealthy ? .secondary : Theme.sparkOrange
+                                    )
                             }
                         }
                     }
@@ -712,7 +1001,9 @@ struct AboutTab: View {
     private func checkForUpdates() async {
         updateState = .checking
 
-        guard let url = URL(string: "https://api.github.com/repos/konradmichalik/spark/releases/latest") else {
+        guard let url = URL(
+            string: "https://api.github.com/repos/konradmichalik/spark/releases/latest"
+        ) else {
             updateState = .error("Invalid URL")
             return
         }
@@ -720,7 +1011,9 @@ struct AboutTab: View {
         do {
             let (data, _) = try await URLSession.shared.data(from: url)
             let release = try JSONDecoder().decode(GitHubRelease.self, from: data)
-            let latestVersion = release.tagName.trimmingCharacters(in: CharacterSet(charactersIn: "v"))
+            let latestVersion = release.tagName.trimmingCharacters(
+                in: CharacterSet(charactersIn: "v")
+            )
 
             if latestVersion == appVersion {
                 updateState = .upToDate
@@ -743,7 +1036,7 @@ private enum UpdateCheckState {
     case error(String)
 }
 
-private struct GitHubRelease: Decodable {
+struct GitHubRelease: Decodable {
     let tagName: String
     let htmlUrl: String
 
