@@ -188,6 +188,15 @@ struct AppearanceTab: View {
                         .font(.caption)
                         .foregroundColor(.secondary)
 
+                    SettingRow(title: "Usage Display") {
+                        Picker("", selection: $state.usageDisplayStyle) {
+                            Text("Bars").tag("bars")
+                            Text("Rings").tag("rings_concentric")
+                            Text("Rings (Side by Side)").tag("rings_separate")
+                        }
+                        .pickerStyle(.segmented)
+                    }
+
                     Toggle(isOn: $state.showSonnetUsage) {
                         SettingLabel(
                             title: "Sonnet Usage",

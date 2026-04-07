@@ -42,6 +42,7 @@ final class AppState: ObservableObject {
     @AppStorage("notifyOnStatusChange") var notifyOnStatusChange: Bool = true
     @AppStorage("showStats") var showStats: Bool = true
     @AppStorage("coloredIcon") var coloredIcon: Bool = true
+    @AppStorage("usageDisplayStyle") var usageDisplayStyle: String = "bars"
 
     // MARK: - Stats
 
