@@ -40,6 +40,7 @@ final class AppState: ObservableObject {
     @AppStorage("criticalThreshold") var criticalThreshold: Double = 90
     @AppStorage("notifyOnReset") var notifyOnReset: Bool = true
     @AppStorage("notifyOnStatusChange") var notifyOnStatusChange: Bool = true
+    @AppStorage("notifyOnNewVersion") var notifyOnNewVersion: Bool = true
     @AppStorage("showStats") var showStats: Bool = true
     @AppStorage("coloredIcon") var coloredIcon: Bool = true
     @AppStorage("usageDisplayStyle") var usageDisplayStyle: String = "bars"
@@ -56,6 +57,7 @@ final class AppState: ObservableObject {
 
     private var usageTimerCancellable: AnyCancellable?
     private var statusTimerCancellable: AnyCancellable?
+    private var updateCheckCancellable: AnyCancellable?
     private var lastFetchTime: Date = .distantPast
     private var previousUtilization: Double = 0
     private var idleTicks: Int = 0
@@ -76,6 +78,7 @@ final class AppState: ObservableObject {
         loadStats()
         tryAutoLogin()
         startStatusPolling()
+        startUpdateCheckPolling()
         if notificationsEnabled {
             requestNotificationPermission()
         }
@@ -303,6 +306,46 @@ final class AppState: ObservableObject {
             }
     }
 
+    // MARK: - Update Check
+
+    private func startUpdateCheckPolling() {
+        Task { await checkForNewVersion() }
+        // Check every 6 hours
+        updateCheckCancellable = Timer.publish(every: 21600, on: .main, in: .common)
+            .autoconnect()
+            .sink { [weak self] _ in
+                guard let self else { return }
+                Task { await self.checkForNewVersion() }
+            }
+    }
+
+    private func checkForNewVersion() async {
+        guard notificationsEnabled, notifyOnNewVersion else { return }
+
+        guard let url = URL(
+            string: "https://api.github.com/repos/konradmichalik/spark/releases/latest"
+        ) else { return }
+
+        do {
+            let (data, _) = try await Task.detached {
+                try await URLSession.shared.data(from: url)
+            }.value
+            let release = try JSONDecoder().decode(GitHubRelease.self, from: data)
+            let latest = release.tagName.trimmingCharacters(in: CharacterSet(charactersIn: "v"))
+            let current = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.0.0"
+
+            if latest != current, latest > current {
+                sendNotification(
+                    id: "update-\(latest)",
+                    title: "Spark \(latest) available",
+                    body: "A new version of Spark is available. Open Settings → About to update."
+                )
+            }
+        } catch {
+            // Silently ignore update check failures
+        }
+    }
+
     // MARK: - Notifications
 
     func requestNotificationPermission() {
@@ -463,3 +506,4 @@ enum AuthMethod: String, Sendable {
     case claudeCode = "Claude Code"
     case oauth = "OAuth (Browser)"
 }
+
