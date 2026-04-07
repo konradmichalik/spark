@@ -114,42 +114,123 @@ struct ConcentricRingsView: View {
     @State private var hoveredIndex: Int?
 
     var body: some View {
-        ZStack {
-            ForEach(Array(rings.enumerated()), id: \.offset) { index, ring in
-                let size = outerSize - CGFloat(index) * (ringWidth * 2 + ringGap)
-                let color = Theme.ringColor(
-                    utilization: ring.utilization,
-                    warningThreshold: warningThreshold,
-                    criticalThreshold: criticalThreshold,
-                    ringIndex: ring.ringIndex
-                )
+        HStack(spacing: 16) {
+            // Rings
+            ZStack {
+                ForEach(Array(rings.enumerated()), id: \.offset) { index, ring in
+                    let size = outerSize - CGFloat(index) * (ringWidth * 2 + ringGap)
+                    let color = ringColorFor(ring)
 
-                RingArc(
-                    utilization: ring.utilization,
-                    projection: showProjection ? ring.projection : .insufficientData,
-                    color: color,
-                    trackColor: color.opacity(0.15),
-                    ringWidth: ringWidth,
-                    size: size
-                )
-                .onHover { isHovered in
-                    DispatchQueue.main.async {
-                        hoveredIndex = isHovered ? index : nil
+                    RingArc(
+                        utilization: ring.utilization,
+                        projection: showProjection ? ring.projection : .insufficientData,
+                        color: color,
+                        trackColor: color.opacity(0.15),
+                        ringWidth: ringWidth,
+                        size: size
+                    )
+                    .onHover { isHovered in
+                        DispatchQueue.main.async {
+                            hoveredIndex = isHovered ? index : nil
+                        }
                     }
+                    .opacity(hoveredIndex == nil || hoveredIndex == index ? 1.0 : 0.6)
+                    .accessibilityElement()
+                    .accessibilityLabel("\(ring.label) usage \(Int(ring.utilization)) percent")
+                    .accessibilityValue(ring.resetTime.map { "Resets in \($0)" } ?? "")
                 }
-                .opacity(hoveredIndex == nil || hoveredIndex == index ? 1.0 : 0.6)
-                .accessibilityElement()
-                .accessibilityLabel("\(ring.label) usage \(Int(ring.utilization)) percent")
-                .accessibilityValue(ring.resetTime.map { "Resets in \($0)" } ?? "")
-            }
 
-            // Hover tooltip
-            if let idx = hoveredIndex, idx < rings.count {
-                RingTooltip(ring: rings[idx])
+                // Hover tooltip
+                if let idx = hoveredIndex, idx < rings.count {
+                    RingTooltip(ring: rings[idx])
+                }
+            }
+            .frame(width: outerSize, height: outerSize)
+
+            // Legend
+            VStack(alignment: .leading, spacing: 8) {
+                ForEach(Array(rings.enumerated()), id: \.offset) { _, ring in
+                    RingLegendRow(
+                        ring: ring,
+                        color: ringColorFor(ring)
+                    )
+                }
             }
         }
-        .frame(width: outerSize, height: outerSize)
         .accessibilityElement(children: .contain)
+    }
+
+    private func ringColorFor(_ ring: RingData) -> Color {
+        Theme.ringColor(
+            utilization: ring.utilization,
+            warningThreshold: warningThreshold,
+            criticalThreshold: criticalThreshold,
+            ringIndex: ring.ringIndex
+        )
+    }
+}
+
+// MARK: - Ring Legend Row
+
+private struct RingLegendRow: View {
+    let ring: RingData
+    let color: Color
+    @State private var showResetPopover = false
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Circle()
+                .fill(color)
+                .frame(width: 8, height: 8)
+
+            Text(ring.label)
+                .font(.caption2)
+                .foregroundColor(.secondary)
+                .lineLimit(1)
+
+            Spacer()
+
+            Text("\(Int(ring.utilization))%")
+                .font(.system(.caption2, design: .monospaced))
+                .fontWeight(.medium)
+
+            if let resetTime = ring.resetTime {
+                Button {
+                    showResetPopover.toggle()
+                } label: {
+                    HStack(spacing: 2) {
+                        Image(systemName: "clock.arrow.circlepath")
+                            .font(.system(size: 8))
+                        Text(resetTime)
+                            .font(.system(size: 9))
+                    }
+                    .foregroundColor(.secondary)
+                }
+                .buttonStyle(.plain)
+                .popover(isPresented: $showResetPopover, arrowEdge: .bottom) {
+                    VStack(spacing: 6) {
+                        HStack(spacing: 4) {
+                            Image(systemName: "clock.arrow.circlepath")
+                                .foregroundColor(.secondary)
+                            Text("Reset in \(resetTime)")
+                                .fontWeight(.medium)
+                        }
+                        .font(.caption)
+
+                        if let resetDate = ring.resetDate {
+                            Text(
+                                resetDate,
+                                format: .dateTime.weekday(.wide).day().month(.wide).hour().minute()
+                            )
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                        }
+                    }
+                    .padding(10)
+                    .frame(width: 220)
+                }
+            }
+        }
     }
 }
 
