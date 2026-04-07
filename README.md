@@ -81,6 +81,9 @@ claude auth login
 > [!TIP]
 > After a successful `claude auth login`, Spark will pick up the credentials automatically on the next refresh — no restart needed.
 
+> [!NOTE]
+> On first launch, macOS will ask for your login password to grant Spark access to the Claude Code credentials stored in Keychain. This is a one-time prompt — once allowed, Spark remembers the permission.
+
 ## 💡 Usage
 
 ### Menu Bar Icon
