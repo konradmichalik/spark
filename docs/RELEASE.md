@@ -9,17 +9,18 @@ Spark follows [Semantic Versioning](https://semver.org/):
 
 ## Creating a Release
 
-1. **Update version numbers** in two files:
+1. **Update version numbers** in three files:
 
    - `project.yml` → `MARKETING_VERSION`
    - `Spark/Info.plist` → `CFBundleShortVersionString`
+   - `site/index.html` → version badge in the header nav
 
    Optionally bump `CURRENT_PROJECT_VERSION` (build number).
 
 2. **Commit the version bump:**
 
    ```bash
-   git add project.yml Spark/Info.plist
+   git add project.yml Spark/Info.plist site/index.html
    git commit -m "release: v0.x.x"
    ```
 
