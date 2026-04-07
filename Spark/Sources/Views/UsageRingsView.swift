@@ -114,7 +114,7 @@ struct ConcentricRingsView: View {
     @State private var hoveredIndex: Int?
 
     var body: some View {
-        HStack(spacing: 16) {
+        VStack(spacing: 10) {
             // Rings
             ZStack {
                 ForEach(Array(rings.enumerated()), id: \.offset) { index, ring in
@@ -148,7 +148,7 @@ struct ConcentricRingsView: View {
             .frame(width: outerSize, height: outerSize)
 
             // Legend
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: 4) {
                 ForEach(Array(rings.enumerated()), id: \.offset) { _, ring in
                     RingLegendRow(
                         ring: ring,
@@ -190,21 +190,21 @@ private struct RingLegendRow: View {
 
             Spacer()
 
-            Text("\(Int(ring.utilization))%")
-                .font(.system(.caption2, design: .monospaced))
-                .fontWeight(.medium)
-
             if let resetTime = ring.resetTime {
                 Button {
                     showResetPopover.toggle()
                 } label: {
-                    HStack(spacing: 2) {
+                    HStack(spacing: 4) {
                         Image(systemName: "clock.arrow.circlepath")
-                            .font(.system(size: 8))
-                        Text(resetTime)
                             .font(.system(size: 9))
+                            .foregroundColor(.secondary)
+                            .frame(width: 18, height: 18)
+                            .background(Color.secondary.opacity(0.12))
+                            .clipShape(Circle())
+                        Text(resetTime)
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
                     }
-                    .foregroundColor(.secondary)
                 }
                 .buttonStyle(.plain)
                 .popover(isPresented: $showResetPopover, arrowEdge: .bottom) {
