@@ -42,11 +42,11 @@ struct RingArc: View {
             Circle()
                 .stroke(trackColor, lineWidth: ringWidth)
 
-            // Projection arc (behind fill)
+            // Projection arc (behind fill) — gray like the bar projection
             if projectedFraction > fillFraction {
                 Circle()
                     .trim(from: 0, to: projectedFraction)
-                    .stroke(color.opacity(0.25), style: StrokeStyle(lineWidth: ringWidth, lineCap: .round))
+                    .stroke(Color.primary.opacity(0.15), style: StrokeStyle(lineWidth: ringWidth, lineCap: .round))
                     .rotationEffect(.degrees(-90))
             }
 
@@ -133,7 +133,9 @@ struct ConcentricRingsView: View {
                     size: size
                 )
                 .onHover { isHovered in
-                    hoveredIndex = isHovered ? index : nil
+                    DispatchQueue.main.async {
+                        hoveredIndex = isHovered ? index : nil
+                    }
                 }
                 .opacity(hoveredIndex == nil || hoveredIndex == index ? 1.0 : 0.6)
                 .accessibilityElement()
@@ -190,14 +192,17 @@ struct SeparateRingsView: View {
                             .font(.system(.caption2, design: .monospaced))
                             .fontWeight(.medium)
                     }
-                    .overlay(alignment: .top) {
-                        if hoveredIndex == index {
-                            RingTooltip(ring: ring)
-                                .offset(y: -50)
-                        }
+                    .popover(isPresented: Binding(
+                        get: { hoveredIndex == index },
+                        set: { if !$0 { hoveredIndex = nil } }
+                    ), arrowEdge: .bottom) {
+                        RingTooltip(ring: ring)
+                            .padding(4)
                     }
                     .onHover { isHovered in
-                        hoveredIndex = isHovered ? index : nil
+                        DispatchQueue.main.async {
+                            hoveredIndex = isHovered ? index : nil
+                        }
                     }
 
                     Text(ring.label)

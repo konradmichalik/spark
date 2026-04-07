@@ -5,7 +5,7 @@ enum Theme {
     static let sparkOrange = Color(nsColor: sparkOrangeNS)
     static let sparkOrangeNS = NSColor(red: 0.85, green: 0.47, blue: 0.34, alpha: 1)
 
-    /// Returns the threshold-based color for a usage ring, with opacity abstufung per ring index.
+    /// Returns a distinct color per ring, based on utilization thresholds.
     /// ringIndex: 0 = outermost (Session), 1 = middle (Weekly), 2 = innermost (Sonnet)
     static func ringColor(
         utilization: Double,
@@ -13,18 +13,44 @@ enum Theme {
         criticalThreshold: Double,
         ringIndex: Int
     ) -> Color {
-        let baseColor: Color
-        if utilization >= criticalThreshold {
-            baseColor = .red
-        } else if utilization >= warningThreshold {
-            baseColor = .orange
-        } else {
-            baseColor = .green
-        }
+        let palette = RingPalette.forIndex(ringIndex)
+        if utilization >= criticalThreshold { return palette.critical }
+        if utilization >= warningThreshold { return palette.warning }
+        return palette.ok
+    }
+}
 
-        let opacityLevels: [Double] = [1.0, 0.7, 0.45]
-        let opacity = ringIndex < opacityLevels.count ? opacityLevels[ringIndex] : 0.45
-        return baseColor.opacity(opacity)
+// Distinct hues per ring (Activity Rings style)
+private struct RingPalette {
+    let ok: Color
+    let warning: Color
+    let critical: Color
+
+    // Session: teal-green / warm orange / red
+    static let session = RingPalette(
+        ok: Color(hue: 0.35, saturation: 0.75, brightness: 0.75),
+        warning: Color(hue: 0.08, saturation: 0.85, brightness: 0.95),
+        critical: Color(hue: 0.0, saturation: 0.80, brightness: 0.90)
+    )
+    // Weekly: blue / amber / rose
+    static let weekly = RingPalette(
+        ok: Color(hue: 0.55, saturation: 0.60, brightness: 0.80),
+        warning: Color(hue: 0.12, saturation: 0.75, brightness: 0.90),
+        critical: Color(hue: 0.95, saturation: 0.75, brightness: 0.85)
+    )
+    // Sonnet: purple / gold / pink
+    static let sonnet = RingPalette(
+        ok: Color(hue: 0.80, saturation: 0.50, brightness: 0.80),
+        warning: Color(hue: 0.15, saturation: 0.65, brightness: 0.85),
+        critical: Color(hue: 0.98, saturation: 0.65, brightness: 0.80)
+    )
+
+    static func forIndex(_ index: Int) -> RingPalette {
+        switch index {
+        case 0: .session
+        case 1: .weekly
+        default: .sonnet
+        }
     }
 }
 
