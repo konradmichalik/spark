@@ -1,104 +1,5 @@
 import SwiftUI
 
-// MARK: - Ring Data
-
-struct RingData {
-    let label: String
-    let utilization: Double
-    let resetTime: String?
-    let resetDate: Date?
-    let projection: ProjectionResult
-    let ringIndex: Int
-}
-
-// MARK: - Single Ring Arc
-
-struct RingArc: View {
-    let utilization: Double
-    let projection: ProjectionResult
-    let color: Color
-    let trackColor: Color
-    let ringWidth: CGFloat
-    let size: CGFloat
-
-    private var fillFraction: Double {
-        min(utilization, 100) / 100
-    }
-
-    private var projectedFraction: Double {
-        switch projection {
-        case .limitReached:
-            return 1.0
-        case .safe(let projected):
-            return min(projected, 100) / 100
-        case .insufficientData:
-            return 0
-        }
-    }
-
-    var body: some View {
-        ZStack {
-            // Track
-            Circle()
-                .stroke(trackColor, lineWidth: ringWidth)
-
-            // Projection arc (behind fill) — gray like the bar projection
-            if projectedFraction > fillFraction {
-                Circle()
-                    .trim(from: 0, to: projectedFraction)
-                    .stroke(Color.primary.opacity(0.15), style: StrokeStyle(lineWidth: ringWidth, lineCap: .round))
-                    .rotationEffect(.degrees(-90))
-            }
-
-            // Fill arc
-            if fillFraction > 0 {
-                Circle()
-                    .trim(from: 0, to: fillFraction)
-                    .stroke(color, style: StrokeStyle(lineWidth: ringWidth, lineCap: .round))
-                    .rotationEffect(.degrees(-90))
-            }
-        }
-        .frame(width: size, height: size)
-    }
-}
-
-// MARK: - Ring Tooltip
-
-struct RingTooltip: View {
-    let ring: RingData
-
-    var body: some View {
-        VStack(spacing: 2) {
-            Text(ring.label)
-                .fontWeight(.medium)
-            Text("\(Int(ring.utilization))%")
-                .font(.system(.caption, design: .monospaced))
-            if let resetTime = ring.resetTime {
-                Text("Resets in \(resetTime)")
-                    .foregroundColor(.secondary)
-            }
-            if let projectionText = projectionText {
-                Text(projectionText)
-                    .foregroundColor(.secondary)
-            }
-        }
-        .font(.caption2)
-        .padding(6)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 6))
-    }
-
-    private var projectionText: String? {
-        switch ring.projection {
-        case .limitReached(let seconds):
-            return "Limit in ~\(seconds.shortDuration)"
-        case .safe(let projected):
-            return "~\(Int(projected))% at reset"
-        case .insufficientData:
-            return nil
-        }
-    }
-}
-
 // MARK: - Concentric Rings
 
 struct ConcentricRingsView: View {
@@ -112,6 +13,7 @@ struct ConcentricRingsView: View {
     private let ringGap: CGFloat = 4
 
     @State private var hoveredIndex: Int?
+    @State private var hoverInProjectionZone = false
 
     var body: some View {
         VStack(spacing: 10) {
@@ -129,11 +31,7 @@ struct ConcentricRingsView: View {
                         ringWidth: ringWidth,
                         size: size
                     )
-                    .onHover { isHovered in
-                        DispatchQueue.main.async {
-                            hoveredIndex = isHovered ? index : nil
-                        }
-                    }
+                    .allowsHitTesting(false)
                     .opacity(hoveredIndex == nil || hoveredIndex == index ? 1.0 : 0.6)
                     .accessibilityElement()
                     .accessibilityLabel("\(ring.label) usage \(Int(ring.utilization)) percent")
@@ -142,10 +40,21 @@ struct ConcentricRingsView: View {
 
                 // Hover tooltip
                 if let idx = hoveredIndex, idx < rings.count {
-                    RingTooltip(ring: rings[idx])
+                    RingTooltip(ring: rings[idx], showProjection: hoverInProjectionZone)
                 }
             }
             .frame(width: outerSize, height: outerSize)
+            .onContinuousHover { phase in
+                switch phase {
+                case .active(let location):
+                    let result = hitTest(location)
+                    hoveredIndex = result.ringIndex
+                    hoverInProjectionZone = result.inProjectionZone
+                case .ended:
+                    hoveredIndex = nil
+                    hoverInProjectionZone = false
+                }
+            }
 
             // Legend
             VStack(alignment: .leading, spacing: 4) {
@@ -168,68 +77,53 @@ struct ConcentricRingsView: View {
             ringIndex: ring.ringIndex
         )
     }
-}
 
-// MARK: - Ring Legend Row
+    // MARK: - Hit Testing
 
-private struct RingLegendRow: View {
-    let ring: RingData
-    let color: Color
-    @State private var showResetPopover = false
+    private struct HitResult {
+        let ringIndex: Int?
+        let inProjectionZone: Bool
+    }
 
-    var body: some View {
-        HStack(spacing: 6) {
-            Circle()
-                .fill(color)
-                .frame(width: 8, height: 8)
+    private func hitTest(_ point: CGPoint) -> HitResult {
+        let center = CGPoint(x: outerSize / 2, y: outerSize / 2)
+        let dx = point.x - center.x
+        let dy = point.y - center.y
+        let distance = sqrt(dx * dx + dy * dy)
 
-            Text(ring.label)
-                .font(.caption2)
-                .foregroundColor(.secondary)
-                .lineLimit(1)
+        // Check each ring from outermost to innermost
+        for (index, ring) in rings.enumerated() {
+            let ringRadius = (outerSize - CGFloat(index) * (ringWidth * 2 + ringGap)) / 2
+            let innerEdge = ringRadius - ringWidth / 2
+            let outerEdge = ringRadius + ringWidth / 2
 
-            Spacer()
+            guard distance >= innerEdge && distance <= outerEdge else { continue }
 
-            if let resetTime = ring.resetTime {
-                Button {
-                    showResetPopover.toggle()
-                } label: {
-                    HStack(spacing: 4) {
-                        Image(systemName: "clock.arrow.circlepath")
-                            .font(.system(size: 9))
-                            .foregroundColor(.secondary)
-                            .frame(width: 18, height: 18)
-                            .background(Color.secondary.opacity(0.12))
-                            .clipShape(Circle())
-                        Text(resetTime)
-                            .font(.caption2)
-                            .foregroundColor(.secondary)
-                    }
-                }
-                .buttonStyle(.plain)
-                .popover(isPresented: $showResetPopover, arrowEdge: .bottom) {
-                    VStack(spacing: 6) {
-                        HStack(spacing: 4) {
-                            Image(systemName: "clock.arrow.circlepath")
-                                .foregroundColor(.secondary)
-                            Text("Reset in \(resetTime)")
-                                .fontWeight(.medium)
-                        }
-                        .font(.caption)
+            // Determine angle (0 = 12 o'clock, clockwise)
+            let angle = atan2(dx, -dy)
+            let normalizedAngle = angle < 0 ? angle + 2 * .pi : angle
+            let fraction = normalizedAngle / (2 * .pi)
 
-                        if let resetDate = ring.resetDate {
-                            Text(
-                                resetDate,
-                                format: .dateTime.weekday(.wide).day().month(.wide).hour().minute()
-                            )
-                            .font(.caption2)
-                            .foregroundColor(.secondary)
-                        }
-                    }
-                    .padding(10)
-                    .frame(width: 220)
-                }
-            }
+            let fillFraction = min(ring.utilization, 100) / 100
+            let projectedFraction = projectedFractionFor(ring)
+
+            // In projection zone: between fill end and projection end
+            let inProjection = showProjection
+                && projectedFraction > fillFraction
+                && fraction > fillFraction
+                && fraction <= projectedFraction
+
+            return HitResult(ringIndex: index, inProjectionZone: inProjection)
+        }
+
+        return HitResult(ringIndex: nil, inProjectionZone: false)
+    }
+
+    private func projectedFractionFor(_ ring: RingData) -> Double {
+        switch ring.projection {
+        case .limitReached: return 1.0
+        case .safe(let projected): return min(projected, 100) / 100
+        case .insufficientData: return 0
         }
     }
 }
@@ -245,56 +139,58 @@ struct SeparateRingsView: View {
     private let ringSize: CGFloat = 60
     private let ringWidth: CGFloat = 6
 
-    @State private var hoveredIndex: Int?
-
     var body: some View {
-        HStack(spacing: 16) {
-            ForEach(Array(rings.enumerated()), id: \.offset) { index, ring in
-                let color = Theme.ringColor(
-                    utilization: ring.utilization,
-                    warningThreshold: warningThreshold,
-                    criticalThreshold: criticalThreshold,
-                    ringIndex: ring.ringIndex
-                )
+        VStack(spacing: 8) {
+            HStack(spacing: 16) {
+                ForEach(Array(rings.enumerated()), id: \.offset) { _, ring in
+                    let color = ringColorFor(ring)
 
-                VStack(spacing: 4) {
-                    ZStack {
-                        RingArc(
-                            utilization: ring.utilization,
-                            projection: showProjection ? ring.projection : .insufficientData,
-                            color: color,
-                            trackColor: color.opacity(0.15),
-                            ringWidth: ringWidth,
-                            size: ringSize
-                        )
+                    VStack(spacing: 4) {
+                        ZStack {
+                            RingArc(
+                                utilization: ring.utilization,
+                                projection: showProjection ? ring.projection : .insufficientData,
+                                color: color,
+                                trackColor: color.opacity(0.15),
+                                ringWidth: ringWidth,
+                                size: ringSize
+                            )
 
-                        // Center percentage
-                        Text("\(Int(ring.utilization))%")
-                            .font(.system(.caption2, design: .monospaced))
-                            .fontWeight(.medium)
-                    }
-                    .popover(isPresented: Binding(
-                        get: { hoveredIndex == index },
-                        set: { if !$0 { hoveredIndex = nil } }
-                    ), arrowEdge: .bottom) {
-                        RingTooltip(ring: ring)
-                            .padding(4)
-                    }
-                    .onHover { isHovered in
-                        DispatchQueue.main.async {
-                            hoveredIndex = isHovered ? index : nil
+                            // Center percentage
+                            Text("\(Int(ring.utilization))%")
+                                .font(.system(.caption2, design: .monospaced))
+                                .fontWeight(.medium)
                         }
-                    }
 
-                    Text(ring.label)
-                        .font(.system(size: 9))
-                        .foregroundColor(.secondary)
+                        Text(ring.label)
+                            .font(.system(size: 9))
+                            .foregroundColor(.secondary)
+                    }
+                    .accessibilityElement(children: .combine)
+                    .accessibilityLabel("\(ring.label) usage \(Int(ring.utilization)) percent")
+                    .accessibilityValue(ring.resetTime.map { "Resets in \($0)" } ?? "")
                 }
-                .accessibilityElement(children: .combine)
-                .accessibilityLabel("\(ring.label) usage \(Int(ring.utilization)) percent")
-                .accessibilityValue(ring.resetTime.map { "Resets in \($0)" } ?? "")
+            }
+
+            // Legend with reset icons
+            VStack(alignment: .leading, spacing: 4) {
+                ForEach(Array(rings.enumerated()), id: \.offset) { _, ring in
+                    RingLegendRow(
+                        ring: ring,
+                        color: ringColorFor(ring)
+                    )
+                }
             }
         }
+    }
+
+    private func ringColorFor(_ ring: RingData) -> Color {
+        Theme.ringColor(
+            utilization: ring.utilization,
+            warningThreshold: warningThreshold,
+            criticalThreshold: criticalThreshold,
+            ringIndex: ring.ringIndex
+        )
     }
 }
 
