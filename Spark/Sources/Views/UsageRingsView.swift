@@ -185,12 +185,15 @@ private struct SeparateRingItem: View {
                     size: ringSize
                 )
 
+                Text("\(Int(ring.utilization))%")
+                    .font(.system(.caption2, design: .monospaced))
+                    .fontWeight(.medium)
+            }
+            .overlay(alignment: .top) {
                 if isHovered {
                     RingTooltip(ring: ring, showProjection: hoverInProjectionZone)
-                } else {
-                    Text("\(Int(ring.utilization))%")
-                        .font(.system(.caption2, design: .monospaced))
-                        .fontWeight(.medium)
+                        .fixedSize()
+                        .offset(y: -8)
                 }
             }
             .onContinuousHover { phase in
