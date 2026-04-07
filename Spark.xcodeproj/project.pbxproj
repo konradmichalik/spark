@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		1F26775BD0D9639ECC720F7A /* SparkApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2CB3DC178234EDAC2F64F1B /* SparkApp.swift */; };
+		2B5482F401D35A0C693B441E /* RingComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 64EF402C9B4F506026E84A90 /* RingComponents.swift */; };
 		2E5E195870ED16B75EBE1CE6 /* StatsModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A2927AA5C9E74B2EF59DD2B /* StatsModels.swift */; };
 		331ED77C583EC450DC45AEBD /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1AEFF3D8115EF35EAF713CD4 /* Models.swift */; };
 		4BA3557B84A9F5B6038C08F9 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 32A7C394BCF978609C456945 /* Assets.xcassets */; };
@@ -18,11 +19,14 @@
 		7F0B5FC4C96F4101B071114A /* KeychainService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8E08CC7D6843B465A64E112E /* KeychainService.swift */; };
 		834B133F3196C51149E4392E /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5ED00B7E4898807D3C31E392 /* AppState.swift */; };
 		984973A8CB701A3E370D7E8D /* ThemeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47981BFA0481C7734C2F4910 /* ThemeTests.swift */; };
+		9AD7A7E2C861C0780D94651A /* InstrumentSerif-Italic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 319CDCAD07B3857069C1088A /* InstrumentSerif-Italic.ttf */; };
+		A6C02AC6A1C8F7108CDB2BFB /* InstrumentSerif-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = A7789FDEB6EF4E7A2828F00A /* InstrumentSerif-Regular.ttf */; };
 		C16DF81A0CD6F250F3CC6C30 /* AccountTierTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7C6AEB39CCABA0D4B4A655D /* AccountTierTests.swift */; };
 		CBD90134453C170527EC1ED4 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB2642E8A08B809575073F98 /* SettingsView.swift */; };
 		D2C762209454112BB4B98294 /* ClaudeLogoShape.swift in Sources */ = {isa = PBXBuildFile; fileRef = 66389C7043A5F5E704F64B03 /* ClaudeLogoShape.swift */; };
 		D400C983072E3B87DBC738F8 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8227C3FD71A94C6C7A1FFD95 /* Theme.swift */; };
 		D4224BCA555578280006F2E8 /* MenuBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC917B43DD2A87E3FC1C9E77 /* MenuBarView.swift */; };
+		D90395B93114188C0177A4AC /* UsageRingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 67F7A4612A57906540BFA7B5 /* UsageRingsView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -40,17 +44,21 @@
 		14BFFB055F5D3AFB05491CA4 /* Spark.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Spark.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		1AEFF3D8115EF35EAF713CD4 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
 		2F43EB7F3BEA4E064CE613B3 /* ModelsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelsTests.swift; sourceTree = "<group>"; };
+		319CDCAD07B3857069C1088A /* InstrumentSerif-Italic.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "InstrumentSerif-Italic.ttf"; sourceTree = "<group>"; };
 		32A7C394BCF978609C456945 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		39DD36A41002DD2326D14223 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		3A2927AA5C9E74B2EF59DD2B /* StatsModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatsModels.swift; sourceTree = "<group>"; };
 		47981BFA0481C7734C2F4910 /* ThemeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThemeTests.swift; sourceTree = "<group>"; };
 		5ED00B7E4898807D3C31E392 /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
+		64EF402C9B4F506026E84A90 /* RingComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RingComponents.swift; sourceTree = "<group>"; };
 		66389C7043A5F5E704F64B03 /* ClaudeLogoShape.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudeLogoShape.swift; sourceTree = "<group>"; };
+		67F7A4612A57906540BFA7B5 /* UsageRingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UsageRingsView.swift; sourceTree = "<group>"; };
 		8066DE0FCE569DFBA806F45A /* SparkTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SparkTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		8227C3FD71A94C6C7A1FFD95 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 		8E08CC7D6843B465A64E112E /* KeychainService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainService.swift; sourceTree = "<group>"; };
 		9652B0D23609965E54C5FC30 /* UsageClientTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UsageClientTests.swift; sourceTree = "<group>"; };
 		A2CB3DC178234EDAC2F64F1B /* SparkApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SparkApp.swift; sourceTree = "<group>"; };
+		A7789FDEB6EF4E7A2828F00A /* InstrumentSerif-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "InstrumentSerif-Regular.ttf"; sourceTree = "<group>"; };
 		C1FF02BEED49ADD5E98D7273 /* UsageClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UsageClient.swift; sourceTree = "<group>"; };
 		D7C6AEB39CCABA0D4B4A655D /* AccountTierTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountTierTests.swift; sourceTree = "<group>"; };
 		E86EED62411024E4E2D49149 /* Spark.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Spark.entitlements; sourceTree = "<group>"; };
@@ -64,8 +72,10 @@
 			children = (
 				66389C7043A5F5E704F64B03 /* ClaudeLogoShape.swift */,
 				FC917B43DD2A87E3FC1C9E77 /* MenuBarView.swift */,
+				64EF402C9B4F506026E84A90 /* RingComponents.swift */,
 				FB2642E8A08B809575073F98 /* SettingsView.swift */,
 				0BCBA43C6F1D84735E81D1CB /* UsageGraphView.swift */,
+				67F7A4612A57906540BFA7B5 /* UsageRingsView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -85,9 +95,19 @@
 				32A7C394BCF978609C456945 /* Assets.xcassets */,
 				39DD36A41002DD2326D14223 /* Info.plist */,
 				E86EED62411024E4E2D49149 /* Spark.entitlements */,
+				4BEE7AB21C06194EEB288EBD /* Resources */,
 				3884FA266EDB59F6D2791C04 /* Sources */,
 			);
 			path = Spark;
+			sourceTree = "<group>";
+		};
+		22B58BC1B8AE5FA418C3DDE3 /* Fonts */ = {
+			isa = PBXGroup;
+			children = (
+				319CDCAD07B3857069C1088A /* InstrumentSerif-Italic.ttf */,
+				A7789FDEB6EF4E7A2828F00A /* InstrumentSerif-Regular.ttf */,
+			);
+			path = Fonts;
 			sourceTree = "<group>";
 		};
 		3389F4D949ECD1C4C7A3FC0B = {
@@ -108,6 +128,14 @@
 				149003F19585F33A4D6AD6F2 /* Views */,
 			);
 			path = Sources;
+			sourceTree = "<group>";
+		};
+		4BEE7AB21C06194EEB288EBD /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				22B58BC1B8AE5FA418C3DDE3 /* Fonts */,
+			);
+			path = Resources;
 			sourceTree = "<group>";
 		};
 		675B56332E65ED375F3CF6D7 /* SparkTests */ = {
@@ -223,6 +251,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				4BA3557B84A9F5B6038C08F9 /* Assets.xcassets in Resources */,
+				9AD7A7E2C861C0780D94651A /* InstrumentSerif-Italic.ttf in Resources */,
+				A6C02AC6A1C8F7108CDB2BFB /* InstrumentSerif-Regular.ttf in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -238,12 +268,14 @@
 				7F0B5FC4C96F4101B071114A /* KeychainService.swift in Sources */,
 				D4224BCA555578280006F2E8 /* MenuBarView.swift in Sources */,
 				331ED77C583EC450DC45AEBD /* Models.swift in Sources */,
+				2B5482F401D35A0C693B441E /* RingComponents.swift in Sources */,
 				CBD90134453C170527EC1ED4 /* SettingsView.swift in Sources */,
 				1F26775BD0D9639ECC720F7A /* SparkApp.swift in Sources */,
 				2E5E195870ED16B75EBE1CE6 /* StatsModels.swift in Sources */,
 				D400C983072E3B87DBC738F8 /* Theme.swift in Sources */,
 				78B4BB3706C1E08F1CE36470 /* UsageClient.swift in Sources */,
 				51EF77F52466A9D14DBA711A /* UsageGraphView.swift in Sources */,
+				D90395B93114188C0177A4AC /* UsageRingsView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -337,7 +369,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 6;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -350,7 +382,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 0.1.0;
+				MARKETING_VERSION = 0.2.3;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -412,7 +444,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 6;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
@@ -431,7 +463,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 0.1.0;
+				MARKETING_VERSION = 0.2.3;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
