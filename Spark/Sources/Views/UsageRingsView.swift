@@ -140,46 +140,15 @@ struct SeparateRingsView: View {
     private let ringWidth: CGFloat = 6
 
     var body: some View {
-        VStack(spacing: 8) {
-            HStack(spacing: 16) {
-                ForEach(Array(rings.enumerated()), id: \.offset) { _, ring in
-                    let color = ringColorFor(ring)
-
-                    VStack(spacing: 4) {
-                        ZStack {
-                            RingArc(
-                                utilization: ring.utilization,
-                                projection: showProjection ? ring.projection : .insufficientData,
-                                color: color,
-                                trackColor: color.opacity(0.15),
-                                ringWidth: ringWidth,
-                                size: ringSize
-                            )
-
-                            // Center percentage
-                            Text("\(Int(ring.utilization))%")
-                                .font(.system(.caption2, design: .monospaced))
-                                .fontWeight(.medium)
-                        }
-
-                        Text(ring.label)
-                            .font(.system(size: 9))
-                            .foregroundColor(.secondary)
-                    }
-                    .accessibilityElement(children: .combine)
-                    .accessibilityLabel("\(ring.label) usage \(Int(ring.utilization)) percent")
-                    .accessibilityValue(ring.resetTime.map { "Resets in \($0)" } ?? "")
-                }
-            }
-
-            // Legend with reset icons
-            VStack(alignment: .leading, spacing: 4) {
-                ForEach(Array(rings.enumerated()), id: \.offset) { _, ring in
-                    RingLegendRow(
-                        ring: ring,
-                        color: ringColorFor(ring)
-                    )
-                }
+        HStack(spacing: 16) {
+            ForEach(Array(rings.enumerated()), id: \.offset) { _, ring in
+                SeparateRingItem(
+                    ring: ring,
+                    color: ringColorFor(ring),
+                    showProjection: showProjection,
+                    ringWidth: ringWidth,
+                    ringSize: ringSize
+                )
             }
         }
     }
@@ -191,6 +160,79 @@ struct SeparateRingsView: View {
             criticalThreshold: criticalThreshold,
             ringIndex: ring.ringIndex
         )
+    }
+}
+
+private struct SeparateRingItem: View {
+    let ring: RingData
+    let color: Color
+    let showProjection: Bool
+    let ringWidth: CGFloat
+    let ringSize: CGFloat
+    @State private var showResetPopover = false
+
+    var body: some View {
+        VStack(spacing: 4) {
+            ZStack {
+                RingArc(
+                    utilization: ring.utilization,
+                    projection: showProjection ? ring.projection : .insufficientData,
+                    color: color,
+                    trackColor: color.opacity(0.15),
+                    ringWidth: ringWidth,
+                    size: ringSize
+                )
+
+                Text("\(Int(ring.utilization))%")
+                    .font(.system(.caption2, design: .monospaced))
+                    .fontWeight(.medium)
+            }
+
+            HStack(spacing: 4) {
+                Text(ring.label)
+                    .font(.system(size: 9))
+                    .foregroundColor(.secondary)
+
+                if ring.resetTime != nil {
+                    Button {
+                        showResetPopover.toggle()
+                    } label: {
+                        Image(systemName: "clock.arrow.circlepath")
+                            .font(.system(size: 8))
+                            .foregroundColor(.secondary)
+                            .frame(width: 14, height: 14)
+                            .background(Color.secondary.opacity(0.12))
+                            .clipShape(Circle())
+                    }
+                    .buttonStyle(.plain)
+                    .popover(isPresented: $showResetPopover, arrowEdge: .bottom) {
+                        VStack(spacing: 6) {
+                            HStack(spacing: 4) {
+                                Image(systemName: "clock.arrow.circlepath")
+                                    .foregroundColor(.secondary)
+                                Text("Reset in \(ring.resetTime ?? "")")
+                                    .fontWeight(.medium)
+                            }
+                            .font(.caption)
+
+                            if let resetDate = ring.resetDate {
+                                Text(
+                                    resetDate,
+                                    format: .dateTime.weekday(.wide).day().month(.wide).hour().minute()
+                                )
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
+                            }
+                        }
+                        .padding(10)
+                        .frame(width: 220)
+                    }
+                }
+            }
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(ring.label) usage \(Int(ring.utilization)) percent")
+        .accessibilityValue(ring.resetTime.map { "Resets in \($0)" } ?? "")
     }
 }
 
