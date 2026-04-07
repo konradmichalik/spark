@@ -110,21 +110,22 @@ final class AppState: ObservableObject {
     }
 
     private func tryAutoLogin() {
-        // Always read credentials to get tier info
-        if let credentials = KeychainService.readClaudeCodeCredentials() {
-            accountTier = credentials.accountTier
-        }
-
-        // Try saved token first
+        // Try saved token first (our own Keychain entry — no password prompt)
         if let token = KeychainService.read(account: "oauth-token"), !token.isEmpty {
             oauthToken = token
             authMethod = .claudeCode
             isAuthenticated = true
+
+            // Read Claude Code credentials once for tier info
+            if let credentials = KeychainService.readClaudeCodeCredentials() {
+                accountTier = credentials.accountTier
+            }
+
             Task { await fetchUsage() }
             return
         }
 
-        // Try Claude Code Keychain
+        // No saved token — try Claude Code Keychain (single read)
         _ = loadCredentials()
     }
 
