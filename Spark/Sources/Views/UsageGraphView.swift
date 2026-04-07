@@ -32,8 +32,34 @@ struct UsageGraphView: View {
     private var windowEnd: Date { Date() }
     private var windowStart: Date { windowEnd.addingTimeInterval(-timeRange.seconds) }
 
+    /// Maximum gap (seconds) before we assume the app was inactive and insert 0% anchors.
+    private static let gapThreshold: TimeInterval = 45 * 60
+
     private var filteredHistory: [UsageSnapshot] {
-        return history.filter { $0.timestamp > windowStart }
+        let raw = history.filter { $0.timestamp > windowStart }
+
+        var result: [UsageSnapshot] = []
+        for (index, snap) in raw.enumerated() {
+            let previous = index == 0 ? windowStart : raw[index - 1].timestamp
+            let gap = snap.timestamp.timeIntervalSince(previous)
+
+            if gap > Self.gapThreshold {
+                // Drop to 0% right after the previous point
+                result.append(UsageSnapshot(
+                    timestamp: previous.addingTimeInterval(1),
+                    sessionUtilization: 0,
+                    weeklyUtilization: 0
+                ))
+                // Stay at 0% right before this point
+                result.append(UsageSnapshot(
+                    timestamp: snap.timestamp.addingTimeInterval(-1),
+                    sessionUtilization: 0,
+                    weeklyUtilization: 0
+                ))
+            }
+            result.append(snap)
+        }
+        return result
     }
 
     var body: some View {
