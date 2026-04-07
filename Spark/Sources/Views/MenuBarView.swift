@@ -39,55 +39,77 @@ struct MenuBarView: View {
 
             Divider()
 
-            // Session Usage
-            if let session = state.usageData.session {
+            if state.usageDisplayStyle == "bars" {
+                // Session Usage
+                if let session = state.usageData.session {
+                    let sessionProjection = state.showProjection
+                        ? SessionProjection.calculate(
+                            history: state.history,
+                            currentUtilization: session.utilization,
+                            resetsAt: session.resetsAtDate
+                        )
+                        : .insufficientData
+
+                    UsageRow(
+                        label: "Session (5h)",
+                        utilization: session.utilization,
+                        resetTime: session.timeUntilReset,
+                        resetDate: session.resetsAtDate,
+                        warningThreshold: state.warningThreshold,
+                        criticalThreshold: state.criticalThreshold,
+                        projection: sessionProjection
+                    )
+                }
+
+                // Weekly Usage
+                if let weekly = state.usageData.weekly {
+                    UsageRow(
+                        label: "Weekly (7 days)",
+                        utilization: weekly.utilization,
+                        resetTime: weekly.timeUntilReset,
+                        resetDate: weekly.resetsAtDate,
+                        warningThreshold: state.warningThreshold,
+                        criticalThreshold: state.criticalThreshold
+                    )
+                }
+
+                // Sonnet Usage
+                if state.showSonnetUsage, let sonnet = state.usageData.weeklySonnet {
+                    UsageRow(
+                        label: "Sonnet (Weekly)",
+                        utilization: sonnet.utilization,
+                        resetTime: sonnet.timeUntilReset,
+                        resetDate: sonnet.resetsAtDate,
+                        warningThreshold: state.warningThreshold,
+                        criticalThreshold: state.criticalThreshold
+                    )
+                }
+
+                if state.usageData.session == nil && state.lastError == nil && !state.isLoading {
+                    Text("No data available")
+                        .foregroundColor(.secondary)
+                        .font(.caption)
+                }
+            } else {
                 let sessionProjection = state.showProjection
                     ? SessionProjection.calculate(
                         history: state.history,
-                        currentUtilization: session.utilization,
-                        resetsAt: session.resetsAtDate
+                        currentUtilization: state.usageData.session?.utilization ?? 0,
+                        resetsAt: state.usageData.session?.resetsAtDate
                     )
                     : .insufficientData
 
-                UsageRow(
-                    label: "Session (5h)",
-                    utilization: session.utilization,
-                    resetTime: session.timeUntilReset,
-                    resetDate: session.resetsAtDate,
+                UsageRingsView(
+                    session: state.usageData.session,
+                    weekly: state.usageData.weekly,
+                    sonnet: state.usageData.weeklySonnet,
+                    showSonnet: state.showSonnetUsage,
+                    showProjection: state.showProjection,
                     warningThreshold: state.warningThreshold,
                     criticalThreshold: state.criticalThreshold,
-                    projection: sessionProjection
+                    sessionProjection: sessionProjection,
+                    displayStyle: state.usageDisplayStyle
                 )
-            }
-
-            // Weekly Usage
-            if let weekly = state.usageData.weekly {
-                UsageRow(
-                    label: "Weekly (7 days)",
-                    utilization: weekly.utilization,
-                    resetTime: weekly.timeUntilReset,
-                    resetDate: weekly.resetsAtDate,
-                    warningThreshold: state.warningThreshold,
-                    criticalThreshold: state.criticalThreshold
-                )
-            }
-
-            // Sonnet Usage
-            if state.showSonnetUsage, let sonnet = state.usageData.weeklySonnet {
-                UsageRow(
-                    label: "Sonnet (Weekly)",
-                    utilization: sonnet.utilization,
-                    resetTime: sonnet.timeUntilReset,
-                    resetDate: sonnet.resetsAtDate,
-                    warningThreshold: state.warningThreshold,
-                    criticalThreshold: state.criticalThreshold
-                )
-            }
-
-            if state.usageData.session == nil && state.lastError == nil && !state.isLoading {
-                Text("No data available")
-                    .foregroundColor(.secondary)
-                    .font(.caption)
             }
 
             // Error
