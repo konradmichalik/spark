@@ -1,6 +1,10 @@
 import AppKit
 import SwiftUI
 
+enum SettingsTab: Hashable {
+    case general, menuBar, display, connection, notifications, status, about
+}
+
 enum Theme {
     static let sparkOrange = Color(nsColor: sparkOrangeNS)
     static let sparkOrangeNS = NSColor(red: 0.85, green: 0.47, blue: 0.34, alpha: 1)

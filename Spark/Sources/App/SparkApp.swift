@@ -67,31 +67,8 @@ struct SparkApp: App {
                     MenuBarView()
                         .environmentObject(state)
                 } else {
-                    VStack(spacing: 12) {
-                        Text("Spark")
-                            .font(.headline)
-                        Text("Not connected")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-
-                        SettingsLink {
-                            Text("Log In / Settings...")
-                        }
-
-                        if let error = state.lastError {
-                            Text(error)
-                                .font(.caption2)
-                                .foregroundColor(.red)
-                        }
-
-                        Divider()
-
-                        Button("Quit") {
-                            NSApplication.shared.terminate(nil)
-                        }
-                    }
-                    .padding()
-                    .frame(width: 250)
+                    NotConnectedView()
+                        .environmentObject(state)
                 }
             }
             .task {

@@ -491,7 +491,7 @@ struct StatusRow: View {
 
 /// Measures the SwiftUI content size via GeometryReader and forces the
 /// hosting NSPanel to match, working around the MenuBarExtra resize bug.
-private struct WindowResizer: View {
+struct WindowResizer: View {
     var body: some View {
         GeometryReader { proxy in
             Color.clear

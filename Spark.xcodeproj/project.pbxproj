@@ -10,6 +10,7 @@
 		1F26775BD0D9639ECC720F7A /* SparkApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2CB3DC178234EDAC2F64F1B /* SparkApp.swift */; };
 		2B5482F401D35A0C693B441E /* RingComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 64EF402C9B4F506026E84A90 /* RingComponents.swift */; };
 		2E5E195870ED16B75EBE1CE6 /* StatsModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A2927AA5C9E74B2EF59DD2B /* StatsModels.swift */; };
+		3239D0C1DC2824C4D35FB9B2 /* NotConnectedView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF9C3135A8DDDF4266067319 /* NotConnectedView.swift */; };
 		331ED77C583EC450DC45AEBD /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1AEFF3D8115EF35EAF713CD4 /* Models.swift */; };
 		4BA3557B84A9F5B6038C08F9 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 32A7C394BCF978609C456945 /* Assets.xcassets */; };
 		51EF77F52466A9D14DBA711A /* UsageGraphView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0BCBA43C6F1D84735E81D1CB /* UsageGraphView.swift */; };
@@ -64,6 +65,7 @@
 		E86EED62411024E4E2D49149 /* Spark.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Spark.entitlements; sourceTree = "<group>"; };
 		FB2642E8A08B809575073F98 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		FC917B43DD2A87E3FC1C9E77 /* MenuBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarView.swift; sourceTree = "<group>"; };
+		FF9C3135A8DDDF4266067319 /* NotConnectedView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotConnectedView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -72,6 +74,7 @@
 			children = (
 				66389C7043A5F5E704F64B03 /* ClaudeLogoShape.swift */,
 				FC917B43DD2A87E3FC1C9E77 /* MenuBarView.swift */,
+				FF9C3135A8DDDF4266067319 /* NotConnectedView.swift */,
 				64EF402C9B4F506026E84A90 /* RingComponents.swift */,
 				FB2642E8A08B809575073F98 /* SettingsView.swift */,
 				0BCBA43C6F1D84735E81D1CB /* UsageGraphView.swift */,
@@ -268,6 +271,7 @@
 				7F0B5FC4C96F4101B071114A /* KeychainService.swift in Sources */,
 				D4224BCA555578280006F2E8 /* MenuBarView.swift in Sources */,
 				331ED77C583EC450DC45AEBD /* Models.swift in Sources */,
+				3239D0C1DC2824C4D35FB9B2 /* NotConnectedView.swift in Sources */,
 				2B5482F401D35A0C693B441E /* RingComponents.swift in Sources */,
 				CBD90134453C170527EC1ED4 /* SettingsView.swift in Sources */,
 				1F26775BD0D9639ECC720F7A /* SparkApp.swift in Sources */,
@@ -369,7 +373,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 6;
+				CURRENT_PROJECT_VERSION = 8;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -382,7 +386,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 0.2.3;
+				MARKETING_VERSION = 0.3.1;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -444,7 +448,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 6;
+				CURRENT_PROJECT_VERSION = 8;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
@@ -463,7 +467,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 0.2.3;
+				MARKETING_VERSION = 0.3.1;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
