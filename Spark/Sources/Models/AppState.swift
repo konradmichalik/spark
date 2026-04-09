@@ -98,18 +98,19 @@ final class AppState: ObservableObject {
         oauthToken = nil
         isAuthenticated = false
         authMethod = .none
+        accountTier = .free
         usageData = .empty
         KeychainService.delete(account: "oauth-token")
+        KeychainService.delete(account: "account-tier")
         stopUsagePolling()
     }
 
     func loadCredentials() -> Bool {
-        if let credentials = KeychainService.readClaudeCodeCredentials() {
-            accountTier = credentials.accountTier
-            setAuthenticated(token: credentials.accessToken)
-            return true
-        }
-        return false
+        guard let credentials = KeychainService.readClaudeCodeCredentials() else { return false }
+        accountTier = credentials.accountTier
+        KeychainService.cacheCredentials(credentials)
+        setAuthenticated(token: credentials.accessToken)
+        return true
     }
 
     private func tryAutoLogin() {
@@ -119,16 +120,16 @@ final class AppState: ObservableObject {
             authMethod = .claudeCode
             isAuthenticated = true
 
-            // Read Claude Code credentials once for tier info
-            if let credentials = KeychainService.readClaudeCodeCredentials() {
-                accountTier = credentials.accountTier
+            // Restore cached tier from Spark's own Keychain (no prompt)
+            if let tierName = KeychainService.readCachedTierName() {
+                accountTier = AccountTier(displayName: tierName)
             }
 
             Task { await fetchUsage() }
             return
         }
 
-        // No saved token — try Claude Code Keychain (single read)
+        // No saved token — try Claude Code Keychain (single read, may prompt once)
         _ = loadCredentials()
     }
 
@@ -177,13 +178,15 @@ final class AppState: ObservableObject {
     }
 
     private func refreshTokenAndFetch() async throws {
-        guard let freshToken = KeychainService.readClaudeCodeToken() else {
+        guard let credentials = KeychainService.readClaudeCodeCredentials() else {
             throw UsageClient.ClientError.unauthorized
         }
-        oauthToken = freshToken
-        KeychainService.save(freshToken, account: "oauth-token")
+        oauthToken = credentials.accessToken
+        accountTier = credentials.accountTier
+        KeychainService.cacheCredentials(credentials)
+        let token = credentials.accessToken
         let response = try await Task.detached {
-            try await UsageClient.fetchUsage(token: freshToken)
+            try await UsageClient.fetchUsage(token: token)
         }.value
         usageData = UsageData(
             session: response.fiveHour,
@@ -198,8 +201,10 @@ final class AppState: ObservableObject {
     private func handleRateLimited() async {
         consecutiveRateLimits += 1
 
-        // Try refreshing the token — a new token resets the per-token rate limit
-        if let freshToken = KeychainService.readClaudeCodeToken(), freshToken != oauthToken {
+        // Try refreshing the token — a new token resets the per-token rate limit.
+        // This is the only polling-path that reads Claude Code's Keychain (may prompt once).
+        if let credentials = KeychainService.readClaudeCodeCredentials(),
+           credentials.accessToken != oauthToken {
             do {
                 try await refreshTokenAndFetch()
                 return
