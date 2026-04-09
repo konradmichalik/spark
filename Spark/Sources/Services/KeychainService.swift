@@ -21,6 +21,17 @@ enum KeychainService {
         SecItemAdd(query as CFDictionary, nil)
     }
 
+    /// Cache Claude Code credentials in Spark's own Keychain (no password prompt on read)
+    static func cacheCredentials(_ credentials: ClaudeCredentials) {
+        save(credentials.accessToken, account: "oauth-token")
+        save(credentials.accountTier.displayName, account: "account-tier")
+    }
+
+    /// Read cached account tier display name from Spark's own Keychain
+    static func readCachedTierName() -> String? {
+        read(account: "account-tier")
+    }
+
     static func read(account: String) -> String? {
         let query: [CFString: Any] = [
             kSecClass: kSecClassGenericPassword,
@@ -111,6 +122,18 @@ struct AccountTier: Equatable {
     var displayName: String {
         if let multiplier { return "\(plan) \(multiplier)" }
         return plan
+    }
+
+    /// Restore from cached displayName (e.g. "Max 5x" → plan: "Max", multiplier: "5x")
+    init(displayName: String) {
+        let parts = displayName.split(separator: " ", maxSplits: 1)
+        self.plan = String(parts.first ?? "Free")
+        self.multiplier = parts.count > 1 ? String(parts[1]) : nil
+    }
+
+    init(plan: String, multiplier: String?) {
+        self.plan = plan
+        self.multiplier = multiplier
     }
 
     static let free = AccountTier(plan: "Free", multiplier: nil)
