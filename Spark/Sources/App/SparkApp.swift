@@ -9,6 +9,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDele
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         UNUserNotificationCenter.current().delegate = self
+        // Explicitly set app icon so macOS uses it in notifications (LSUIElement apps don't show it reliably otherwise)
+        if let iconImage = NSImage(named: NSImage.applicationIconName) {
+            NSApplication.shared.applicationIconImage = iconImage
+        }
         setupContextMenu()
     }
 
