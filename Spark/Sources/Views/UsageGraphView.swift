@@ -75,15 +75,26 @@ struct UsageGraphView: View {
                         .foregroundColor(.secondary)
                 }
                 Spacer()
-                Picker("", selection: $timeRange) {
+                HStack(spacing: 2) {
                     ForEach(GraphTimeRange.allCases, id: \.self) { range in
-                        Text(range.rawValue).tag(range)
+                        Button {
+                            timeRange = range
+                        } label: {
+                            Text(range.rawValue)
+                                .font(.system(size: 10, weight: timeRange == range ? .semibold : .regular))
+                                .foregroundColor(timeRange == range ? .primary : .secondary)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(
+                                    timeRange == range
+                                        ? Color.primary.opacity(0.1)
+                                        : Color.clear
+                                )
+                                .cornerRadius(4)
+                        }
+                        .buttonStyle(.plain)
                     }
                 }
-                .pickerStyle(.segmented)
-                .frame(width: 180)
-                .controlSize(.mini)
-                .tint(.gray)
             }
 
             // Graph area with Y-axis
