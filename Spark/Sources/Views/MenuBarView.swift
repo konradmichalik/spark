@@ -160,6 +160,11 @@ struct MenuBarView: View {
         .padding(12)
         .frame(width: 300)
         .fixedSize(horizontal: false, vertical: true)
+        .background {
+            if state.reduceTransparency {
+                Color(nsColor: .windowBackgroundColor)
+            }
+        }
         .background(WindowResizer())
     }
 

@@ -549,6 +549,17 @@ struct DisplayTab: View {
                     .font(.caption2)
                     .foregroundColor(.secondary)
                     .frame(maxWidth: .infinity, alignment: .leading)
+
+                SectionHeader(title: "Appearance", icon: "paintbrush")
+
+                CardView {
+                    Toggle(isOn: $state.reduceTransparency) {
+                        SettingLabel(
+                            title: "Reduce Transparency",
+                            subtitle: "Use an opaque background instead of the translucent system material."
+                        )
+                    }
+                }
             }
             .padding()
         }
