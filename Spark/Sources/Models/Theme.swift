@@ -54,6 +54,21 @@ private struct RingPalette {
     }
 }
 
+extension View {
+    /// Opaque background when Reduce Transparency is on, material otherwise.
+    func adaptiveBackground(
+        reduceTransparency: Bool,
+        in shape: some InsettableShape = RoundedRectangle(cornerRadius: 4)
+    ) -> some View {
+        background(
+            reduceTransparency
+                ? AnyShapeStyle(Color(nsColor: .windowBackgroundColor))
+                : AnyShapeStyle(.ultraThinMaterial),
+            in: shape
+        )
+    }
+}
+
 extension TimeInterval {
     var shortDuration: String {
         let totalMinutes = Int(self) / 60

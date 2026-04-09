@@ -67,6 +67,7 @@ struct RingArc: View {
 struct RingTooltip: View {
     let ring: RingData
     let showProjection: Bool
+    @AppStorage("reduceTransparency") private var reduceTransparency: Bool = false
 
     var body: some View {
         VStack(spacing: 2) {
@@ -82,7 +83,7 @@ struct RingTooltip: View {
         }
         .font(.caption2)
         .padding(6)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 6))
+        .adaptiveBackground(reduceTransparency: reduceTransparency, in: RoundedRectangle(cornerRadius: 6))
     }
 
     private var projectionText: String? {
