@@ -124,6 +124,10 @@ final class AppState: ObservableObject {
             // Restore cached tier from Spark's own Keychain (no prompt)
             if let tierName = KeychainService.readCachedTierName() {
                 accountTier = AccountTier(displayName: tierName)
+            } else if let credentials = KeychainService.readClaudeCodeCredentials() {
+                // No cached tier yet — read from Claude Code Keychain (may prompt once)
+                accountTier = credentials.accountTier
+                KeychainService.cacheCredentials(credentials)
             }
 
             Task { await fetchUsage() }
