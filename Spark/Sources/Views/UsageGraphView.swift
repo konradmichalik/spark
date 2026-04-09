@@ -26,6 +26,7 @@ enum GraphTimeRange: String, CaseIterable {
 
 struct UsageGraphView: View {
     let history: [UsageSnapshot]
+    @AppStorage("reduceTransparency") private var reduceTransparency: Bool = false
     @State private var timeRange: GraphTimeRange = .sixHours
     @State private var hoverIndex: Int?
 
@@ -144,7 +145,7 @@ struct UsageGraphView: View {
             .font(.system(.caption2, design: .monospaced))
             .padding(.horizontal, 4)
             .padding(.vertical, 2)
-            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 4))
+            .adaptiveBackground(reduceTransparency: reduceTransparency)
         }
     }
 
@@ -167,7 +168,7 @@ struct UsageGraphView: View {
             .foregroundColor(.secondary)
             .padding(.horizontal, 4)
             .padding(.vertical, 2)
-            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 4))
+            .adaptiveBackground(reduceTransparency: reduceTransparency)
         }
     }
 
