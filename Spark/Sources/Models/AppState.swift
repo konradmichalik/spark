@@ -46,6 +46,9 @@ final class AppState: ObservableObject {
     @AppStorage("usageDisplayStyle") var usageDisplayStyle: String = "bars"
     @AppStorage("reduceTransparency") var reduceTransparency: Bool = false
 
+    // Navigation
+    @Published var selectedSettingsTab: SettingsTab = .general
+
     // MARK: - Stats
 
     @Published var liveStats: LiveDayStats?

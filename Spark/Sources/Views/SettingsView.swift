@@ -9,33 +9,40 @@ struct SettingsView: View {
     @EnvironmentObject var state: AppState
 
     var body: some View {
-        TabView {
+        TabView(selection: $state.selectedSettingsTab) {
             GeneralTab()
                 .environmentObject(state)
                 .tabItem { Label("General", systemImage: "gearshape") }
+                .tag(SettingsTab.general)
 
             MenuBarTab()
                 .environmentObject(state)
                 .tabItem { Label("Menu Bar", systemImage: "menubar.rectangle") }
+                .tag(SettingsTab.menuBar)
 
             DisplayTab()
                 .environmentObject(state)
                 .tabItem { Label("Display", systemImage: "square.grid.2x2") }
+                .tag(SettingsTab.display)
 
             ConnectionTab()
                 .environmentObject(state)
                 .tabItem { Label("Connection", systemImage: "person.circle") }
+                .tag(SettingsTab.connection)
 
             NotificationsTab()
                 .environmentObject(state)
                 .tabItem { Label("Notifications", systemImage: "bell") }
+                .tag(SettingsTab.notifications)
 
             StatusTab()
                 .environmentObject(state)
                 .tabItem { Label("Status", systemImage: "heart.text.square") }
+                .tag(SettingsTab.status)
 
             AboutTab()
                 .tabItem { Label("About", systemImage: "info.circle") }
+                .tag(SettingsTab.about)
         }
         .frame(width: 520, height: 510)
         .onAppear {
