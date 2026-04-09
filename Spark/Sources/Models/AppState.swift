@@ -44,6 +44,7 @@ final class AppState: ObservableObject {
     @AppStorage("showStats") var showStats: Bool = true
     @AppStorage("coloredIcon") var coloredIcon: Bool = true
     @AppStorage("usageDisplayStyle") var usageDisplayStyle: String = "bars"
+    @AppStorage("reduceTransparency") var reduceTransparency: Bool = false
 
     // MARK: - Stats
 
