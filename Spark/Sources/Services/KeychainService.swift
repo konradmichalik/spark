@@ -58,13 +58,19 @@ enum KeychainService {
     }
 
     /// Read Claude Code CLI credentials from Keychain
-    static func readClaudeCodeCredentials() -> ClaudeCredentials? {
-        let query: [CFString: Any] = [
+    /// - Parameter silent: When `true`, suppresses the macOS password prompt.
+    ///   Use `silent: true` for background/polling reads, `false` for user-initiated actions.
+    static func readClaudeCodeCredentials(silent: Bool = false) -> ClaudeCredentials? {
+        var query: [CFString: Any] = [
             kSecClass: kSecClassGenericPassword,
             kSecAttrService: "Claude Code-credentials" as CFString,
             kSecReturnData: true,
             kSecMatchLimit: kSecMatchLimitOne
         ]
+
+        if silent {
+            query[kSecUseAuthenticationUI] = kSecUseAuthenticationUISkip
+        }
 
         var result: AnyObject?
         let status = SecItemCopyMatching(query as CFDictionary, &result)

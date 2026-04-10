@@ -112,6 +112,25 @@ struct MenuBarView: View {
                 )
             }
 
+            // Reconnect prompt (token expired, ACL wiped by Claude Code)
+            if state.needsReconnect {
+                HStack(spacing: 6) {
+                    Image(systemName: "arrow.triangle.2.circlepath")
+                        .foregroundColor(.orange)
+                        .font(.caption)
+                    Text("Session expired")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    Spacer()
+                    Button("Reconnect") {
+                        state.reconnect()
+                    }
+                    .font(.caption)
+                    .buttonStyle(.borderless)
+                    .foregroundColor(Theme.sparkOrange)
+                }
+            }
+
             // Error
             if let error = state.lastError {
                 HStack {
