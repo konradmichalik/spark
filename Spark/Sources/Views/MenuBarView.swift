@@ -9,7 +9,7 @@ struct MenuBarView: View {
         VStack(alignment: .leading, spacing: 12) {
             // Header
             HStack(spacing: 6) {
-                SparkLogoView(size: 20)
+                SparkLogoView(size: 20, isLoading: state.isLoading)
                 Text("Spark")
                     .font(.custom("InstrumentSerif-Regular", size: 15))
 
