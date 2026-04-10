@@ -143,12 +143,12 @@ struct MenuBarLabel: View {
             NSColor.gray.withAlphaComponent(0.3).setStroke()
             trackPath.stroke()
 
-            // Progress arc (starts at top, goes clockwise)
+            // Progress arc (starts at 12 o'clock, fills clockwise)
             if utilization > 0 {
-                let startAngle: CGFloat = 90 // top
-                let endAngle = 90 - (CGFloat(min(utilization, 100)) / 100 * 360)
+                let startAngle: CGFloat = 270 // top in flipped coordinates
+                let endAngle = startAngle + (CGFloat(min(utilization, 100)) / 100 * 360)
                 let arcPath = NSBezierPath()
-                arcPath.appendArc(withCenter: center, radius: ringRadius, startAngle: startAngle, endAngle: endAngle, clockwise: true)
+                arcPath.appendArc(withCenter: center, radius: ringRadius, startAngle: startAngle, endAngle: endAngle, clockwise: false)
                 arcPath.lineWidth = ringWidth
                 arcPath.lineCapStyle = .round
                 self.iconColor.setStroke()

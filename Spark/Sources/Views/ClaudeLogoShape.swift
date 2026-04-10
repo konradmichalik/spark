@@ -179,32 +179,69 @@ struct ClaudeLogoShape: Shape {
 /// Native SwiftUI Spark logo: Claude spark + ring, pixel-perfect at any size.
 struct SparkLogoView: View {
     let size: CGFloat
+    var isLoading: Bool = false
 
     private let ringRatio: CGFloat = 0.9
     private let ringWidth: CGFloat = 0.08
     private let sparkInset: CGFloat = 0.25
+    private let gapDegrees: Double = 145
+
+    @State private var ringProgress: Double = 0
+    @State private var sparkOpacity: Double = 0
+    @State private var loadingRotation: Double = 0
+
+    private var halfGap: Double { gapDegrees / 2 }
 
     var body: some View {
         ZStack {
-            // Ring track (gray gap — 145°, positioned at top)
-            Circle()
-                .trim(from: 0, to: 145.0 / 360.0)
-                .stroke(Color.gray.opacity(0.25), lineWidth: size * ringWidth)
-                .rotationEffect(.degrees(-90 - 145))
-                .frame(width: size * ringRatio, height: size * ringRatio)
+            // Ring (rotates during loading, spark does not)
+            Group {
+                // Gray track (unfilled portion after the orange arc)
+                Circle()
+                    .trim(from: (360 - gapDegrees) / 360.0, to: 1.0)
+                    .stroke(Color.gray.opacity(0.25), lineWidth: size * ringWidth)
+                    .rotationEffect(.degrees(-90))
+                    .frame(width: size * ringRatio, height: size * ringRatio)
 
-            // Ring arc (orange, 215° counter-clockwise ending at 12 o'clock)
-            Circle()
-                .trim(from: 0, to: 215.0 / 360.0)
-                .stroke(Theme.sparkOrange, style: StrokeStyle(lineWidth: size * ringWidth, lineCap: .butt))
-                .rotationEffect(.degrees(-90 - 215))
-                .frame(width: size * ringRatio, height: size * ringRatio)
+                // Orange arc (starts at 12 o'clock, fills clockwise)
+                Circle()
+                    .trim(from: 0, to: (360 - gapDegrees) / 360.0 * ringProgress)
+                    .stroke(Theme.sparkOrange, style: StrokeStyle(lineWidth: size * ringWidth, lineCap: .butt))
+                    .rotationEffect(.degrees(-90))
+                    .frame(width: size * ringRatio, height: size * ringRatio)
+            }
+            .rotationEffect(.degrees(loadingRotation))
 
-            // Spark shape
+            // Spark shape (static during loading)
             ClaudeLogoShape()
                 .fill(Theme.sparkOrange)
+                .opacity(sparkOpacity)
                 .frame(width: size * (1 - sparkInset * 2), height: size * (1 - sparkInset * 2))
         }
         .frame(width: size, height: size)
+        .onAppear {
+            ringProgress = 0
+            sparkOpacity = 0
+            withAnimation(.timingCurve(0.25, 0.1, 0.1, 1, duration: 0.5)) {
+                ringProgress = 1
+            }
+            withAnimation(.easeOut(duration: 0.3).delay(0.1)) {
+                sparkOpacity = 1
+            }
+        }
+        .onDisappear {
+            ringProgress = 0
+            sparkOpacity = 0
+            loadingRotation = 0
+        }
+        .task(id: isLoading) {
+            guard isLoading else { return }
+            while !Task.isCancelled {
+                withAnimation(.linear(duration: 1.2)) {
+                    loadingRotation += 360
+                }
+                try? await Task.sleep(for: .seconds(1.2))
+            }
+        }
     }
 }
