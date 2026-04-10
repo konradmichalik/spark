@@ -15,6 +15,7 @@ final class AppState: ObservableObject {
     @Published var isLoading = false
     @Published var lastError: String?
     @Published var isAuthenticated = false
+    @Published var needsReconnect = false
     @Published var authMethod: AuthMethod = .none
     @Published var accountTier: AccountTier = .free
     @Published var currentRefreshInterval: TimeInterval = 300
@@ -101,6 +102,7 @@ final class AppState: ObservableObject {
     func logout() {
         oauthToken = nil
         isAuthenticated = false
+        needsReconnect = false
         authMethod = .none
         accountTier = .free
         usageData = .empty
@@ -113,8 +115,14 @@ final class AppState: ObservableObject {
         guard let credentials = KeychainService.readClaudeCodeCredentials() else { return false }
         accountTier = credentials.accountTier
         KeychainService.cacheCredentials(credentials)
+        needsReconnect = false
         setAuthenticated(token: credentials.accessToken)
         return true
+    }
+
+    /// Re-read Claude Code credentials (prompted). Call from UI when user taps "Reconnect".
+    func reconnect() {
+        _ = loadCredentials()
     }
 
     private func tryAutoLogin() {
@@ -186,7 +194,7 @@ final class AppState: ObservableObject {
     }
 
     private func refreshTokenAndFetch() async throws {
-        guard let credentials = KeychainService.readClaudeCodeCredentials() else {
+        guard let credentials = KeychainService.readClaudeCodeCredentials(silent: true) else {
             throw UsageClient.ClientError.unauthorized
         }
         oauthToken = credentials.accessToken
@@ -211,7 +219,7 @@ final class AppState: ObservableObject {
 
         // Try refreshing the token — a new token resets the per-token rate limit.
         // This is the only polling-path that reads Claude Code's Keychain (may prompt once).
-        if let credentials = KeychainService.readClaudeCodeCredentials(),
+        if let credentials = KeychainService.readClaudeCodeCredentials(silent: true),
            credentials.accessToken != oauthToken {
             do {
                 try await refreshTokenAndFetch()
@@ -232,7 +240,11 @@ final class AppState: ObservableObject {
         do {
             try await refreshTokenAndFetch()
         } catch {
-            lastError = "Token expired. Please re-authenticate."
+            // Silent read failed (ACL wiped by Claude Code token rotation).
+            // Show reconnect prompt instead of a vague error.
+            needsReconnect = true
+            lastError = nil
+            stopUsagePolling()
         }
     }
 
