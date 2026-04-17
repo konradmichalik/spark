@@ -1,5 +1,6 @@
-import SwiftUI
 import Combine
+import os
+import SwiftUI
 import UserNotifications
 
 // swiftlint:disable file_length
@@ -56,6 +57,7 @@ final class AppState: ObservableObject {
 
     // MARK: - OAuth Token (Keychain)
 
+    private static let log = Logger(subsystem: "com.konradmichalik.spark", category: "auth")
     private var oauthToken: String?
 
     // MARK: - Private State
@@ -112,22 +114,31 @@ final class AppState: ObservableObject {
     }
 
     func loadCredentials() -> Bool {
-        guard let credentials = KeychainService.readClaudeCodeCredentials() else { return false }
+        Self.log.info("loadCredentials: reading Claude Code keychain (prompted)")
+        guard let credentials = KeychainService.readClaudeCodeCredentials() else {
+            Self.log.error("loadCredentials: no credentials found")
+            return false
+        }
         accountTier = credentials.accountTier
         KeychainService.cacheCredentials(credentials)
         needsReconnect = false
         setAuthenticated(token: credentials.accessToken)
+        Self.log.info("loadCredentials: authenticated (tier: \(credentials.accountTier.displayName, privacy: .public))")
         return true
     }
 
     /// Re-read Claude Code credentials (prompted). Call from UI when user taps "Reconnect".
     func reconnect() {
+        Self.log.info("reconnect: user-initiated reconnect")
         _ = loadCredentials()
     }
 
     private func tryAutoLogin() {
+        Self.log.info("tryAutoLogin: starting")
+
         // Try saved token first (our own Keychain entry — no password prompt)
         if let token = KeychainService.read(account: "oauth-token"), !token.isEmpty {
+            Self.log.info("tryAutoLogin: cached token found")
             oauthToken = token
             authMethod = .claudeCode
             isAuthenticated = true
@@ -135,16 +146,21 @@ final class AppState: ObservableObject {
             // Restore cached tier from Spark's own Keychain (no prompt)
             if let tierName = KeychainService.readCachedTierName() {
                 accountTier = AccountTier(displayName: tierName)
+                Self.log.info("tryAutoLogin: cached tier restored (\(tierName, privacy: .public))")
             } else if let credentials = KeychainService.readClaudeCodeCredentials() {
                 // No cached tier yet — read from Claude Code Keychain (may prompt once)
                 accountTier = credentials.accountTier
                 KeychainService.cacheCredentials(credentials)
+                Self.log.info("tryAutoLogin: tier fetched from Claude Code keychain")
+            } else {
+                Self.log.info("tryAutoLogin: no tier available, using cached token only")
             }
 
             Task { await fetchUsage() }
             return
         }
 
+        Self.log.info("tryAutoLogin: no cached token, falling back to Claude Code keychain")
         // No saved token — try Claude Code Keychain (single read, may prompt once)
         _ = loadCredentials()
     }
@@ -194,9 +210,13 @@ final class AppState: ObservableObject {
     }
 
     private func refreshTokenAndFetch() async throws {
+        Self.log.info("refreshTokenAndFetch: attempting silent token refresh")
         guard let credentials = KeychainService.readClaudeCodeCredentials(silent: true) else {
+            Self.log.error("refreshTokenAndFetch: silent read failed — no credentials")
             throw UsageClient.ClientError.unauthorized
         }
+        let tokenChanged = credentials.accessToken != oauthToken
+        Self.log.info("refreshTokenAndFetch: token \(tokenChanged ? "changed" : "unchanged", privacy: .public)")
         oauthToken = credentials.accessToken
         accountTier = credentials.accountTier
         KeychainService.cacheCredentials(credentials)
@@ -211,37 +231,43 @@ final class AppState: ObservableObject {
             lastUpdated: Date()
         )
         consecutiveRateLimits = 0
+        Self.log.info("refreshTokenAndFetch: fetch succeeded after refresh")
         scheduleNextRefresh()
     }
 
     private func handleRateLimited() async {
         consecutiveRateLimits += 1
+        Self.log.info("handleRateLimited: attempt \(self.consecutiveRateLimits, privacy: .public)")
 
         // Try refreshing the token — a new token resets the per-token rate limit.
-        // This is the only polling-path that reads Claude Code's Keychain (may prompt once).
         if let credentials = KeychainService.readClaudeCodeCredentials(silent: true),
            credentials.accessToken != oauthToken {
+            Self.log.info("handleRateLimited: token changed, attempting refresh")
             do {
                 try await refreshTokenAndFetch()
                 return
             } catch {
-                // Retry also failed — fall through to backoff
+                Self.log.error("handleRateLimited: refresh failed — \(error.localizedDescription, privacy: .public)")
             }
         }
 
         // Exponential backoff: 10min → 20min → 40min → 60min (cap)
         let backoff = min(600 * pow(2.0, Double(consecutiveRateLimits - 1)), 3600)
         let backoffMinutes = Int(backoff / 60)
+        Self.log.info("handleRateLimited: backing off \(backoffMinutes, privacy: .public) min")
         lastError = "Rate limited. Retrying in \(backoffMinutes) min."
         startUsagePolling(interval: backoff)
     }
 
     private func handleUnauthorized() async {
+        Self.log.info("handleUnauthorized: 401 received, attempting silent refresh")
         do {
             try await refreshTokenAndFetch()
+            Self.log.info("handleUnauthorized: refresh succeeded")
         } catch {
             // Silent read failed (ACL wiped by Claude Code token rotation).
             // Show reconnect prompt instead of a vague error.
+            Self.log.error("handleUnauthorized: refresh failed — triggering needsReconnect")
             needsReconnect = true
             lastError = nil
             stopUsagePolling()

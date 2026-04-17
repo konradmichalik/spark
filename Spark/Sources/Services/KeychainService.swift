@@ -1,11 +1,16 @@
 import Foundation
+import os
 import Security
 
 enum KeychainService {
     private static let service = "com.konradmichalik.spark"
+    private static let log = Logger(subsystem: "com.konradmichalik.spark", category: "auth")
 
     static func save(_ value: String, account: String) {
-        guard let data = value.data(using: .utf8) else { return }
+        guard let data = value.data(using: .utf8) else {
+            log.error("save(\(account, privacy: .public)): UTF-8 encoding failed")
+            return
+        }
 
         // Delete first so a fresh ACL is created with the current code signature.
         // This prevents Keychain prompts after ad-hoc re-signing ("Sign to Run Locally").
@@ -18,7 +23,12 @@ enum KeychainService {
             kSecValueData: data
         ]
 
-        SecItemAdd(query as CFDictionary, nil)
+        let status = SecItemAdd(query as CFDictionary, nil)
+        if status == errSecSuccess {
+            log.info("save(\(account, privacy: .public)): success")
+        } else {
+            log.error("save(\(account, privacy: .public)): failed (OSStatus \(status))")
+        }
     }
 
     /// Cache Claude Code credentials in Spark's own Keychain (no password prompt on read)
@@ -42,9 +52,13 @@ enum KeychainService {
         ]
 
         var result: AnyObject?
-        SecItemCopyMatching(query as CFDictionary, &result)
+        let status = SecItemCopyMatching(query as CFDictionary, &result)
 
-        guard let data = result as? Data else { return nil }
+        guard status == errSecSuccess, let data = result as? Data else {
+            log.debug("read(\(account, privacy: .public)): no entry (OSStatus \(status))")
+            return nil
+        }
+        log.debug("read(\(account, privacy: .public)): found")
         return String(data: data, encoding: .utf8)
     }
 
@@ -54,13 +68,17 @@ enum KeychainService {
             kSecAttrService: service,
             kSecAttrAccount: account
         ]
-        SecItemDelete(query as CFDictionary)
+        let status = SecItemDelete(query as CFDictionary)
+        log.debug("delete(\(account, privacy: .public)): OSStatus \(status)")
     }
 
     /// Read Claude Code CLI credentials from Keychain
     /// - Parameter silent: When `true`, suppresses the macOS password prompt.
     ///   Use `silent: true` for background/polling reads, `false` for user-initiated actions.
     static func readClaudeCodeCredentials(silent: Bool = false) -> ClaudeCredentials? {
+        let mode = silent ? "silent" : "prompted"
+        log.info("readClaudeCode(\(mode, privacy: .public)): reading credentials")
+
         var query: [CFString: Any] = [
             kSecClass: kSecClassGenericPassword,
             kSecAttrService: "Claude Code-credentials" as CFString,
@@ -75,17 +93,24 @@ enum KeychainService {
         var result: AnyObject?
         let status = SecItemCopyMatching(query as CFDictionary, &result)
 
-        guard status == errSecSuccess,
-              let data = result as? Data,
+        guard status == errSecSuccess else {
+            log.error("readClaudeCode(\(mode, privacy: .public)): keychain read failed (OSStatus \(status))")
+            return nil
+        }
+
+        guard let data = result as? Data,
               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
               let oauth = json["claudeAiOauth"] as? [String: Any],
               let token = oauth["accessToken"] as? String,
               !token.isEmpty else {
+            log.error("readClaudeCode(\(mode, privacy: .public)): keychain entry found but token missing or invalid")
             return nil
         }
 
         let subscriptionType = oauth["subscriptionType"] as? String
         let rateLimitTier = oauth["rateLimitTier"] as? String
+
+        log.info("readClaudeCode(\(mode, privacy: .public)): success (tier: \(subscriptionType ?? "unknown", privacy: .public))")
 
         return ClaudeCredentials(
             accessToken: token,
