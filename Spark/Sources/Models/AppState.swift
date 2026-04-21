@@ -409,15 +409,11 @@ final class AppState: ObservableObject {
     }
 
     private func checkForCLIUpdate() async {
-        guard notificationsEnabled, notifyOnCLIUpdate else { return }
-
         do {
             async let remoteResult = Task.detached {
                 try await CLIVersionClient.fetchLatestVersion()
             }.value
-            async let localResult = Task.detached {
-                await CLIVersionClient.readLocalVersion()
-            }.value
+            async let localResult = CLIVersionClient.readLocalVersion()
 
             let remote = try await remoteResult
             let local = await localResult
@@ -425,6 +421,7 @@ final class AppState: ObservableObject {
             latestCLIVersion = remote
             localCLIVersion = local
 
+            guard notificationsEnabled, notifyOnCLIUpdate else { return }
             guard let local, CLIVersionClient.isNewer(remote, than: local) else { return }
             guard lastNotifiedCLIVersion != remote else { return }
 
