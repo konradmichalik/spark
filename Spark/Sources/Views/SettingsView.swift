@@ -41,6 +41,7 @@ struct SettingsView: View {
                 .tag(SettingsTab.status)
 
             AboutTab()
+                .environmentObject(state)
                 .tabItem { Label("About", systemImage: "info.circle") }
                 .tag(SettingsTab.about)
         }
@@ -941,6 +942,7 @@ struct StatusTab: View {
 // MARK: - About Tab
 
 struct AboutTab: View {
+    @EnvironmentObject var state: AppState
     @State private var updateState: UpdateCheckState = .idle
 
     private var appVersion: String {
@@ -959,6 +961,20 @@ struct AboutTab: View {
             Text("Version \(appVersion)")
                 .font(.caption)
                 .foregroundColor(.secondary)
+
+            if let local = state.localCLIVersion {
+                HStack(spacing: 4) {
+                    Text("Claude Code \(local)")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    if let latest = state.latestCLIVersion,
+                       CLIVersionClient.isNewer(latest, than: local) {
+                        Text("\u{2192} \(latest)")
+                            .font(.caption)
+                            .foregroundColor(.orange)
+                    }
+                }
+            }
 
             Text("Claude Code usage in your menu bar.")
                 .font(.callout)
