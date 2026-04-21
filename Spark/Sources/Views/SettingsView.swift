@@ -772,6 +772,11 @@ struct NotificationsTab: View {
                         Text("Notify on new app version")
                             .font(.callout)
                     }
+
+                    Toggle(isOn: $state.notifyOnCLIUpdate) {
+                        Text("Notify on new Claude Code version")
+                            .font(.callout)
+                    }
                 }
                 .opacity(state.notificationsEnabled ? 1 : 0.5)
                 .disabled(!state.notificationsEnabled)
