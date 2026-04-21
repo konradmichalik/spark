@@ -80,7 +80,7 @@ final class AppState: ObservableObject {
     private var lastStatusNotification: ClaudeServiceStatus = .operational
     private var hasSentSessionResetNotification = true
     private var hasSentWeeklyResetNotification = true
-    private var lastNotifiedCLIVersion: String?
+    @AppStorage("lastNotifiedCLIVersion") private var lastNotifiedCLIVersion: String = ""
 
     // MARK: - Lifecycle
 
