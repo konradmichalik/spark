@@ -16,6 +16,7 @@
 		51EF77F52466A9D14DBA711A /* UsageGraphView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0BCBA43C6F1D84735E81D1CB /* UsageGraphView.swift */; };
 		51F4BC65749C08B7AAD13F07 /* ModelsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2F43EB7F3BEA4E064CE613B3 /* ModelsTests.swift */; };
 		53B31435CF5F8C0C7F47DA0C /* UsageClientTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9652B0D23609965E54C5FC30 /* UsageClientTests.swift */; };
+		57B71262F7554B9BC72E358C /* CLIVersionClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF78E655D9AB62828B52CF4F /* CLIVersionClient.swift */; };
 		78B4BB3706C1E08F1CE36470 /* UsageClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1FF02BEED49ADD5E98D7273 /* UsageClient.swift */; };
 		7F0B5FC4C96F4101B071114A /* KeychainService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8E08CC7D6843B465A64E112E /* KeychainService.swift */; };
 		834B133F3196C51149E4392E /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5ED00B7E4898807D3C31E392 /* AppState.swift */; };
@@ -60,6 +61,7 @@
 		9652B0D23609965E54C5FC30 /* UsageClientTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UsageClientTests.swift; sourceTree = "<group>"; };
 		A2CB3DC178234EDAC2F64F1B /* SparkApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SparkApp.swift; sourceTree = "<group>"; };
 		A7789FDEB6EF4E7A2828F00A /* InstrumentSerif-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "InstrumentSerif-Regular.ttf"; sourceTree = "<group>"; };
+		BF78E655D9AB62828B52CF4F /* CLIVersionClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CLIVersionClient.swift; sourceTree = "<group>"; };
 		C1FF02BEED49ADD5E98D7273 /* UsageClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UsageClient.swift; sourceTree = "<group>"; };
 		D7C6AEB39CCABA0D4B4A655D /* AccountTierTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountTierTests.swift; sourceTree = "<group>"; };
 		E86EED62411024E4E2D49149 /* Spark.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Spark.entitlements; sourceTree = "<group>"; };
@@ -166,6 +168,7 @@
 		C998FB88FB7B4F247557C7C9 /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				BF78E655D9AB62828B52CF4F /* CLIVersionClient.swift */,
 				8E08CC7D6843B465A64E112E /* KeychainService.swift */,
 				C1FF02BEED49ADD5E98D7273 /* UsageClient.swift */,
 			);
@@ -267,6 +270,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				834B133F3196C51149E4392E /* AppState.swift in Sources */,
+				57B71262F7554B9BC72E358C /* CLIVersionClient.swift in Sources */,
 				D2C762209454112BB4B98294 /* ClaudeLogoShape.swift in Sources */,
 				7F0B5FC4C96F4101B071114A /* KeychainService.swift in Sources */,
 				D4224BCA555578280006F2E8 /* MenuBarView.swift in Sources */,

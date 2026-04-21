@@ -20,6 +20,8 @@ final class AppState: ObservableObject {
     @Published var authMethod: AuthMethod = .none
     @Published var accountTier: AccountTier = .free
     @Published var currentRefreshInterval: TimeInterval = 300
+    @Published var latestCLIVersion: String?
+    @Published var localCLIVersion: String?
 
     // Status
     @Published var status: ClaudeServiceStatus = .unknown
@@ -43,6 +45,7 @@ final class AppState: ObservableObject {
     @AppStorage("notifyOnReset") var notifyOnReset: Bool = true
     @AppStorage("notifyOnStatusChange") var notifyOnStatusChange: Bool = true
     @AppStorage("notifyOnNewVersion") var notifyOnNewVersion: Bool = true
+    @AppStorage("notifyOnCLIUpdate") var notifyOnCLIUpdate: Bool = true
     @AppStorage("showStats") var showStats: Bool = true
     @AppStorage("coloredIcon") var coloredIcon: Bool = true
     @AppStorage("usageDisplayStyle") var usageDisplayStyle: String = "bars"
@@ -77,6 +80,7 @@ final class AppState: ObservableObject {
     private var lastStatusNotification: ClaudeServiceStatus = .operational
     private var hasSentSessionResetNotification = true
     private var hasSentWeeklyResetNotification = true
+    @AppStorage("lastNotifiedCLIVersion") private var lastNotifiedCLIVersion: String = ""
 
     // MARK: - Lifecycle
 
@@ -361,13 +365,19 @@ final class AppState: ObservableObject {
     // MARK: - Update Check
 
     private func startUpdateCheckPolling() {
-        Task { await checkForNewVersion() }
+        Task {
+            await checkForNewVersion()
+            await checkForCLIUpdate()
+        }
         // Check every 6 hours
         updateCheckCancellable = Timer.publish(every: 21600, on: .main, in: .common)
             .autoconnect()
             .sink { [weak self] _ in
                 guard let self else { return }
-                Task { await self.checkForNewVersion() }
+                Task {
+                    await self.checkForNewVersion()
+                    await self.checkForCLIUpdate()
+                }
             }
     }
 
@@ -386,7 +396,7 @@ final class AppState: ObservableObject {
             let latest = release.tagName.trimmingCharacters(in: CharacterSet(charactersIn: "v"))
             let current = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.0.0"
 
-            if latest != current, latest > current {
+            if CLIVersionClient.isNewer(latest, than: current) {
                 sendNotification(
                     id: "update-\(latest)",
                     title: "Spark \(latest) available",
@@ -395,6 +405,34 @@ final class AppState: ObservableObject {
             }
         } catch {
             // Silently ignore update check failures
+        }
+    }
+
+    private func checkForCLIUpdate() async {
+        do {
+            async let remoteResult = Task.detached {
+                try await CLIVersionClient.fetchLatestVersion()
+            }.value
+            async let localResult = CLIVersionClient.readLocalVersion()
+
+            let remote = try await remoteResult
+            let local = await localResult
+
+            latestCLIVersion = remote
+            localCLIVersion = local
+
+            guard notificationsEnabled, notifyOnCLIUpdate else { return }
+            guard let local, CLIVersionClient.isNewer(remote, than: local) else { return }
+            guard lastNotifiedCLIVersion != remote else { return }
+
+            lastNotifiedCLIVersion = remote
+            sendNotification(
+                id: "cli-update-\(remote)",
+                title: "Claude Code \(remote) available",
+                body: "You're running \(local). Run `claude update` or `npm update -g @anthropic-ai/claude-code` to update."
+            )
+        } catch {
+            // Silently ignore — non-critical check
         }
     }
 
