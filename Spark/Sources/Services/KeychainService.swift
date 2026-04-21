@@ -77,7 +77,7 @@ enum KeychainService {
     ///   Use `silent: true` for background/polling reads, `false` for user-initiated actions.
     static func readClaudeCodeCredentials(silent: Bool = false) -> ClaudeCredentials? {
         let mode = silent ? "silent" : "prompted"
-        log.info("readClaudeCode(\(mode, privacy: .public)): reading credentials")
+        log.notice("readClaudeCode(\(mode, privacy: .public)): reading credentials")
 
         var query: [CFString: Any] = [
             kSecClass: kSecClassGenericPassword,
@@ -110,7 +110,7 @@ enum KeychainService {
         let subscriptionType = oauth["subscriptionType"] as? String
         let rateLimitTier = oauth["rateLimitTier"] as? String
 
-        log.info("readClaudeCode(\(mode, privacy: .public)): success (tier: \(subscriptionType ?? "unknown", privacy: .public))")
+        log.notice("readClaudeCode(\(mode, privacy: .public)): success (tier: \(subscriptionType ?? "unknown", privacy: .public))")
 
         return ClaudeCredentials(
             accessToken: token,
