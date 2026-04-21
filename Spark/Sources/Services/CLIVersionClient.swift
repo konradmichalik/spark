@@ -34,8 +34,8 @@ enum CLIVersionClient {
             let process = Process()
             let pipe = Pipe()
 
-            process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
-            process.arguments = ["claude", "--version"]
+            process.executableURL = URL(fileURLWithPath: "/bin/zsh")
+            process.arguments = ["-lc", "claude --version"]
             process.standardOutput = pipe
             process.standardError = FileHandle.nullDevice
 
