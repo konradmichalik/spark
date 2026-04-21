@@ -19,7 +19,10 @@ enum CLIVersionClient {
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         request.timeoutInterval = 10
 
-        let (data, _) = try await URLSession.shared.data(for: request)
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
+            throw URLError(.badServerResponse)
+        }
         let package = try JSONDecoder().decode(NpmPackage.self, from: data)
         return package.version
     }
@@ -27,7 +30,7 @@ enum CLIVersionClient {
     // MARK: - Local CLI
 
     static func readLocalVersion() async -> String? {
-        await withCheckedContinuation { continuation in
+        await Task.detached {
             let process = Process()
             let pipe = Pipe()
 
@@ -41,22 +44,17 @@ enum CLIVersionClient {
                 process.waitUntilExit()
 
                 let data = pipe.fileHandleForReading.readDataToEndOfFile()
-                guard let output = String(data: data, encoding: .utf8) else {
-                    continuation.resume(returning: nil)
-                    return
-                }
+                guard let output = String(data: data, encoding: .utf8) else { return nil }
 
-                let version = output
+                return output
                     .trimmingCharacters(in: .whitespacesAndNewlines)
                     .components(separatedBy: " ")
                     .first
-
-                continuation.resume(returning: version)
             } catch {
                 log.error("Failed to read local CLI version: \(error.localizedDescription, privacy: .public)")
-                continuation.resume(returning: nil)
+                return nil
             }
-        }
+        }.value
     }
 
     // MARK: - Comparison
