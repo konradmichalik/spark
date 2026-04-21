@@ -118,7 +118,7 @@ final class AppState: ObservableObject {
     }
 
     func loadCredentials() -> Bool {
-        Self.log.info("loadCredentials: reading Claude Code keychain (prompted)")
+        Self.log.notice("loadCredentials: reading Claude Code keychain (prompted)")
         guard let credentials = KeychainService.readClaudeCodeCredentials() else {
             Self.log.error("loadCredentials: no credentials found")
             return false
@@ -127,18 +127,18 @@ final class AppState: ObservableObject {
         KeychainService.cacheCredentials(credentials)
         needsReconnect = false
         setAuthenticated(token: credentials.accessToken)
-        Self.log.info("loadCredentials: authenticated (tier: \(credentials.accountTier.displayName, privacy: .public))")
+        Self.log.notice("loadCredentials: authenticated (tier: \(credentials.accountTier.displayName, privacy: .public))")
         return true
     }
 
     /// Re-read Claude Code credentials (prompted). Call from UI when user taps "Reconnect".
     func reconnect() {
-        Self.log.info("reconnect: user-initiated reconnect")
+        Self.log.notice("reconnect: user-initiated reconnect")
         _ = loadCredentials()
     }
 
     private func tryAutoLogin() {
-        Self.log.info("tryAutoLogin: starting")
+        Self.log.notice("tryAutoLogin: starting")
 
         // Try saved token first (our own Keychain entry — no password prompt)
         if let token = KeychainService.read(account: "oauth-token"), !token.isEmpty {
@@ -214,13 +214,13 @@ final class AppState: ObservableObject {
     }
 
     private func refreshTokenAndFetch() async throws {
-        Self.log.info("refreshTokenAndFetch: attempting silent token refresh")
+        Self.log.notice("refreshTokenAndFetch: attempting silent token refresh")
         guard let credentials = KeychainService.readClaudeCodeCredentials(silent: true) else {
             Self.log.error("refreshTokenAndFetch: silent read failed — no credentials")
             throw UsageClient.ClientError.unauthorized
         }
         let tokenChanged = credentials.accessToken != oauthToken
-        Self.log.info("refreshTokenAndFetch: token \(tokenChanged ? "changed" : "unchanged", privacy: .public)")
+        Self.log.notice("refreshTokenAndFetch: token \(tokenChanged ? "changed" : "unchanged", privacy: .public)")
         oauthToken = credentials.accessToken
         accountTier = credentials.accountTier
         KeychainService.cacheCredentials(credentials)
@@ -235,18 +235,18 @@ final class AppState: ObservableObject {
             lastUpdated: Date()
         )
         consecutiveRateLimits = 0
-        Self.log.info("refreshTokenAndFetch: fetch succeeded after refresh")
+        Self.log.notice("refreshTokenAndFetch: fetch succeeded after refresh")
         scheduleNextRefresh()
     }
 
     private func handleRateLimited() async {
         consecutiveRateLimits += 1
-        Self.log.info("handleRateLimited: attempt \(self.consecutiveRateLimits, privacy: .public)")
+        Self.log.notice("handleRateLimited: attempt \(self.consecutiveRateLimits, privacy: .public)")
 
         // Try refreshing the token — a new token resets the per-token rate limit.
         if let credentials = KeychainService.readClaudeCodeCredentials(silent: true),
            credentials.accessToken != oauthToken {
-            Self.log.info("handleRateLimited: token changed, attempting refresh")
+            Self.log.notice("handleRateLimited: token changed, attempting refresh")
             do {
                 try await refreshTokenAndFetch()
                 return
@@ -258,16 +258,16 @@ final class AppState: ObservableObject {
         // Exponential backoff: 10min → 20min → 40min → 60min (cap)
         let backoff = min(600 * pow(2.0, Double(consecutiveRateLimits - 1)), 3600)
         let backoffMinutes = Int(backoff / 60)
-        Self.log.info("handleRateLimited: backing off \(backoffMinutes, privacy: .public) min")
+        Self.log.notice("handleRateLimited: backing off \(backoffMinutes, privacy: .public) min")
         lastError = "Rate limited. Retrying in \(backoffMinutes) min."
         startUsagePolling(interval: backoff)
     }
 
     private func handleUnauthorized() async {
-        Self.log.info("handleUnauthorized: 401 received, attempting silent refresh")
+        Self.log.notice("handleUnauthorized: 401 received, attempting silent refresh")
         do {
             try await refreshTokenAndFetch()
-            Self.log.info("handleUnauthorized: refresh succeeded")
+            Self.log.notice("handleUnauthorized: refresh succeeded")
         } catch {
             // Silent read failed (ACL wiped by Claude Code token rotation).
             // Show reconnect prompt instead of a vague error.
