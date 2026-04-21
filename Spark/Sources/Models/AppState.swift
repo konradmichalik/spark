@@ -396,7 +396,7 @@ final class AppState: ObservableObject {
             let latest = release.tagName.trimmingCharacters(in: CharacterSet(charactersIn: "v"))
             let current = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.0.0"
 
-            if latest != current, latest > current {
+            if CLIVersionClient.isNewer(latest, than: current) {
                 sendNotification(
                     id: "update-\(latest)",
                     title: "Spark \(latest) available",
