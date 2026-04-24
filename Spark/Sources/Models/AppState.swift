@@ -215,7 +215,9 @@ final class AppState: ObservableObject {
 
     private func refreshTokenAndFetch() async throws {
         Self.log.notice("refreshTokenAndFetch: attempting silent token refresh")
-        guard let credentials = KeychainService.readClaudeCodeCredentials(silent: true) else {
+        guard let credentials = await Task.detached(operation: {
+            KeychainService.readClaudeCodeCredentials(silent: true)
+        }).value else {
             Self.log.error("refreshTokenAndFetch: silent read failed — no credentials")
             throw UsageClient.ClientError.unauthorized
         }
@@ -244,15 +246,11 @@ final class AppState: ObservableObject {
         Self.log.notice("handleRateLimited: attempt \(self.consecutiveRateLimits, privacy: .public)")
 
         // Try refreshing the token — a new token resets the per-token rate limit.
-        if let credentials = KeychainService.readClaudeCodeCredentials(silent: true),
-           credentials.accessToken != oauthToken {
-            Self.log.notice("handleRateLimited: token changed, attempting refresh")
-            do {
-                try await refreshTokenAndFetch()
-                return
-            } catch {
-                Self.log.error("handleRateLimited: refresh failed — \(error.localizedDescription, privacy: .public)")
-            }
+        do {
+            try await refreshTokenAndFetch()
+            return
+        } catch {
+            Self.log.error("handleRateLimited: refresh failed — \(error.localizedDescription, privacy: .public)")
         }
 
         // Exponential backoff: 10min → 20min → 40min → 60min (cap)
@@ -275,6 +273,13 @@ final class AppState: ObservableObject {
             needsReconnect = true
             lastError = nil
             stopUsagePolling()
+            if notificationsEnabled {
+                sendNotification(
+                    id: "reconnect",
+                    title: "Spark disconnected",
+                    body: "Keychain access lost. Open Spark and tap Reconnect to re-authenticate."
+                )
+            }
         }
     }
 
