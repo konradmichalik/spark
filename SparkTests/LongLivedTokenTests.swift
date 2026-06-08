@@ -22,26 +22,31 @@ final class LongLivedTokenTests: XCTestCase {
         XCTAssertEqual(KeychainService.longLivedTokenAccount, "long-lived-token")
     }
 
-    // MARK: - Token validation
+    // MARK: - Token cleaning + validation
 
     func testValidLongLivedTokenAccepted() {
-        // setup-token output starts with sk-ant-oat (long-lived OAuth tokens)
-        XCTAssertTrue(KeychainService.isLikelyValidLongLivedToken("sk-ant-oat01-abcdef"))
+        XCTAssertEqual(
+            KeychainService.cleanedLongLivedToken("sk-ant-oat01-abcdef"),
+            "sk-ant-oat01-abcdef"
+        )
     }
 
     func testEmptyTokenRejected() {
-        XCTAssertFalse(KeychainService.isLikelyValidLongLivedToken(""))
-        XCTAssertFalse(KeychainService.isLikelyValidLongLivedToken("   "))
+        XCTAssertNil(KeychainService.cleanedLongLivedToken(""))
+        XCTAssertNil(KeychainService.cleanedLongLivedToken("   "))
     }
 
-    func testWhitespaceTrimmed() {
+    func testWhitespaceTrimmedFromValidToken() {
         // User-pasted tokens often have trailing whitespace from copy/paste
-        XCTAssertTrue(KeychainService.isLikelyValidLongLivedToken("  sk-ant-oat01-xyz\n"))
+        XCTAssertEqual(
+            KeychainService.cleanedLongLivedToken("  sk-ant-oat01-xyz\n"),
+            "sk-ant-oat01-xyz"
+        )
     }
 
     func testObviouslyWrongTokenRejected() {
-        XCTAssertFalse(KeychainService.isLikelyValidLongLivedToken("hello world"))
-        XCTAssertFalse(KeychainService.isLikelyValidLongLivedToken("short"))
+        XCTAssertNil(KeychainService.cleanedLongLivedToken("hello world"))
+        XCTAssertNil(KeychainService.cleanedLongLivedToken("short"))
     }
 
     // MARK: - SettingsTab

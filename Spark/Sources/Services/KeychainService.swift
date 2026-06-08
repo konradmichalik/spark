@@ -10,16 +10,17 @@ enum KeychainService {
 
     static let longLivedTokenAccount = "long-lived-token"
 
-    /// Loose validation: long-lived tokens from `claude setup-token` start with `sk-ant-oat`.
-    /// We accept anything with that prefix and length >= 10 after trimming.
-    static func isLikelyValidLongLivedToken(_ token: String) -> Bool {
-        let trimmed = token.trimmingCharacters(in: .whitespacesAndNewlines)
-        return trimmed.count >= 10 && trimmed.hasPrefix("sk-ant-")
+    /// Trim and validate a user-pasted long-lived token. Returns the cleaned
+    /// token, or nil if it doesn't look like a Claude OAuth token (`sk-ant-` prefix,
+    /// length >= 10). Centralizes trim + format check in one place.
+    static func cleanedLongLivedToken(_ raw: String) -> String? {
+        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard trimmed.count >= 10, trimmed.hasPrefix("sk-ant-") else { return nil }
+        return trimmed
     }
 
-    static func saveLongLivedToken(_ token: String) {
-        let trimmed = token.trimmingCharacters(in: .whitespacesAndNewlines)
-        save(trimmed, account: longLivedTokenAccount)
+    static func saveLongLivedToken(_ cleaned: String) {
+        save(cleaned, account: longLivedTokenAccount)
     }
 
     static func readLongLivedToken() -> String? {

@@ -122,16 +122,14 @@ final class AppState: ObservableObject {
 
     /// Store a long-lived token (from `claude setup-token`) and switch auth mode.
     /// Bypasses the Claude Code keychain entirely — no macOS password prompts.
-    @discardableResult
     func setLongLivedToken(_ token: String) -> Bool {
-        guard KeychainService.isLikelyValidLongLivedToken(token) else {
+        guard let cleaned = KeychainService.cleanedLongLivedToken(token) else {
             Self.log.error("setLongLivedToken: rejected (invalid format)")
             return false
         }
-        let trimmed = token.trimmingCharacters(in: .whitespacesAndNewlines)
         Self.log.notice("setLongLivedToken: storing long-lived token")
-        KeychainService.saveLongLivedToken(trimmed)
-        oauthToken = trimmed
+        KeychainService.saveLongLivedToken(cleaned)
+        oauthToken = cleaned
         authMethod = .longLivedToken
         isAuthenticated = true
         needsReconnect = false

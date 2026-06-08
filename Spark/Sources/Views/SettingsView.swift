@@ -674,8 +674,7 @@ struct ConnectionTab: View {
 struct AdvancedTab: View {
     @EnvironmentObject var state: AppState
     @State private var pastedToken: String = ""
-    @State private var feedback: String?
-    @State private var hasStoredToken: Bool = false
+    @State private var inputError: Bool = false
 
     var body: some View {
         ScrollView {
@@ -705,7 +704,7 @@ struct AdvancedTab: View {
                 }
 
                 CardView {
-                    if hasStoredToken {
+                    if state.authMethod == .longLivedToken {
                         HStack {
                             Image(systemName: "checkmark.seal.fill")
                                 .foregroundColor(.green)
@@ -713,26 +712,20 @@ struct AdvancedTab: View {
                                 .font(.callout)
                                 .fontWeight(.medium)
                             Spacer()
-                            Button("Remove") {
-                                state.clearLongLivedToken()
-                                pastedToken = ""
-                                feedback = "Token removed."
-                                hasStoredToken = false
-                            }
-                            .foregroundColor(.red)
+                            Button("Remove") { state.clearLongLivedToken() }
+                                .foregroundColor(.red)
                         }
                     } else {
                         SecureField("sk-ant-oat01-...", text: $pastedToken)
                             .textFieldStyle(.roundedBorder)
                             .font(.system(.body, design: .monospaced))
+                            .onChange(of: pastedToken) { inputError = false }
 
                         Button {
                             if state.setLongLivedToken(pastedToken) {
-                                feedback = "Token saved."
                                 pastedToken = ""
-                                hasStoredToken = true
                             } else {
-                                feedback = "Invalid token format (expected sk-ant-...)."
+                                inputError = true
                             }
                         } label: {
                             Label("Save Token", systemImage: "tray.and.arrow.down.fill")
@@ -740,21 +733,16 @@ struct AdvancedTab: View {
                         }
                         .controlSize(.large)
                         .disabled(pastedToken.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                    }
-                }
 
-                if let feedback {
-                    CardView {
-                        Text(feedback)
-                            .font(.caption)
-                            .foregroundColor(.secondary)
+                        if inputError {
+                            Text("Invalid token format (expected sk-ant-...).")
+                                .font(.caption)
+                                .foregroundColor(.orange)
+                        }
                     }
                 }
             }
             .padding()
-        }
-        .onAppear {
-            hasStoredToken = KeychainService.readLongLivedToken() != nil
         }
     }
 }
