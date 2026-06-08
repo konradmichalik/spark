@@ -2,7 +2,7 @@ import AppKit
 import SwiftUI
 
 enum SettingsTab: Hashable {
-    case general, menuBar, display, connection, notifications, status, about
+    case general, menuBar, display, connection, notifications, status, advanced, about
 }
 
 enum Theme {
