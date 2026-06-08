@@ -52,57 +52,6 @@ final class OAuthRefreshTests: XCTestCase {
         XCTAssertNil(ClaudeCredentials(jsonData: json))
     }
 
-    // MARK: - Token expiry check
-
-    func testIsExpiredInPast() {
-        let past = Date().addingTimeInterval(-3600)
-        let creds = ClaudeCredentials(
-            accessToken: "t",
-            refreshToken: "rt",
-            expiresAt: past,
-            subscriptionType: nil,
-            rateLimitTier: nil
-        )
-        XCTAssertTrue(creds.isExpiredOrExpiringSoon)
-    }
-
-    func testIsExpiredInFuture() {
-        let future = Date().addingTimeInterval(3600)
-        let creds = ClaudeCredentials(
-            accessToken: "t",
-            refreshToken: "rt",
-            expiresAt: future,
-            subscriptionType: nil,
-            rateLimitTier: nil
-        )
-        XCTAssertFalse(creds.isExpiredOrExpiringSoon)
-    }
-
-    func testIsExpiringWithinSkew() {
-        // 30 seconds in the future — within the 60s skew window
-        let soon = Date().addingTimeInterval(30)
-        let creds = ClaudeCredentials(
-            accessToken: "t",
-            refreshToken: "rt",
-            expiresAt: soon,
-            subscriptionType: nil,
-            rateLimitTier: nil
-        )
-        XCTAssertTrue(creds.isExpiredOrExpiringSoon)
-    }
-
-    func testIsExpiredWithoutExpiry() {
-        let creds = ClaudeCredentials(
-            accessToken: "t",
-            refreshToken: nil,
-            expiresAt: nil,
-            subscriptionType: nil,
-            rateLimitTier: nil
-        )
-        // Without expiry info, assume valid — let the API tell us via 401
-        XCTAssertFalse(creds.isExpiredOrExpiringSoon)
-    }
-
     // MARK: - Refresh request building
 
     func testRefreshRequestURL() {

@@ -227,12 +227,7 @@ final class AppState: ObservableObject {
                 }.value
                 Self.log.notice("refreshTokenAndFetch: OAuth refresh succeeded")
                 oauthToken = new.accessToken
-                KeychainService.save(new.accessToken, account: "oauth-token")
-                if let rotated = new.refreshToken {
-                    KeychainService.save(rotated, account: "refresh-token")
-                }
-                let newExpiry = Date().addingTimeInterval(TimeInterval(new.expiresIn))
-                KeychainService.save(String(newExpiry.timeIntervalSince1970), account: "token-expires-at")
+                KeychainService.saveRefreshedTokens(new)
                 try await fetchUsageAndApply(token: new.accessToken)
                 return
             } catch {

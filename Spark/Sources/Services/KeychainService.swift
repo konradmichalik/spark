@@ -58,6 +58,17 @@ enum KeychainService {
         return (token, expiresAt)
     }
 
+    /// Persist a refreshed OAuth token pair. Refresh token is preserved when the server
+    /// does not rotate it. Expiry is recomputed from `expiresIn` seconds.
+    static func saveRefreshedTokens(_ response: RefreshTokenResponse) {
+        save(response.accessToken, account: "oauth-token")
+        if let rotated = response.refreshToken {
+            save(rotated, account: "refresh-token")
+        }
+        let expiry = Date().addingTimeInterval(TimeInterval(response.expiresIn))
+        save(String(expiry.timeIntervalSince1970), account: "token-expires-at")
+    }
+
     static func read(account: String) -> String? {
         let query: [CFString: Any] = [
             kSecClass: kSecClassGenericPassword,
@@ -170,13 +181,6 @@ struct ClaudeCredentials {
         }
         self.subscriptionType = oauth["subscriptionType"] as? String
         self.rateLimitTier = oauth["rateLimitTier"] as? String
-    }
-
-    /// True if the access token has expired or will within 60s.
-    /// Returns false when no expiry is known (let the API decide via 401).
-    var isExpiredOrExpiringSoon: Bool {
-        guard let expiresAt else { return false }
-        return expiresAt.timeIntervalSinceNow < 60
     }
 
     var accountTier: AccountTier {
