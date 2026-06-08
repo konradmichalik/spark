@@ -218,6 +218,27 @@ final class AppState: ObservableObject {
 
     private func refreshTokenAndFetch() async throws {
         Self.log.notice("refreshTokenAndFetch: attempting silent token refresh")
+
+        // Strategy 1: Use cached refresh token (no Keychain prompt — Spark owns this entry)
+        if let cached = KeychainService.readCachedRefreshToken() {
+            do {
+                let new = try await Task.detached {
+                    try await UsageClient.refreshAccessToken(refreshToken: cached.token)
+                }.value
+                Self.log.notice("refreshTokenAndFetch: OAuth refresh succeeded")
+                oauthToken = new.accessToken
+                KeychainService.saveRefreshedTokens(new)
+                try await fetchUsageAndApply(token: new.accessToken)
+                return
+            } catch {
+                Self.log.error("refreshTokenAndFetch: OAuth refresh failed — \(error.localizedDescription, privacy: .public)")
+                // fall through to Strategy 2
+            }
+        } else {
+            Self.log.info("refreshTokenAndFetch: no cached refresh token, falling back to silent Keychain read")
+        }
+
+        // Strategy 2: Silent re-read from Claude Code Keychain (may fail if ACL was reset)
         guard let credentials = await Task.detached(operation: {
             KeychainService.readClaudeCodeCredentials(silent: true)
         }).value else {
@@ -229,7 +250,10 @@ final class AppState: ObservableObject {
         oauthToken = credentials.accessToken
         accountTier = credentials.accountTier
         KeychainService.cacheCredentials(credentials)
-        let token = credentials.accessToken
+        try await fetchUsageAndApply(token: credentials.accessToken)
+    }
+
+    private func fetchUsageAndApply(token: String) async throws {
         let response = try await Task.detached {
             try await UsageClient.fetchUsage(token: token)
         }.value

@@ -35,11 +35,38 @@ enum KeychainService {
     static func cacheCredentials(_ credentials: ClaudeCredentials) {
         save(credentials.accessToken, account: "oauth-token")
         save(credentials.accountTier.displayName, account: "account-tier")
+        if let refresh = credentials.refreshToken {
+            save(refresh, account: "refresh-token")
+        }
+        if let expiresAt = credentials.expiresAt {
+            save(String(expiresAt.timeIntervalSince1970), account: "token-expires-at")
+        }
     }
 
     /// Read cached account tier display name from Spark's own Keychain
     static func readCachedTierName() -> String? {
         read(account: "account-tier")
+    }
+
+    /// Read cached refresh token + expiry from Spark's own Keychain (no prompt)
+    static func readCachedRefreshToken() -> (token: String, expiresAt: Date?)? {
+        guard let token = read(account: "refresh-token"), !token.isEmpty else { return nil }
+        var expiresAt: Date?
+        if let raw = read(account: "token-expires-at"), let seconds = TimeInterval(raw) {
+            expiresAt = Date(timeIntervalSince1970: seconds)
+        }
+        return (token, expiresAt)
+    }
+
+    /// Persist a refreshed OAuth token pair. Refresh token is preserved when the server
+    /// does not rotate it. Expiry is recomputed from `expiresIn` seconds.
+    static func saveRefreshedTokens(_ response: RefreshTokenResponse) {
+        save(response.accessToken, account: "oauth-token")
+        if let rotated = response.refreshToken {
+            save(rotated, account: "refresh-token")
+        }
+        let expiry = Date().addingTimeInterval(TimeInterval(response.expiresIn))
+        save(String(expiry.timeIntervalSince1970), account: "token-expires-at")
     }
 
     static func read(account: String) -> String? {
@@ -98,25 +125,15 @@ enum KeychainService {
             return nil
         }
 
-        guard let data = result as? Data,
-              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let oauth = json["claudeAiOauth"] as? [String: Any],
-              let token = oauth["accessToken"] as? String,
-              !token.isEmpty else {
+        guard let data = result as? Data, let credentials = ClaudeCredentials(jsonData: data) else {
             log.error("readClaudeCode(\(mode, privacy: .public)): keychain entry found but token missing or invalid")
             return nil
         }
 
-        let subscriptionType = oauth["subscriptionType"] as? String
-        let rateLimitTier = oauth["rateLimitTier"] as? String
-
-        log.notice("readClaudeCode(\(mode, privacy: .public)): success (tier: \(subscriptionType ?? "unknown", privacy: .public))")
-
-        return ClaudeCredentials(
-            accessToken: token,
-            subscriptionType: subscriptionType,
-            rateLimitTier: rateLimitTier
+        log.notice(
+            "readClaudeCode(\(mode, privacy: .public)): success (tier: \(credentials.subscriptionType ?? "unknown", privacy: .public))"
         )
+        return credentials
     }
 
     /// Convenience: read just the token
@@ -127,8 +144,44 @@ enum KeychainService {
 
 struct ClaudeCredentials {
     let accessToken: String
+    let refreshToken: String?
+    let expiresAt: Date?
     let subscriptionType: String?
     let rateLimitTier: String?
+
+    init(
+        accessToken: String,
+        refreshToken: String? = nil,
+        expiresAt: Date? = nil,
+        subscriptionType: String?,
+        rateLimitTier: String?
+    ) {
+        self.accessToken = accessToken
+        self.refreshToken = refreshToken
+        self.expiresAt = expiresAt
+        self.subscriptionType = subscriptionType
+        self.rateLimitTier = rateLimitTier
+    }
+
+    /// Parse from the Claude Code keychain JSON blob.
+    /// Shape: `{"claudeAiOauth": {"accessToken": "...", "refreshToken": "...", "expiresAt": <ms>, ...}}`
+    init?(jsonData: Data) {
+        guard let json = try? JSONSerialization.jsonObject(with: jsonData) as? [String: Any],
+              let oauth = json["claudeAiOauth"] as? [String: Any],
+              let token = oauth["accessToken"] as? String,
+              !token.isEmpty else {
+            return nil
+        }
+        self.accessToken = token
+        self.refreshToken = oauth["refreshToken"] as? String
+        if let ms = oauth["expiresAt"] as? Double {
+            self.expiresAt = Date(timeIntervalSince1970: ms / 1000)
+        } else {
+            self.expiresAt = nil
+        }
+        self.subscriptionType = oauth["subscriptionType"] as? String
+        self.rateLimitTier = oauth["rateLimitTier"] as? String
+    }
 
     var accountTier: AccountTier {
         let plan: String = switch subscriptionType {
