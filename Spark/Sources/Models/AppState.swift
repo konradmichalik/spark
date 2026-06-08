@@ -115,8 +115,38 @@ final class AppState: ObservableObject {
         usageData = .empty
         KeychainService.delete(account: "oauth-token")
         KeychainService.delete(account: "account-tier")
+        KeychainService.deleteLongLivedToken()
         stopUsagePolling()
         stopReconnectReminder()
+    }
+
+    /// Store a long-lived token (from `claude setup-token`) and switch auth mode.
+    /// Bypasses the Claude Code keychain entirely — no macOS password prompts.
+    @discardableResult
+    func setLongLivedToken(_ token: String) -> Bool {
+        guard KeychainService.isLikelyValidLongLivedToken(token) else {
+            Self.log.error("setLongLivedToken: rejected (invalid format)")
+            return false
+        }
+        let trimmed = token.trimmingCharacters(in: .whitespacesAndNewlines)
+        Self.log.notice("setLongLivedToken: storing long-lived token")
+        KeychainService.saveLongLivedToken(trimmed)
+        oauthToken = trimmed
+        authMethod = .longLivedToken
+        isAuthenticated = true
+        needsReconnect = false
+        stopReconnectReminder()
+        Task { await fetchUsage() }
+        return true
+    }
+
+    /// Remove the long-lived token and fall back to Claude Code keychain on next launch.
+    func clearLongLivedToken() {
+        Self.log.notice("clearLongLivedToken: removing long-lived token")
+        KeychainService.deleteLongLivedToken()
+        if authMethod == .longLivedToken {
+            logout()
+        }
     }
 
     func loadCredentials() -> Bool {
@@ -142,6 +172,19 @@ final class AppState: ObservableObject {
 
     private func tryAutoLogin() {
         Self.log.notice("tryAutoLogin: starting")
+
+        // Long-lived token wins — bypasses Claude Code keychain entirely
+        if let longLived = KeychainService.readLongLivedToken(), !longLived.isEmpty {
+            Self.log.notice("tryAutoLogin: long-lived token found, using it")
+            oauthToken = longLived
+            authMethod = .longLivedToken
+            isAuthenticated = true
+            if let tierName = KeychainService.readCachedTierName() {
+                accountTier = AccountTier(displayName: tierName)
+            }
+            Task { await fetchUsage() }
+            return
+        }
 
         // Try saved token first (our own Keychain entry — no password prompt)
         if let token = KeychainService.read(account: "oauth-token"), !token.isEmpty {
@@ -648,4 +691,5 @@ enum AuthMethod: String, Sendable {
     case none
     case claudeCode = "Claude Code"
     case oauth = "OAuth (Browser)"
+    case longLivedToken = "Long-lived Token"
 }
