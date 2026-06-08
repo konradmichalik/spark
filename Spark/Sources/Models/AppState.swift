@@ -277,11 +277,7 @@ final class AppState: ObservableObject {
             lastError = nil
             stopUsagePolling()
             if notificationsEnabled {
-                sendNotification(
-                    id: "reconnect",
-                    title: "Spark disconnected",
-                    body: "Keychain access lost. Open Spark and tap Reconnect to re-authenticate."
-                )
+                sendReconnectNotification(id: "reconnect")
             }
             startReconnectReminder()
         }
@@ -537,11 +533,7 @@ final class AppState: ObservableObject {
                 guard let self else { return }
                 guard self.needsReconnect, self.notificationsEnabled else { return }
                 let id = "reconnect-reminder-\(UInt64(Date().timeIntervalSince1970))"
-                self.sendNotification(
-                    id: id,
-                    title: "Spark disconnected",
-                    body: "Keychain access lost. Open Spark and tap Reconnect to re-authenticate."
-                )
+                self.sendReconnectNotification(id: id)
             }
     }
 
@@ -551,6 +543,14 @@ final class AppState: ObservableObject {
         Self.log.notice("stopReconnectReminder: stopping reminder")
         reconnectReminderCancellable?.cancel()
         reconnectReminderCancellable = nil
+    }
+
+    nonisolated private func sendReconnectNotification(id: String) {
+        sendNotification(
+            id: id,
+            title: "Spark disconnected",
+            body: "Keychain access lost. Open Spark and tap Reconnect to re-authenticate."
+        )
     }
 
     nonisolated private func sendNotification(id: String, title: String, body: String) {
@@ -635,11 +635,7 @@ final class AppState: ObservableObject {
         Self.log.notice("debugTriggerReconnect: forcing needsReconnect = true")
         needsReconnect = true
         if notificationsEnabled {
-            sendNotification(
-                id: "reconnect",
-                title: "Spark disconnected",
-                body: "Keychain access lost. Open Spark and tap Reconnect to re-authenticate."
-            )
+            sendReconnectNotification(id: "reconnect")
         }
         startReconnectReminder()
     }
