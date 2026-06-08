@@ -6,6 +6,30 @@ enum KeychainService {
     private static let service = "com.konradmichalik.spark"
     private static let log = Logger(subsystem: "com.konradmichalik.spark", category: "auth")
 
+    // MARK: - Long-lived Token (user-provided via `claude setup-token`)
+
+    static let longLivedTokenAccount = "long-lived-token"
+
+    /// Loose validation: long-lived tokens from `claude setup-token` start with `sk-ant-oat`.
+    /// We accept anything with that prefix and length >= 10 after trimming.
+    static func isLikelyValidLongLivedToken(_ token: String) -> Bool {
+        let trimmed = token.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.count >= 10 && trimmed.hasPrefix("sk-ant-")
+    }
+
+    static func saveLongLivedToken(_ token: String) {
+        let trimmed = token.trimmingCharacters(in: .whitespacesAndNewlines)
+        save(trimmed, account: longLivedTokenAccount)
+    }
+
+    static func readLongLivedToken() -> String? {
+        read(account: longLivedTokenAccount)
+    }
+
+    static func deleteLongLivedToken() {
+        delete(account: longLivedTokenAccount)
+    }
+
     static func save(_ value: String, account: String) {
         guard let data = value.data(using: .utf8) else {
             log.error("save(\(account, privacy: .public)): UTF-8 encoding failed")
