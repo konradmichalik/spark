@@ -225,6 +225,14 @@ struct MenuBarLabel: View {
     }
 
     @ViewBuilder
+    private var disconnectIcon: some View {
+        Image(systemName: "exclamationmark.triangle.fill")
+            .symbolRenderingMode(.monochrome)
+            .foregroundColor(.orange)
+            .accessibilityLabel("Spark disconnected — tap to reconnect")
+    }
+
+    @ViewBuilder
     private var percentageText: some View {
         Text("\(Int(displayValue))%")
             .font(.system(.caption, design: .monospaced))
@@ -232,28 +240,32 @@ struct MenuBarLabel: View {
     }
 
     var body: some View {
-        switch state.iconStyle {
-        case "minimal":
-            if showPercentage {
-                percentageText
-            } else {
-                Image(nsImage: sparkIcon)
-            }
-        case "dot":
-            HStack(spacing: 6) {
-                Image(nsImage: dotIcon)
-                    .frame(width: 16, height: 16)
-                if showPercentage { percentageText }
-            }
-        case "bar":
-            HStack(spacing: 6) {
-                Image(nsImage: barIcon)
-                if showPercentage { percentageText }
-            }
-        default:
-            HStack(spacing: 6) {
-                Image(nsImage: sparkIcon)
-                if showPercentage { percentageText }
+        if state.needsReconnect {
+            disconnectIcon
+        } else {
+            switch state.iconStyle {
+            case "minimal":
+                if showPercentage {
+                    percentageText
+                } else {
+                    Image(nsImage: sparkIcon)
+                }
+            case "dot":
+                HStack(spacing: 6) {
+                    Image(nsImage: dotIcon)
+                        .frame(width: 16, height: 16)
+                    if showPercentage { percentageText }
+                }
+            case "bar":
+                HStack(spacing: 6) {
+                    Image(nsImage: barIcon)
+                    if showPercentage { percentageText }
+                }
+            default:
+                HStack(spacing: 6) {
+                    Image(nsImage: sparkIcon)
+                    if showPercentage { percentageText }
+                }
             }
         }
     }
