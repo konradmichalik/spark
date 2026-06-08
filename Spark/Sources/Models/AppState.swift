@@ -68,6 +68,7 @@ final class AppState: ObservableObject {
     private var usageTimerCancellable: AnyCancellable?
     private var statusTimerCancellable: AnyCancellable?
     private var updateCheckCancellable: AnyCancellable?
+    private var reconnectReminderCancellable: AnyCancellable?
     private var lastFetchTime: Date = .distantPast
     private var previousUtilization: Double = 0
     private var idleTicks: Int = 0
@@ -115,6 +116,7 @@ final class AppState: ObservableObject {
         KeychainService.delete(account: "oauth-token")
         KeychainService.delete(account: "account-tier")
         stopUsagePolling()
+        stopReconnectReminder()
     }
 
     func loadCredentials() -> Bool {
@@ -126,6 +128,7 @@ final class AppState: ObservableObject {
         accountTier = credentials.accountTier
         KeychainService.cacheCredentials(credentials)
         needsReconnect = false
+        stopReconnectReminder()
         setAuthenticated(token: credentials.accessToken)
         Self.log.notice("loadCredentials: authenticated (tier: \(credentials.accountTier.displayName, privacy: .public))")
         return true
@@ -280,6 +283,7 @@ final class AppState: ObservableObject {
                     body: "Keychain access lost. Open Spark and tap Reconnect to re-authenticate."
                 )
             }
+            startReconnectReminder()
         }
     }
 
@@ -520,6 +524,35 @@ final class AppState: ObservableObject {
         return .ok
     }
 
+    // MARK: - Reconnect Reminder
+
+    /// Start an hourly reminder timer that re-sends the reconnect notification
+    /// while `needsReconnect` remains true. Idempotent — no-ops if already running.
+    private func startReconnectReminder() {
+        guard reconnectReminderCancellable == nil else { return }
+        Self.log.notice("startReconnectReminder: starting hourly reminder")
+        reconnectReminderCancellable = Timer.publish(every: 3600, on: .main, in: .common)
+            .autoconnect()
+            .sink { [weak self] _ in
+                guard let self else { return }
+                guard self.needsReconnect, self.notificationsEnabled else { return }
+                let id = "reconnect-reminder-\(UInt64(Date().timeIntervalSince1970))"
+                self.sendNotification(
+                    id: id,
+                    title: "Spark disconnected",
+                    body: "Keychain access lost. Open Spark and tap Reconnect to re-authenticate."
+                )
+            }
+    }
+
+    /// Stop the reconnect reminder timer (called when the user successfully reconnects or logs out).
+    private func stopReconnectReminder() {
+        guard reconnectReminderCancellable != nil else { return }
+        Self.log.notice("stopReconnectReminder: stopping reminder")
+        reconnectReminderCancellable?.cancel()
+        reconnectReminderCancellable = nil
+    }
+
     nonisolated private func sendNotification(id: String, title: String, body: String) {
         let content = UNMutableNotificationContent()
         content.title = title
@@ -592,6 +625,25 @@ final class AppState: ObservableObject {
             appleScript.executeAndReturnError(&errorInfo)
         }
     }
+
+    // MARK: - Debug
+
+    #if DEBUG
+    /// Manually flip into the reconnect state to verify icon + notification behaviour.
+    /// Wired to a hidden right-click affordance during development only.
+    func debugTriggerReconnect() {
+        Self.log.notice("debugTriggerReconnect: forcing needsReconnect = true")
+        needsReconnect = true
+        if notificationsEnabled {
+            sendNotification(
+                id: "reconnect",
+                title: "Spark disconnected",
+                body: "Keychain access lost. Open Spark and tap Reconnect to re-authenticate."
+            )
+        }
+        startReconnectReminder()
+    }
+    #endif
 }
 
 // MARK: - Auth Method
