@@ -40,6 +40,11 @@ struct SettingsView: View {
                 .tabItem { Label("Status", systemImage: "heart.text.square") }
                 .tag(SettingsTab.status)
 
+            AdvancedTab()
+                .environmentObject(state)
+                .tabItem { Label("Advanced", systemImage: "wrench.and.screwdriver") }
+                .tag(SettingsTab.advanced)
+
             AboutTab()
                 .environmentObject(state)
                 .tabItem { Label("About", systemImage: "info.circle") }
@@ -660,6 +665,96 @@ struct ConnectionTab: View {
                 }
             }
             .padding()
+        }
+    }
+}
+
+// MARK: - Advanced Tab
+
+struct AdvancedTab: View {
+    @EnvironmentObject var state: AppState
+    @State private var pastedToken: String = ""
+    @State private var feedback: String?
+    @State private var hasStoredToken: Bool = false
+
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 16) {
+                SectionHeader(title: "Long-lived Token", icon: "key.horizontal.fill")
+
+                CardView {
+                    Text("Use a long-lived token to skip macOS Keychain prompts entirely.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+
+                    Text("In Terminal:")
+                        .font(.caption)
+                        .fontWeight(.medium)
+                        .padding(.top, 4)
+
+                    Text("claude setup-token")
+                        .font(.system(.caption, design: .monospaced))
+                        .padding(6)
+                        .background(Color.gray.opacity(0.15), in: RoundedRectangle(cornerRadius: 4))
+                        .textSelection(.enabled)
+
+                    Text("Paste the token below. Spark stores it in its own Keychain.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .padding(.top, 4)
+                }
+
+                CardView {
+                    if hasStoredToken {
+                        HStack {
+                            Image(systemName: "checkmark.seal.fill")
+                                .foregroundColor(.green)
+                            Text("Long-lived token is active")
+                                .font(.callout)
+                                .fontWeight(.medium)
+                            Spacer()
+                            Button("Remove") {
+                                state.clearLongLivedToken()
+                                pastedToken = ""
+                                feedback = "Token removed."
+                                hasStoredToken = false
+                            }
+                            .foregroundColor(.red)
+                        }
+                    } else {
+                        SecureField("sk-ant-oat01-...", text: $pastedToken)
+                            .textFieldStyle(.roundedBorder)
+                            .font(.system(.body, design: .monospaced))
+
+                        Button {
+                            if state.setLongLivedToken(pastedToken) {
+                                feedback = "Token saved."
+                                pastedToken = ""
+                                hasStoredToken = true
+                            } else {
+                                feedback = "Invalid token format (expected sk-ant-...)."
+                            }
+                        } label: {
+                            Label("Save Token", systemImage: "tray.and.arrow.down.fill")
+                                .frame(maxWidth: .infinity)
+                        }
+                        .controlSize(.large)
+                        .disabled(pastedToken.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    }
+                }
+
+                if let feedback {
+                    CardView {
+                        Text(feedback)
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+            }
+            .padding()
+        }
+        .onAppear {
+            hasStoredToken = KeychainService.readLongLivedToken() != nil
         }
     }
 }
