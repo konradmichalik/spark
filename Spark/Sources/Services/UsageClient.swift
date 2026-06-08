@@ -1,5 +1,17 @@
 import Foundation
 
+struct RefreshTokenResponse: Decodable, Sendable {
+    let accessToken: String
+    let refreshToken: String?
+    let expiresIn: Int
+
+    enum CodingKeys: String, CodingKey {
+        case accessToken = "access_token"
+        case refreshToken = "refresh_token"
+        case expiresIn = "expires_in"
+    }
+}
+
 enum UsageClient {
 
     // MARK: - Errors
@@ -25,7 +37,50 @@ enum UsageClient {
     // swiftlint:disable force_unwrapping
     private static let usageURL = URL(string: "https://api.anthropic.com/api/oauth/usage")!
     private static let statusURL = URL(string: "https://status.claude.com/api/v2/summary.json")!
+    private static let refreshURL = URL(string: "https://console.anthropic.com/v1/oauth/token")!
     // swiftlint:enable force_unwrapping
+
+    /// Claude Code's public OAuth client ID (extracted from the CLI binary)
+    static let oauthClientID = "9d1c250a-e61b-44d9-88ed-5944d1962f5e"
+
+    // MARK: - Refresh
+
+    static func buildRefreshRequest(refreshToken: String) -> URLRequest {
+        var request = URLRequest(url: refreshURL)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.timeoutInterval = 10
+        let body: [String: String] = [
+            "grant_type": "refresh_token",
+            "refresh_token": refreshToken,
+            "client_id": oauthClientID
+        ]
+        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
+        return request
+    }
+
+    static func decodeRefreshResponse(_ data: Data) throws -> RefreshTokenResponse {
+        try JSONDecoder().decode(RefreshTokenResponse.self, from: data)
+    }
+
+    /// Exchange a refresh token for a new access token (no Keychain prompt).
+    /// Throws `ClientError.unauthorized` on 4xx (refresh token revoked / rotated).
+    static func refreshAccessToken(refreshToken: String) async throws -> RefreshTokenResponse {
+        let request = buildRefreshRequest(refreshToken: refreshToken)
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let http = response as? HTTPURLResponse else { throw ClientError.networkError }
+        switch http.statusCode {
+        case 200:
+            return try decodeRefreshResponse(data)
+        case 400, 401, 403:
+            throw ClientError.unauthorized
+        case 429:
+            throw ClientError.rateLimited
+        default:
+            throw ClientError.serverError(http.statusCode)
+        }
+    }
 
     static func fetchUsage(token: String) async throws -> UsageAPIResponse {
         let url = usageURL
