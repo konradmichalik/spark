@@ -10,7 +10,8 @@ final class ModelsTests: XCTestCase {
         {
             "five_hour": { "utilization": 42.5, "resets_at": "2026-03-30T18:00:00Z" },
             "seven_day": { "utilization": 65.0, "resets_at": "2026-04-05T00:00:00Z" },
-            "seven_day_sonnet": { "utilization": 30.0, "resets_at": "2026-04-05T00:00:00Z" }
+            "seven_day_sonnet": { "utilization": 30.0, "resets_at": "2026-04-05T00:00:00Z" },
+            "seven_day_opus": { "utilization": 12.0, "resets_at": "2026-04-05T00:00:00Z" }
         }
         """.data(using: .utf8)!
 
@@ -18,7 +19,63 @@ final class ModelsTests: XCTestCase {
         XCTAssertEqual(response.fiveHour?.utilization, 42.5)
         XCTAssertEqual(response.sevenDay?.utilization, 65.0)
         XCTAssertEqual(response.sevenDaySonnet?.utilization, 30.0)
+        XCTAssertEqual(response.sevenDayOpus?.utilization, 12.0)
         XCTAssertNotNil(response.fiveHour?.resetsAt)
+    }
+
+    /// The live API includes many extra null buckets (codenames) and an extra_usage
+    /// object — decoding must tolerate unknown keys and a null opus bucket.
+    func testDecodeUsageAPIResponseFullPayload() throws {
+        let json = """
+        {
+            "five_hour": { "utilization": 11, "resets_at": "2026-06-12T11:20:00.999581+00:00" },
+            "seven_day": { "utilization": 16, "resets_at": "2026-06-14T04:00:00.999602+00:00" },
+            "seven_day_oauth_apps": null,
+            "seven_day_opus": null,
+            "seven_day_sonnet": { "utilization": 0, "resets_at": null },
+            "seven_day_cowork": null,
+            "tangelo": null,
+            "extra_usage": {
+                "is_enabled": true, "monthly_limit": null, "used_credits": 2.4,
+                "utilization": null, "currency": "EUR", "disabled_reason": null
+            }
+        }
+        """.data(using: .utf8)!
+
+        let response = try JSONDecoder().decode(UsageAPIResponse.self, from: json)
+        XCTAssertEqual(response.fiveHour?.utilization, 11)
+        XCTAssertNil(response.sevenDayOpus)
+        XCTAssertEqual(response.sevenDaySonnet?.utilization, 0)
+        XCTAssertEqual(response.extraUsage?.isEnabled, true)
+        XCTAssertEqual(response.extraUsage?.usedCredits, 2.4)
+        XCTAssertEqual(response.extraUsage?.currency, "EUR")
+        XCTAssertTrue(response.extraUsage?.hasSpend ?? false)
+        XCTAssertNotNil(response.extraUsage?.formattedSpend)
+    }
+
+    func testExtraUsageNoSpend() throws {
+        let json = """
+        {
+            "is_enabled": true, "monthly_limit": null, "used_credits": 0,
+            "utilization": null, "currency": "EUR", "disabled_reason": null
+        }
+        """.data(using: .utf8)!
+
+        let extra = try JSONDecoder().decode(ExtraUsage.self, from: json)
+        XCTAssertFalse(extra.hasSpend)
+        XCTAssertNil(extra.formattedSpend)
+    }
+
+    func testExtraUsageDisabledHasNoSpend() throws {
+        let json = """
+        {
+            "is_enabled": false, "monthly_limit": null, "used_credits": 5.0,
+            "utilization": null, "currency": "USD", "disabled_reason": "billing"
+        }
+        """.data(using: .utf8)!
+
+        let extra = try JSONDecoder().decode(ExtraUsage.self, from: json)
+        XCTAssertFalse(extra.hasSpend)
     }
 
     func testDecodeUsageAPIResponsePartial() throws {

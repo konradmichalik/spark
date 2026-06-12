@@ -364,6 +364,13 @@ struct GeneralTab: View {
                         )
                     }
 
+                    Toggle(isOn: $state.showOpusUsage) {
+                        SettingLabel(
+                            title: "Opus Usage",
+                            subtitle: "Show weekly Opus usage."
+                        )
+                    }
+
                     Toggle(isOn: $state.showGraph) {
                         SettingLabel(
                             title: "Usage Graph",

@@ -35,6 +35,7 @@ final class AppState: ObservableObject {
     @AppStorage("iconStyle") var iconStyle: String = "logo"
     @AppStorage("menuBarValue") var menuBarValue: String = "max"
     @AppStorage("showSonnetUsage") var showSonnetUsage: Bool = true
+    @AppStorage("showOpusUsage") var showOpusUsage: Bool = true
     @AppStorage("showGraph") var showGraph: Bool = true
     @AppStorage("showProjection") var showProjection: Bool = true
     @AppStorage("refreshMode") var refreshMode: String = "smart"
@@ -235,6 +236,8 @@ final class AppState: ObservableObject {
                 session: response.fiveHour,
                 weekly: response.sevenDay,
                 weeklySonnet: response.sevenDaySonnet,
+                weeklyOpus: response.sevenDayOpus,
+                extraUsage: response.extraUsage,
                 lastUpdated: Date()
             )
             consecutiveRateLimits = 0
@@ -302,6 +305,8 @@ final class AppState: ObservableObject {
             session: response.fiveHour,
             weekly: response.sevenDay,
             weeklySonnet: response.sevenDaySonnet,
+            weeklyOpus: response.sevenDayOpus,
+            extraUsage: response.extraUsage,
             lastUpdated: Date()
         )
         consecutiveRateLimits = 0

@@ -6,11 +6,46 @@ struct UsageAPIResponse: Codable, Sendable {
     let fiveHour: UsageBucket?
     let sevenDay: UsageBucket?
     let sevenDaySonnet: UsageBucket?
+    let sevenDayOpus: UsageBucket?
+    let extraUsage: ExtraUsage?
 
     enum CodingKeys: String, CodingKey {
         case fiveHour = "five_hour"
         case sevenDay = "seven_day"
         case sevenDaySonnet = "seven_day_sonnet"
+        case sevenDayOpus = "seven_day_opus"
+        case extraUsage = "extra_usage"
+    }
+}
+
+/// Pay-as-you-go credit usage beyond plan limits (`extra_usage` in the API).
+struct ExtraUsage: Codable, Sendable {
+    let isEnabled: Bool
+    let monthlyLimit: Double?
+    let usedCredits: Double?
+    let utilization: Double?
+    let currency: String?
+    let disabledReason: String?
+
+    enum CodingKeys: String, CodingKey {
+        case isEnabled = "is_enabled"
+        case monthlyLimit = "monthly_limit"
+        case usedCredits = "used_credits"
+        case utilization
+        case currency
+        case disabledReason = "disabled_reason"
+    }
+
+    /// True when extra usage is active and the user has actually spent credits.
+    var hasSpend: Bool { isEnabled && (usedCredits ?? 0) > 0 }
+
+    /// Localized currency string for the spent amount, e.g. "€2.40". Nil when nothing spent.
+    var formattedSpend: String? {
+        guard let used = usedCredits, used > 0 else { return nil }
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .currency
+        formatter.currencyCode = currency ?? "USD"
+        return formatter.string(from: NSNumber(value: used))
     }
 }
 
@@ -50,6 +85,8 @@ struct UsageData: Sendable {
     var session: UsageBucket?
     var weekly: UsageBucket?
     var weeklySonnet: UsageBucket?
+    var weeklyOpus: UsageBucket?
+    var extraUsage: ExtraUsage?
     var lastUpdated: Date = Date()
 
     var sessionUtilization: Double { session?.utilization ?? 0 }

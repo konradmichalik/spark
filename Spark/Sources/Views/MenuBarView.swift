@@ -85,6 +85,18 @@ struct MenuBarView: View {
                     )
                 }
 
+                // Opus Usage
+                if state.showOpusUsage, let opus = state.usageData.weeklyOpus {
+                    UsageRow(
+                        label: "Opus (Weekly)",
+                        utilization: opus.utilization,
+                        resetTime: opus.timeUntilReset,
+                        resetDate: opus.resetsAtDate,
+                        warningThreshold: state.warningThreshold,
+                        criticalThreshold: state.criticalThreshold
+                    )
+                }
+
                 if state.usageData.session == nil && state.lastError == nil && !state.isLoading {
                     Text("No data available")
                         .foregroundColor(.secondary)
@@ -103,13 +115,34 @@ struct MenuBarView: View {
                     session: state.usageData.session,
                     weekly: state.usageData.weekly,
                     sonnet: state.usageData.weeklySonnet,
+                    opus: state.usageData.weeklyOpus,
                     showSonnet: state.showSonnetUsage,
+                    showOpus: state.showOpusUsage,
                     showProjection: state.showProjection,
                     warningThreshold: state.warningThreshold,
                     criticalThreshold: state.criticalThreshold,
                     sessionProjection: sessionProjection,
                     displayStyle: state.usageDisplayStyle
                 )
+            }
+
+            // Extra usage (pay-as-you-go) — subtle line, only when credits spent
+            if let extra = state.usageData.extraUsage, extra.hasSpend,
+               let spend = extra.formattedSpend {
+                HStack(spacing: 6) {
+                    Image(systemName: "plus.circle")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                    Text("Extra usage")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                    Spacer()
+                    Text(spend)
+                        .font(.system(.caption2, design: .monospaced))
+                        .foregroundColor(.secondary)
+                }
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel("Extra usage \(spend)")
             }
 
             // Reconnect prompt (token expired, ACL wiped by Claude Code)
