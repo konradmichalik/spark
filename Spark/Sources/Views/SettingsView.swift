@@ -40,11 +40,6 @@ struct SettingsView: View {
                 .tabItem { Label("Status", systemImage: "heart.text.square") }
                 .tag(SettingsTab.status)
 
-            AdvancedTab()
-                .environmentObject(state)
-                .tabItem { Label("Advanced", systemImage: "wrench.and.screwdriver") }
-                .tag(SettingsTab.advanced)
-
             AboutTab()
                 .environmentObject(state)
                 .tabItem { Label("About", systemImage: "info.circle") }
@@ -585,6 +580,8 @@ struct ConnectionTab: View {
     @EnvironmentObject var state: AppState
     @State private var isAuthenticating = false
     @State private var authError: String?
+    @State private var pastedToken: String = ""
+    @State private var inputError: Bool = false
 
     var body: some View {
         ScrollView {
@@ -663,22 +660,10 @@ struct ConnectionTab: View {
                             .foregroundColor(.orange)
                     }
                 }
-            }
-            .padding()
-        }
-    }
-}
 
-// MARK: - Advanced Tab
+                Divider()
+                    .padding(.vertical, 4)
 
-struct AdvancedTab: View {
-    @EnvironmentObject var state: AppState
-    @State private var pastedToken: String = ""
-    @State private var inputError: Bool = false
-
-    var body: some View {
-        ScrollView {
-            VStack(spacing: 16) {
                 SectionHeader(title: "Long-lived Token", icon: "key.horizontal.fill")
 
                 CardView {
