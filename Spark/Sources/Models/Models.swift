@@ -73,6 +73,9 @@ struct UsageBucket: Codable, Sendable {
         if interval <= 0 { return "now" }
         return interval.shortDuration
     }
+
+    /// Placeholder shown when the API returns no per-model bucket (e.g. unused Opus/Sonnet).
+    static let zero = UsageBucket(utilization: 0, resetsAt: nil)
 }
 
 // MARK: - App Models

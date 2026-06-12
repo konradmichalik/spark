@@ -74,7 +74,8 @@ struct MenuBarView: View {
                 }
 
                 // Sonnet Usage
-                if state.showSonnetUsage, let sonnet = state.usageData.weeklySonnet {
+                if state.showSonnetUsage {
+                    let sonnet = state.usageData.weeklySonnet ?? .zero
                     UsageRow(
                         label: "Sonnet (Weekly)",
                         utilization: sonnet.utilization,
@@ -86,7 +87,8 @@ struct MenuBarView: View {
                 }
 
                 // Opus Usage
-                if state.showOpusUsage, let opus = state.usageData.weeklyOpus {
+                if state.showOpusUsage {
+                    let opus = state.usageData.weeklyOpus ?? .zero
                     UsageRow(
                         label: "Opus (Weekly)",
                         utilization: opus.utilization,
