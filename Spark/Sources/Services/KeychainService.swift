@@ -31,6 +31,7 @@ enum KeychainService {
         return trimmed
     }
 
+    @MainActor
     static func saveLongLivedToken(_ cleaned: String) {
         update { $0.longLivedToken = cleaned }
     }
@@ -39,12 +40,14 @@ enum KeychainService {
         loadStore().longLivedToken
     }
 
+    @MainActor
     static func deleteLongLivedToken() {
         update { $0.longLivedToken = nil }
     }
 
     // MARK: - Cached Claude Code credentials (Spark's own copy, no prompt to read)
 
+    @MainActor
     static func saveOAuthToken(_ token: String) {
         update { $0.oauthToken = token }
     }
@@ -54,16 +57,13 @@ enum KeychainService {
     }
 
     /// Cache Claude Code credentials in Spark's own keychain entry (no password prompt on read).
+    @MainActor
     static func cacheCredentials(_ credentials: ClaudeCredentials) {
         update { store in
             store.oauthToken = credentials.accessToken
             store.accountTier = credentials.accountTier.displayName
-            if let refresh = credentials.refreshToken {
-                store.refreshToken = refresh
-            }
-            if let expiresAt = credentials.expiresAt {
-                store.tokenExpiresAt = expiresAt.timeIntervalSince1970
-            }
+            store.refreshToken = credentials.refreshToken
+            store.tokenExpiresAt = credentials.expiresAt?.timeIntervalSince1970
         }
     }
 
@@ -82,6 +82,7 @@ enum KeychainService {
 
     /// Persist a refreshed OAuth token pair. Refresh token is preserved when the server
     /// does not rotate it. Expiry is recomputed from `expiresIn` seconds.
+    @MainActor
     static func saveRefreshedTokens(_ response: RefreshTokenResponse) {
         let expiry = Date().addingTimeInterval(TimeInterval(response.expiresIn))
         update { store in
@@ -93,13 +94,16 @@ enum KeychainService {
         }
     }
 
-    /// Clear the credentials a logout removes (token, tier, long-lived token),
-    /// matching the previous per-field deletion behavior.
+    /// Clear all credential material a logout removes (token, tier, long-lived token,
+    /// refresh token + expiry) so no stale secret survives an account switch or logout.
+    @MainActor
     static func clearForLogout() {
         update { store in
             store.oauthToken = nil
             store.accountTier = nil
             store.longLivedToken = nil
+            store.refreshToken = nil
+            store.tokenExpiresAt = nil
         }
     }
 
@@ -113,6 +117,7 @@ enum KeychainService {
     ///   the current build — a single "Allow" then keeps every later launch silent.
     /// - No consolidated entry yet: legacy fields are read once (may prompt per field,
     ///   one time only), written as one entry, and the legacy entries deleted.
+    @MainActor
     static func migrateAndRebindStore() {
         if let existing = readRawStore() {
             log.notice("store: rebinding ACL to current build signature")
@@ -134,7 +139,10 @@ enum KeychainService {
             return
         }
 
-        writeStore(migrated)
+        guard writeStore(migrated) else {
+            log.error("store: migration write failed; keeping legacy entries intact")
+            return
+        }
         [longLivedTokenAccount, legacyOAuthAccount, legacyTierAccount,
          legacyRefreshAccount, legacyExpiresAtAccount].forEach { delete(account: $0) }
         log.notice("store: migration complete")
@@ -144,8 +152,9 @@ enum KeychainService {
         readRawStore() ?? .empty
     }
 
-    /// Read-modify-write the single store entry. All callers run on the main actor,
-    /// so the non-atomic read/write is effectively serialized.
+    /// Read-modify-write the single store entry. `@MainActor` enforces the
+    /// serialization contract so the non-atomic read/write can't race off-main.
+    @MainActor
     private static func update(_ mutate: (inout SparkCredentialStore) -> Void) {
         var store = loadStore()
         mutate(&store)
@@ -157,23 +166,25 @@ enum KeychainService {
         return SparkCredentialStore(jsonData: data)
     }
 
-    private static func writeStore(_ store: SparkCredentialStore) {
+    @discardableResult
+    private static func writeStore(_ store: SparkCredentialStore) -> Bool {
         guard !store.isEmpty else {
             delete(account: storeAccount)
-            return
+            return true
         }
         guard let data = store.jsonData else {
             log.error("writeStore: JSON encoding failed")
-            return
+            return false
         }
-        writeData(data, account: storeAccount)
+        return writeData(data, account: storeAccount)
     }
 
     // MARK: - Low-level keychain helpers
 
     /// Write `data` under `account`. Deletes first so a fresh ACL is created with the
     /// current code signature — prevents stale-ACL prompts after ad-hoc re-signing.
-    private static func writeData(_ data: Data, account: String) {
+    @discardableResult
+    private static func writeData(_ data: Data, account: String) -> Bool {
         delete(account: account)
         let query: [CFString: Any] = [
             kSecClass: kSecClassGenericPassword,
@@ -184,9 +195,10 @@ enum KeychainService {
         let status = SecItemAdd(query as CFDictionary, nil)
         if status == errSecSuccess {
             log.info("write(\(account, privacy: .public)): success")
-        } else {
-            log.error("write(\(account, privacy: .public)): failed (OSStatus \(status))")
+            return true
         }
+        log.error("write(\(account, privacy: .public)): failed (OSStatus \(status))")
+        return false
     }
 
     private static func readData(account: String) -> Data? {
