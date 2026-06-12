@@ -103,7 +103,7 @@ final class AppState: ObservableObject {
         oauthToken = token
         authMethod = .claudeCode
         isAuthenticated = true
-        KeychainService.save(token, account: "oauth-token")
+        KeychainService.saveOAuthToken(token)
         Task { await fetchUsage() }
     }
 
@@ -114,9 +114,7 @@ final class AppState: ObservableObject {
         authMethod = .none
         accountTier = .free
         usageData = .empty
-        KeychainService.delete(account: "oauth-token")
-        KeychainService.delete(account: "account-tier")
-        KeychainService.deleteLongLivedToken()
+        KeychainService.clearForLogout()
         stopUsagePolling()
         stopReconnectReminder()
     }
@@ -172,6 +170,11 @@ final class AppState: ObservableObject {
     private func tryAutoLogin() {
         Self.log.notice("tryAutoLogin: starting")
 
+        // Migrate legacy per-field keychain entries into the single consolidated entry
+        // and rebind its ACL to the current build — caps password prompts at one and
+        // keeps later launches silent. Must run before any other keychain read below.
+        KeychainService.migrateAndRebindStore()
+
         // Long-lived token wins — bypasses Claude Code keychain entirely
         if let longLived = KeychainService.readLongLivedToken(), !longLived.isEmpty {
             Self.log.notice("tryAutoLogin: long-lived token found, using it")
@@ -186,7 +189,7 @@ final class AppState: ObservableObject {
         }
 
         // Try saved token first (our own Keychain entry — no password prompt)
-        if let token = KeychainService.read(account: "oauth-token"), !token.isEmpty {
+        if let token = KeychainService.readCachedOAuthToken(), !token.isEmpty {
             Self.log.info("tryAutoLogin: cached token found")
             oauthToken = token
             authMethod = .claudeCode
