@@ -51,8 +51,8 @@ final class LongLivedTokenTests: XCTestCase {
 
     // MARK: - SettingsTab
 
-    func testAdvancedSettingsTabExists() {
-        let tab: SettingsTab = .advanced
-        XCTAssertEqual(tab, .advanced)
+    func testConnectionSettingsTabExists() {
+        let tab: SettingsTab = .connection
+        XCTAssertEqual(tab, .connection)
     }
 }
