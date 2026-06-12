@@ -302,7 +302,9 @@ struct UsageRingsView: View {
     let session: UsageBucket?
     let weekly: UsageBucket?
     let sonnet: UsageBucket?
+    let opus: UsageBucket?
     let showSonnet: Bool
+    let showOpus: Bool
     let showProjection: Bool
     let warningThreshold: Double
     let criticalThreshold: Double
@@ -343,6 +345,18 @@ struct UsageRingsView: View {
                 utilization: sonnet.utilization,
                 resetTime: sonnet.timeUntilReset,
                 resetDate: sonnet.resetsAtDate,
+                projection: .insufficientData,
+                ringIndex: index
+            ))
+            index += 1
+        }
+
+        if showOpus, let opus {
+            result.append(RingData(
+                label: "Opus (Weekly)",
+                utilization: opus.utilization,
+                resetTime: opus.timeUntilReset,
+                resetDate: opus.resetsAtDate,
                 projection: .insufficientData,
                 ringIndex: index
             ))

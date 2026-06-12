@@ -33,7 +33,7 @@
 
 - **Usage ring** in the menu bar that fills based on current usage — ring color shifts green → orange → red as you approach your limit
 - **Account tier badge** showing your plan (Pro, Max, Team, etc.) directly in the popover header
-- **Session, Weekly & Sonnet usage** with progress bars and countdown timers to the next reset
+- **Session, Weekly, Sonnet & Opus usage** with progress bars and countdown timers to the next reset, plus a pay-as-you-go extra-usage line when you exceed plan limits
 - **Session projection** that estimates whether you'll hit the limit before the reset window closes
 - **Usage history graph** with time-proportional rendering, hover tooltips, and selectable ranges (1h / 6h / 1d / 7d / 30d)
 - **Today's stats** — message count, session count, and token totals at a glance
