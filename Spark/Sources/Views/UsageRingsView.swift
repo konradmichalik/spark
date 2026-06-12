@@ -339,7 +339,8 @@ struct UsageRingsView: View {
             index += 1
         }
 
-        if showSonnet, let sonnet {
+        if showSonnet {
+            let sonnet = sonnet ?? .zero
             result.append(RingData(
                 label: "Sonnet (Weekly)",
                 utilization: sonnet.utilization,
@@ -351,7 +352,8 @@ struct UsageRingsView: View {
             index += 1
         }
 
-        if showOpus, let opus {
+        if showOpus {
+            let opus = opus ?? .zero
             result.append(RingData(
                 label: "Opus (Weekly)",
                 utilization: opus.utilization,
