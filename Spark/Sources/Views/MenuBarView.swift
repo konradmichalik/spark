@@ -525,7 +525,6 @@ struct StatusRow: View {
             Spacer()
 
             if !state.claudeCodeStatus.isHealthy {
-                // swiftlint:disable:next force_unwrapping
                 Link(destination: URL(string: "https://status.claude.com")!) {
                     HStack(spacing: 2) {
                         Text("Code: \(state.claudeCodeStatus.displayName)")

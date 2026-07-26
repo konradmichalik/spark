@@ -972,7 +972,6 @@ struct StatusTab: View {
                         }
                         .buttonStyle(.borderless)
 
-                        // swiftlint:disable:next force_unwrapping
                         Link(destination: URL(string: "https://status.claude.com")!) {
                             Image(systemName: "arrow.up.right.square")
                                 .font(.system(size: 11))
