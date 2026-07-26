@@ -25,6 +25,7 @@ struct ExtraUsage: Codable, Sendable {
     let usedCredits: Double?
     let utilization: Double?
     let currency: String?
+    let decimalPlaces: Int?
     let disabledReason: String?
 
     enum CodingKeys: String, CodingKey {
@@ -33,19 +34,34 @@ struct ExtraUsage: Codable, Sendable {
         case usedCredits = "used_credits"
         case utilization
         case currency
+        case decimalPlaces = "decimal_places"
         case disabledReason = "disabled_reason"
     }
 
     /// True when extra usage is active and the user has actually spent credits.
     var hasSpend: Bool { isEnabled && (usedCredits ?? 0) > 0 }
 
-    /// Localized currency string for the spent amount, e.g. "€2.40". Nil when nothing spent.
-    var formattedSpend: String? {
+    /// The API sends amounts in minor units (e.g. cents); `decimal_places` says where
+    /// the point goes (2 → divide by 100). A missing field (legacy responses) means the
+    /// value is already in major units, so the divisor is 1.
+    private var minorUnitDivisor: Double {
+        guard let places = decimalPlaces, places > 0 else { return 1 }
+        return pow(10, Double(places))
+    }
+
+    /// Actual spent amount in major currency units, honoring `decimal_places`.
+    var spendAmount: Double? {
         guard let used = usedCredits, used > 0 else { return nil }
+        return used / minorUnitDivisor
+    }
+
+    /// Localized currency string for the spent amount, e.g. "€39.88". Nil when nothing spent.
+    var formattedSpend: String? {
+        guard let amount = spendAmount else { return nil }
         let formatter = NumberFormatter()
         formatter.numberStyle = .currency
         formatter.currencyCode = currency ?? "USD"
-        return formatter.string(from: NSNumber(value: used))
+        return formatter.string(from: NSNumber(value: amount))
     }
 }
 

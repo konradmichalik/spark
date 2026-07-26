@@ -53,6 +53,39 @@ final class ModelsTests: XCTestCase {
         XCTAssertNotNil(response.extraUsage?.formattedSpend)
     }
 
+    /// Live API sends amounts in minor units (cents) plus `decimal_places`. 3988 cents
+    /// with decimal_places 2 must resolve to 39.88, not 3988 — regression for the
+    /// "€3988 extra usage" display bug.
+    func testExtraUsageHonorsDecimalPlaces() throws {
+        let json = """
+        {
+            "is_enabled": true, "monthly_limit": 4000, "used_credits": 3988.0,
+            "utilization": 99.7, "currency": "EUR", "decimal_places": 2,
+            "disabled_reason": null
+        }
+        """.data(using: .utf8)!
+
+        let extra = try JSONDecoder().decode(ExtraUsage.self, from: json)
+        XCTAssertEqual(extra.decimalPlaces, 2)
+        XCTAssertTrue(extra.hasSpend)
+        XCTAssertEqual(extra.spendAmount ?? 0, 39.88, accuracy: 0.0001)
+    }
+
+    /// Absent `decimal_places` (legacy response) means the value is already in major
+    /// units — no scaling applied.
+    func testExtraUsageWithoutDecimalPlacesIsUnscaled() throws {
+        let json = """
+        {
+            "is_enabled": true, "monthly_limit": null, "used_credits": 2.4,
+            "utilization": null, "currency": "EUR", "disabled_reason": null
+        }
+        """.data(using: .utf8)!
+
+        let extra = try JSONDecoder().decode(ExtraUsage.self, from: json)
+        XCTAssertNil(extra.decimalPlaces)
+        XCTAssertEqual(extra.spendAmount ?? 0, 2.4, accuracy: 0.0001)
+    }
+
     func testExtraUsageNoSpend() throws {
         let json = """
         {
