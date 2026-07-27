@@ -122,6 +122,29 @@ final class ModelsTests: XCTestCase {
         XCTAssertEqual(extra.spendAmount ?? 0, 2.4, accuracy: 0.0001)
     }
 
+    /// `decimal_places` beyond the currency's own default (2) must survive formatting —
+    /// a two-decimal currency formatter would otherwise round 3.988 to 3.99.
+    func testExtraUsageFormatsBeyondCurrencyDefaultDecimalPlaces() throws {
+        let json = """
+        {
+            "is_enabled": true, "monthly_limit": 4000, "used_credits": 3988.0,
+            "utilization": 99.7, "currency": "EUR", "decimal_places": 3,
+            "disabled_reason": null
+        }
+        """.data(using: .utf8)!
+
+        let extra = try JSONDecoder().decode(ExtraUsage.self, from: json)
+        XCTAssertEqual(extra.spendAmount ?? 0, 3.988, accuracy: 0.0001)
+        XCTAssertEqual(extra.limitAmount ?? 0, 4.0, accuracy: 0.0001)
+
+        let spend = try XCTUnwrap(extra.formattedSpend)
+        XCTAssertTrue(spend.contains("988"), "expected 3 fractional digits preserved, got \(spend)")
+
+        let combined = try XCTUnwrap(extra.formattedSpendWithLimit)
+        XCTAssertTrue(combined.contains("988"), "expected spend part to keep 3 digits, got \(combined)")
+        XCTAssertTrue(combined.contains("000"), "expected limit part to keep 3 digits, got \(combined)")
+    }
+
     func testExtraUsageNoSpend() throws {
         let json = """
         {

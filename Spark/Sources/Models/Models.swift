@@ -65,7 +65,7 @@ struct ExtraUsage: Codable, Sendable {
     /// Localized currency string for the spent amount, e.g. "€39.88". Nil when nothing spent.
     var formattedSpend: String? {
         guard let amount = spendAmount else { return nil }
-        return Self.currencyFormatter(currency).string(from: NSNumber(value: amount))
+        return Self.currencyFormatter(currency, decimalPlaces: decimalPlaces).string(from: NSNumber(value: amount))
     }
 
     /// Spent amount with its cap, e.g. "39,88 / 40,00 €" (currency symbol on the limit
@@ -96,16 +96,21 @@ struct ExtraUsage: Codable, Sendable {
         decimal.maximumFractionDigits = digits
         guard let spendString = decimal.string(from: NSNumber(value: spend)) else { return nil }
         guard let limit = limitAmount,
-              let limitString = Self.currencyFormatter(currency).string(from: NSNumber(value: limit)) else {
+              let limitString = Self.currencyFormatter(currency, decimalPlaces: decimalPlaces)
+                  .string(from: NSNumber(value: limit)) else {
             return (spendString, nil)
         }
         return (spendString, limitString)
     }
 
-    private static func currencyFormatter(_ currency: String?) -> NumberFormatter {
+    private static func currencyFormatter(_ currency: String?, decimalPlaces: Int?) -> NumberFormatter {
         let formatter = NumberFormatter()
         formatter.numberStyle = .currency
         formatter.currencyCode = currency ?? "USD"
+        if let decimalPlaces, decimalPlaces >= 0 {
+            formatter.minimumFractionDigits = decimalPlaces
+            formatter.maximumFractionDigits = decimalPlaces
+        }
         return formatter
     }
 }
