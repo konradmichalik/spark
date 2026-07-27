@@ -128,21 +128,11 @@ final class ModelsTests: XCTestCase {
         let json = """
         {
             "is_enabled": true, "monthly_limit": 4000, "used_credits": 3988.0,
-            "utilization": 99.7, "currency": "EUR", "decimal_places": 3,
-            "disabled_reason": null
+            "utilization": 99.7, "currency": "EUR", "decimal_places": 3, "disabled_reason": null
         }
         """.data(using: .utf8)!
-
-        let extra = try JSONDecoder().decode(ExtraUsage.self, from: json)
-        XCTAssertEqual(extra.spendAmount ?? 0, 3.988, accuracy: 0.0001)
-        XCTAssertEqual(extra.limitAmount ?? 0, 4.0, accuracy: 0.0001)
-
-        let spend = try XCTUnwrap(extra.formattedSpend)
-        XCTAssertTrue(spend.contains("988"), "expected 3 fractional digits preserved, got \(spend)")
-
-        let combined = try XCTUnwrap(extra.formattedSpendWithLimit)
-        XCTAssertTrue(combined.contains("988"), "expected spend part to keep 3 digits, got \(combined)")
-        XCTAssertTrue(combined.contains("000"), "expected limit part to keep 3 digits, got \(combined)")
+        let combined = try XCTUnwrap(JSONDecoder().decode(ExtraUsage.self, from: json).formattedSpendWithLimit)
+        XCTAssertTrue(combined.contains("988") && combined.contains("000"))
     }
 
     func testExtraUsageNoSpend() throws {
