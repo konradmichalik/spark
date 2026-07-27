@@ -34,11 +34,9 @@ enum UsageClient {
 
     // MARK: - API
 
-    // swiftlint:disable force_unwrapping
     private static let usageURL = URL(string: "https://api.anthropic.com/api/oauth/usage")!
     private static let statusURL = URL(string: "https://status.claude.com/api/v2/summary.json")!
     private static let refreshURL = URL(string: "https://console.anthropic.com/v1/oauth/token")!
-    // swiftlint:enable force_unwrapping
 
     /// Claude Code's public OAuth client ID (extracted from the CLI binary)
     static let oauthClientID = "9d1c250a-e61b-44d9-88ed-5944d1962f5e"

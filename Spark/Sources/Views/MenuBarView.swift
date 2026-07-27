@@ -130,7 +130,7 @@ struct MenuBarView: View {
 
             // Extra usage (pay-as-you-go) — subtle line, only when credits spent
             if let extra = state.usageData.extraUsage, extra.hasSpend,
-               let spend = extra.formattedSpend {
+               let spend = extra.formattedSpendWithLimit {
                 HStack(spacing: 6) {
                     Image(systemName: "plus.circle")
                         .font(.caption2)
@@ -144,7 +144,7 @@ struct MenuBarView: View {
                         .foregroundColor(.secondary)
                 }
                 .accessibilityElement(children: .combine)
-                .accessibilityLabel("Extra usage \(spend)")
+                .accessibilityLabel("Extra usage \(extra.spendAccessibilityValue ?? spend)")
             }
 
             // Reconnect prompt (token expired, ACL wiped by Claude Code)
@@ -525,7 +525,6 @@ struct StatusRow: View {
             Spacer()
 
             if !state.claudeCodeStatus.isHealthy {
-                // swiftlint:disable:next force_unwrapping
                 Link(destination: URL(string: "https://status.claude.com")!) {
                     HStack(spacing: 2) {
                         Text("Code: \(state.claudeCodeStatus.displayName)")

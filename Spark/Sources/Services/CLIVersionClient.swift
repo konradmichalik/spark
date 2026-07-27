@@ -11,7 +11,6 @@ enum CLIVersionClient {
         let version: String
     }
 
-    // swiftlint:disable:next force_unwrapping
     private static let registryURL = URL(string: "https://registry.npmjs.org/@anthropic-ai/claude-code/latest")!
 
     static func fetchLatestVersion() async throws -> String {

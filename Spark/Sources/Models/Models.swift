@@ -25,6 +25,7 @@ struct ExtraUsage: Codable, Sendable {
     let usedCredits: Double?
     let utilization: Double?
     let currency: String?
+    let decimalPlaces: Int?
     let disabledReason: String?
 
     enum CodingKeys: String, CodingKey {
@@ -33,19 +34,84 @@ struct ExtraUsage: Codable, Sendable {
         case usedCredits = "used_credits"
         case utilization
         case currency
+        case decimalPlaces = "decimal_places"
         case disabledReason = "disabled_reason"
     }
 
     /// True when extra usage is active and the user has actually spent credits.
     var hasSpend: Bool { isEnabled && (usedCredits ?? 0) > 0 }
 
-    /// Localized currency string for the spent amount, e.g. "€2.40". Nil when nothing spent.
-    var formattedSpend: String? {
+    /// The API sends amounts in minor units (e.g. cents); `decimal_places` says where
+    /// the point goes (2 → divide by 100). A missing field (legacy responses) means the
+    /// value is already in major units, so the divisor is 1.
+    private var minorUnitDivisor: Double {
+        guard let places = decimalPlaces, places > 0 else { return 1 }
+        return pow(10, Double(places))
+    }
+
+    /// Actual spent amount in major currency units, honoring `decimal_places`.
+    var spendAmount: Double? {
         guard let used = usedCredits, used > 0 else { return nil }
+        return used / minorUnitDivisor
+    }
+
+    /// Monthly spend cap in major currency units, honoring `decimal_places`. Nil when
+    /// the API reports no limit.
+    var limitAmount: Double? {
+        guard let limit = monthlyLimit, limit > 0 else { return nil }
+        return limit / minorUnitDivisor
+    }
+
+    /// Localized currency string for the spent amount, e.g. "€39.88". Nil when nothing spent.
+    var formattedSpend: String? {
+        guard let amount = spendAmount else { return nil }
+        return Self.currencyFormatter(currency, decimalPlaces: decimalPlaces).string(from: NSNumber(value: amount))
+    }
+
+    /// Spent amount with its cap, e.g. "39,88 / 40,00 €" (currency symbol on the limit
+    /// only). Falls back to the bare spent amount when no limit is known. Nil when nothing spent.
+    var formattedSpendWithLimit: String? {
+        guard let parts = formattedParts else { return nil }
+        guard let limit = parts.limit else { return formattedSpend }
+        return "\(parts.spend) / \(limit)"
+    }
+
+    /// Screen-reader phrasing of the spend, e.g. "39,88 of 40,00 €" — avoids the visual
+    /// "/" so VoiceOver reads it naturally. Mirrors `formattedSpendWithLimit`.
+    var spendAccessibilityValue: String? {
+        guard let parts = formattedParts else { return nil }
+        guard let limit = parts.limit else { return formattedSpend }
+        return "\(parts.spend) of \(limit)"
+    }
+
+    /// The spent amount (no currency symbol) and, when a limit exists, the limit as a
+    /// full currency string — both honoring `decimal_places`. Shared by the visible and
+    /// accessible spend strings so their formatting can't drift apart.
+    private var formattedParts: (spend: String, limit: String?)? {
+        guard let spend = spendAmount else { return nil }
+        let digits = decimalPlaces ?? 2
+        let decimal = NumberFormatter()
+        decimal.numberStyle = .decimal
+        decimal.minimumFractionDigits = digits
+        decimal.maximumFractionDigits = digits
+        guard let spendString = decimal.string(from: NSNumber(value: spend)) else { return nil }
+        guard let limit = limitAmount,
+              let limitString = Self.currencyFormatter(currency, decimalPlaces: decimalPlaces)
+                  .string(from: NSNumber(value: limit)) else {
+            return (spendString, nil)
+        }
+        return (spendString, limitString)
+    }
+
+    private static func currencyFormatter(_ currency: String?, decimalPlaces: Int?) -> NumberFormatter {
         let formatter = NumberFormatter()
         formatter.numberStyle = .currency
         formatter.currencyCode = currency ?? "USD"
-        return formatter.string(from: NSNumber(value: used))
+        if let decimalPlaces, decimalPlaces >= 0 {
+            formatter.minimumFractionDigits = decimalPlaces
+            formatter.maximumFractionDigits = decimalPlaces
+        }
+        return formatter
     }
 }
 
