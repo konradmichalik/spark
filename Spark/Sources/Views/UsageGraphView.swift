@@ -29,64 +29,66 @@ struct UsageGraphView: View {
     @State private var hoverTarget: GraphHoverTarget?
     @State private var canvasWidth: CGFloat = 0
 
-    private var windowStart: Date { Date().addingTimeInterval(-timeRange.seconds) }
-
     /// Maximum gap (seconds) before we assume the app was inactive — anything longer
     /// is collapsed into a narrow band instead of stretching the axis.
     private static let gapThreshold: TimeInterval = 45 * 60
 
-    private var filteredHistory: [UsageSnapshot] {
-        history.filter { $0.timestamp > windowStart }
-    }
-
-    private var axis: CompressedTimeAxis {
-        CompressedTimeAxis(
-            timestamps: filteredHistory.map(\.timestamp),
-            width: canvasWidth,
-            gapThreshold: Self.gapThreshold
-        )
+    private func windowedHistory(now: Date) -> [UsageSnapshot] {
+        let windowStart = now.addingTimeInterval(-timeRange.seconds)
+        return history.filter { $0.timestamp > windowStart }
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
+        // Samples and axis are derived once per pass from a single `now`, so every
+        // consumer sees the same window and the axis' sample ranges always match.
+        let samples = windowedHistory(now: Date())
+        let axis = CompressedTimeAxis(
+            timestamps: samples.map(\.timestamp),
+            width: canvasWidth,
+            gapThreshold: Self.gapThreshold
+        )
+
+        return VStack(alignment: .leading, spacing: 4) {
             header
 
-            // Graph area with Y-axis
             HStack(alignment: .top, spacing: 0) {
                 UsageGraphCanvas(
-                    data: filteredHistory,
+                    data: samples,
                     axis: axis,
                     hoverTarget: $hoverTarget
                 )
                 .frame(height: graphHeight)
                 .background(widthReader)
                 .overlay(alignment: .topLeading) {
-                    hoverTooltip
+                    hoverTooltip(samples: samples)
                 }
                 .overlay(alignment: .bottomLeading) {
                     hoverLegend
                 }
 
-                // Y-axis labels (right)
-                VStack(alignment: .trailing) {
-                    Text("100%").frame(height: 1)
-                    Spacer()
-                    Text("75%")
-                    Spacer()
-                    Text("50%")
-                    Spacer()
-                    Text("25%")
-                    Spacer()
-                    Text("0%").frame(height: 1)
-                }
-                .font(.system(size: 8, design: .monospaced))
-                .foregroundColor(.secondary)
-                .frame(width: yAxisWidth, height: graphHeight)
+                yAxisLabels
             }
 
-            xAxisLabels
+            xAxisLabels(axis: axis)
         }
         .onChange(of: timeRange) { hoverTarget = nil }
+    }
+
+    private var yAxisLabels: some View {
+        VStack(alignment: .trailing) {
+            Text("100%").frame(height: 1)
+            Spacer()
+            Text("75%")
+            Spacer()
+            Text("50%")
+            Spacer()
+            Text("25%")
+            Spacer()
+            Text("0%").frame(height: 1)
+        }
+        .font(.system(size: 8, design: .monospaced))
+        .foregroundColor(.secondary)
+        .frame(width: yAxisWidth, height: graphHeight)
     }
 
     private var widthReader: some View {
@@ -137,10 +139,10 @@ struct UsageGraphView: View {
     // MARK: - Hover Tooltip
 
     @ViewBuilder
-    private var hoverTooltip: some View {
+    private func hoverTooltip(samples: [UsageSnapshot]) -> some View {
         switch hoverTarget {
-        case .point(let index) where index < filteredHistory.count:
-            let snapshot = filteredHistory[index]
+        case .point(let index) where index < samples.count:
+            let snapshot = samples[index]
             HStack(spacing: 6) {
                 Text(formatTimestamp(snapshot.timestamp))
                     .foregroundColor(.secondary)
@@ -196,7 +198,7 @@ struct UsageGraphView: View {
 
     /// Labels sit at fixed positions but report the time actually shown there —
     /// on a compressed axis that is no longer a linear function of the window.
-    private var xAxisLabels: some View {
+    private func xAxisLabels(axis: CompressedTimeAxis) -> some View {
         let tickCount = 3
 
         return HStack {

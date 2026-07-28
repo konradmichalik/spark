@@ -96,9 +96,7 @@ struct UsageGraphCanvas: View {
         keyPath: KeyPath<UsageSnapshot, Double>
     ) {
         for segment in axis.segments {
-            // Clamped so a stale axis can never index out of bounds.
-            let samples = data[segment.sampleRange.clamped(to: data.indices)]
-            let points = samples.map {
+            let points = data[segment.sampleRange].map {
                 CGPoint(x: axis.x(for: $0.timestamp), y: yPosition($0[keyPath: keyPath], in: size))
             }
             guard let first = points.first else { continue }
