@@ -7,8 +7,10 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		066DDDBE8B118B5C470493EC /* LongLivedTokenTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E8E79C7AA7E77C09C0BB883E /* LongLivedTokenTests.swift */; };
 		1F26775BD0D9639ECC720F7A /* SparkApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2CB3DC178234EDAC2F64F1B /* SparkApp.swift */; };
 		2B5482F401D35A0C693B441E /* RingComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 64EF402C9B4F506026E84A90 /* RingComponents.swift */; };
+		2DFFE39FCD4498D0DBD3279B /* SparkCredentialStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BDAE8985F7DDA0E8E96DEBA8 /* SparkCredentialStoreTests.swift */; };
 		2E5E195870ED16B75EBE1CE6 /* StatsModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A2927AA5C9E74B2EF59DD2B /* StatsModels.swift */; };
 		3239D0C1DC2824C4D35FB9B2 /* NotConnectedView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF9C3135A8DDDF4266067319 /* NotConnectedView.swift */; };
 		331ED77C583EC450DC45AEBD /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1AEFF3D8115EF35EAF713CD4 /* Models.swift */; };
@@ -17,18 +19,23 @@
 		51F4BC65749C08B7AAD13F07 /* ModelsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2F43EB7F3BEA4E064CE613B3 /* ModelsTests.swift */; };
 		53B31435CF5F8C0C7F47DA0C /* UsageClientTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9652B0D23609965E54C5FC30 /* UsageClientTests.swift */; };
 		57B71262F7554B9BC72E358C /* CLIVersionClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF78E655D9AB62828B52CF4F /* CLIVersionClient.swift */; };
+		6382007F2324E7AA9D1B6A96 /* CompressedTimeAxisTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1871D46DD2167EDF9A6DD39 /* CompressedTimeAxisTests.swift */; };
+		63D6304360C5841D67A42962 /* CompressedTimeAxis.swift in Sources */ = {isa = PBXBuildFile; fileRef = 08B81E3D9B3750868F8BA40B /* CompressedTimeAxis.swift */; };
 		78B4BB3706C1E08F1CE36470 /* UsageClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1FF02BEED49ADD5E98D7273 /* UsageClient.swift */; };
 		7F0B5FC4C96F4101B071114A /* KeychainService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8E08CC7D6843B465A64E112E /* KeychainService.swift */; };
 		834B133F3196C51149E4392E /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5ED00B7E4898807D3C31E392 /* AppState.swift */; };
 		984973A8CB701A3E370D7E8D /* ThemeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47981BFA0481C7734C2F4910 /* ThemeTests.swift */; };
 		9AD7A7E2C861C0780D94651A /* InstrumentSerif-Italic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 319CDCAD07B3857069C1088A /* InstrumentSerif-Italic.ttf */; };
 		A6C02AC6A1C8F7108CDB2BFB /* InstrumentSerif-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = A7789FDEB6EF4E7A2828F00A /* InstrumentSerif-Regular.ttf */; };
+		B6E1F8A1AFC519B1107F6A0D /* SparkCredentialStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1CA8E658AB6E8FC2B19EE223 /* SparkCredentialStore.swift */; };
+		B75CFA5136BC7E182F668978 /* OAuthRefreshTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2FBDEAE4FB87E182B1656420 /* OAuthRefreshTests.swift */; };
 		C16DF81A0CD6F250F3CC6C30 /* AccountTierTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7C6AEB39CCABA0D4B4A655D /* AccountTierTests.swift */; };
 		CBD90134453C170527EC1ED4 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB2642E8A08B809575073F98 /* SettingsView.swift */; };
 		D2C762209454112BB4B98294 /* ClaudeLogoShape.swift in Sources */ = {isa = PBXBuildFile; fileRef = 66389C7043A5F5E704F64B03 /* ClaudeLogoShape.swift */; };
 		D400C983072E3B87DBC738F8 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8227C3FD71A94C6C7A1FFD95 /* Theme.swift */; };
 		D4224BCA555578280006F2E8 /* MenuBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC917B43DD2A87E3FC1C9E77 /* MenuBarView.swift */; };
 		D90395B93114188C0177A4AC /* UsageRingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 67F7A4612A57906540BFA7B5 /* UsageRingsView.swift */; };
+		F76472EA58342B77C94B41CC /* UsageGraphCanvas.swift in Sources */ = {isa = PBXBuildFile; fileRef = 434290BE7AAE6383B3B558AA /* UsageGraphCanvas.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -42,14 +49,18 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		08B81E3D9B3750868F8BA40B /* CompressedTimeAxis.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompressedTimeAxis.swift; sourceTree = "<group>"; };
 		0BCBA43C6F1D84735E81D1CB /* UsageGraphView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UsageGraphView.swift; sourceTree = "<group>"; };
 		14BFFB055F5D3AFB05491CA4 /* Spark.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Spark.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		1AEFF3D8115EF35EAF713CD4 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
+		1CA8E658AB6E8FC2B19EE223 /* SparkCredentialStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SparkCredentialStore.swift; sourceTree = "<group>"; };
 		2F43EB7F3BEA4E064CE613B3 /* ModelsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelsTests.swift; sourceTree = "<group>"; };
+		2FBDEAE4FB87E182B1656420 /* OAuthRefreshTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OAuthRefreshTests.swift; sourceTree = "<group>"; };
 		319CDCAD07B3857069C1088A /* InstrumentSerif-Italic.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "InstrumentSerif-Italic.ttf"; sourceTree = "<group>"; };
 		32A7C394BCF978609C456945 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		39DD36A41002DD2326D14223 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		3A2927AA5C9E74B2EF59DD2B /* StatsModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatsModels.swift; sourceTree = "<group>"; };
+		434290BE7AAE6383B3B558AA /* UsageGraphCanvas.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UsageGraphCanvas.swift; sourceTree = "<group>"; };
 		47981BFA0481C7734C2F4910 /* ThemeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThemeTests.swift; sourceTree = "<group>"; };
 		5ED00B7E4898807D3C31E392 /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
 		64EF402C9B4F506026E84A90 /* RingComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RingComponents.swift; sourceTree = "<group>"; };
@@ -61,10 +72,13 @@
 		9652B0D23609965E54C5FC30 /* UsageClientTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UsageClientTests.swift; sourceTree = "<group>"; };
 		A2CB3DC178234EDAC2F64F1B /* SparkApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SparkApp.swift; sourceTree = "<group>"; };
 		A7789FDEB6EF4E7A2828F00A /* InstrumentSerif-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "InstrumentSerif-Regular.ttf"; sourceTree = "<group>"; };
+		BDAE8985F7DDA0E8E96DEBA8 /* SparkCredentialStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SparkCredentialStoreTests.swift; sourceTree = "<group>"; };
 		BF78E655D9AB62828B52CF4F /* CLIVersionClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CLIVersionClient.swift; sourceTree = "<group>"; };
+		C1871D46DD2167EDF9A6DD39 /* CompressedTimeAxisTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompressedTimeAxisTests.swift; sourceTree = "<group>"; };
 		C1FF02BEED49ADD5E98D7273 /* UsageClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UsageClient.swift; sourceTree = "<group>"; };
 		D7C6AEB39CCABA0D4B4A655D /* AccountTierTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountTierTests.swift; sourceTree = "<group>"; };
 		E86EED62411024E4E2D49149 /* Spark.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Spark.entitlements; sourceTree = "<group>"; };
+		E8E79C7AA7E77C09C0BB883E /* LongLivedTokenTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LongLivedTokenTests.swift; sourceTree = "<group>"; };
 		FB2642E8A08B809575073F98 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		FC917B43DD2A87E3FC1C9E77 /* MenuBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarView.swift; sourceTree = "<group>"; };
 		FF9C3135A8DDDF4266067319 /* NotConnectedView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotConnectedView.swift; sourceTree = "<group>"; };
@@ -75,10 +89,12 @@
 			isa = PBXGroup;
 			children = (
 				66389C7043A5F5E704F64B03 /* ClaudeLogoShape.swift */,
+				08B81E3D9B3750868F8BA40B /* CompressedTimeAxis.swift */,
 				FC917B43DD2A87E3FC1C9E77 /* MenuBarView.swift */,
 				FF9C3135A8DDDF4266067319 /* NotConnectedView.swift */,
 				64EF402C9B4F506026E84A90 /* RingComponents.swift */,
 				FB2642E8A08B809575073F98 /* SettingsView.swift */,
+				434290BE7AAE6383B3B558AA /* UsageGraphCanvas.swift */,
 				0BCBA43C6F1D84735E81D1CB /* UsageGraphView.swift */,
 				67F7A4612A57906540BFA7B5 /* UsageRingsView.swift */,
 			);
@@ -147,7 +163,11 @@
 			isa = PBXGroup;
 			children = (
 				D7C6AEB39CCABA0D4B4A655D /* AccountTierTests.swift */,
+				C1871D46DD2167EDF9A6DD39 /* CompressedTimeAxisTests.swift */,
+				E8E79C7AA7E77C09C0BB883E /* LongLivedTokenTests.swift */,
 				2F43EB7F3BEA4E064CE613B3 /* ModelsTests.swift */,
+				2FBDEAE4FB87E182B1656420 /* OAuthRefreshTests.swift */,
+				BDAE8985F7DDA0E8E96DEBA8 /* SparkCredentialStoreTests.swift */,
 				47981BFA0481C7734C2F4910 /* ThemeTests.swift */,
 				9652B0D23609965E54C5FC30 /* UsageClientTests.swift */,
 			);
@@ -170,6 +190,7 @@
 			children = (
 				BF78E655D9AB62828B52CF4F /* CLIVersionClient.swift */,
 				8E08CC7D6843B465A64E112E /* KeychainService.swift */,
+				1CA8E658AB6E8FC2B19EE223 /* SparkCredentialStore.swift */,
 				C1FF02BEED49ADD5E98D7273 /* UsageClient.swift */,
 			);
 			path = Services;
@@ -272,6 +293,7 @@
 				834B133F3196C51149E4392E /* AppState.swift in Sources */,
 				57B71262F7554B9BC72E358C /* CLIVersionClient.swift in Sources */,
 				D2C762209454112BB4B98294 /* ClaudeLogoShape.swift in Sources */,
+				63D6304360C5841D67A42962 /* CompressedTimeAxis.swift in Sources */,
 				7F0B5FC4C96F4101B071114A /* KeychainService.swift in Sources */,
 				D4224BCA555578280006F2E8 /* MenuBarView.swift in Sources */,
 				331ED77C583EC450DC45AEBD /* Models.swift in Sources */,
@@ -279,9 +301,11 @@
 				2B5482F401D35A0C693B441E /* RingComponents.swift in Sources */,
 				CBD90134453C170527EC1ED4 /* SettingsView.swift in Sources */,
 				1F26775BD0D9639ECC720F7A /* SparkApp.swift in Sources */,
+				B6E1F8A1AFC519B1107F6A0D /* SparkCredentialStore.swift in Sources */,
 				2E5E195870ED16B75EBE1CE6 /* StatsModels.swift in Sources */,
 				D400C983072E3B87DBC738F8 /* Theme.swift in Sources */,
 				78B4BB3706C1E08F1CE36470 /* UsageClient.swift in Sources */,
+				F76472EA58342B77C94B41CC /* UsageGraphCanvas.swift in Sources */,
 				51EF77F52466A9D14DBA711A /* UsageGraphView.swift in Sources */,
 				D90395B93114188C0177A4AC /* UsageRingsView.swift in Sources */,
 			);
@@ -292,7 +316,11 @@
 			buildActionMask = 2147483647;
 			files = (
 				C16DF81A0CD6F250F3CC6C30 /* AccountTierTests.swift in Sources */,
+				6382007F2324E7AA9D1B6A96 /* CompressedTimeAxisTests.swift in Sources */,
+				066DDDBE8B118B5C470493EC /* LongLivedTokenTests.swift in Sources */,
 				51F4BC65749C08B7AAD13F07 /* ModelsTests.swift in Sources */,
+				B75CFA5136BC7E182F668978 /* OAuthRefreshTests.swift in Sources */,
+				2DFFE39FCD4498D0DBD3279B /* SparkCredentialStoreTests.swift in Sources */,
 				984973A8CB701A3E370D7E8D /* ThemeTests.swift in Sources */,
 				53B31435CF5F8C0C7F47DA0C /* UsageClientTests.swift in Sources */,
 			);
@@ -377,7 +405,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 11;
+				CURRENT_PROJECT_VERSION = 17;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -390,7 +418,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 0.4.1;
+				MARKETING_VERSION = 0.5.5;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -452,7 +480,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 11;
+				CURRENT_PROJECT_VERSION = 17;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
@@ -471,7 +499,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 0.4.1;
+				MARKETING_VERSION = 0.5.5;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
