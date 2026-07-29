@@ -1,7 +1,5 @@
 import SwiftUI
 
-private let claudeOrange = Theme.sparkOrange
-private let weeklyGray = Color(nsColor: NSColor(red: 0.55, green: 0.60, blue: 0.67, alpha: 1))
 private let graphHeight: CGFloat = 80
 private let yAxisWidth: CGFloat = 32
 private let xAxisHeight: CGFloat = 14
@@ -28,135 +26,148 @@ struct UsageGraphView: View {
     let history: [UsageSnapshot]
     @AppStorage("reduceTransparency") private var reduceTransparency: Bool = false
     @State private var timeRange: GraphTimeRange = .sixHours
-    @State private var hoverIndex: Int?
+    @State private var hoverTarget: GraphHoverTarget?
+    @State private var canvasWidth: CGFloat = 0
 
-    private var windowEnd: Date { Date() }
-    private var windowStart: Date { windowEnd.addingTimeInterval(-timeRange.seconds) }
-
-    /// Maximum gap (seconds) before we assume the app was inactive and insert 0% anchors.
+    /// Maximum gap (seconds) before we assume the app was inactive — anything longer
+    /// is collapsed into a narrow band instead of stretching the axis.
     private static let gapThreshold: TimeInterval = 45 * 60
 
-    private var filteredHistory: [UsageSnapshot] {
-        let raw = history.filter { $0.timestamp > windowStart }
-
-        var result: [UsageSnapshot] = []
-        for (index, snap) in raw.enumerated() {
-            let previous = index == 0 ? windowStart : raw[index - 1].timestamp
-            let gap = snap.timestamp.timeIntervalSince(previous)
-
-            if gap > Self.gapThreshold {
-                // Drop to 0% right after the previous point
-                result.append(UsageSnapshot(
-                    timestamp: previous.addingTimeInterval(1),
-                    sessionUtilization: 0,
-                    weeklyUtilization: 0
-                ))
-                // Stay at 0% right before this point
-                result.append(UsageSnapshot(
-                    timestamp: snap.timestamp.addingTimeInterval(-1),
-                    sessionUtilization: 0,
-                    weeklyUtilization: 0
-                ))
-            }
-            result.append(snap)
-        }
-        return result
+    private func windowedHistory(now: Date) -> [UsageSnapshot] {
+        let windowStart = now.addingTimeInterval(-timeRange.seconds)
+        return history.filter { $0.timestamp > windowStart }
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            // Header
-            HStack {
-                HStack(spacing: 4) {
-                    Image(systemName: "clock.arrow.circlepath")
-                        .font(.caption2)
-                        .foregroundColor(claudeOrange)
-                    Text("History")
-                        .font(.caption2)
-                        .foregroundColor(.secondary)
-                }
-                Spacer()
-                HStack(spacing: 2) {
-                    ForEach(GraphTimeRange.allCases, id: \.self) { range in
-                        Button {
-                            timeRange = range
-                        } label: {
-                            Text(range.rawValue)
-                                .font(.system(size: 10, weight: timeRange == range ? .semibold : .regular))
-                                .foregroundColor(timeRange == range ? .primary : .secondary)
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 2)
-                                .background(
-                                    timeRange == range
-                                        ? Color.primary.opacity(0.1)
-                                        : Color.clear
-                                )
-                                .cornerRadius(4)
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-            }
+        // Samples and axis are derived once per pass from a single `now`, so every
+        // consumer sees the same window and the axis' sample ranges always match.
+        let samples = windowedHistory(now: Date())
+        let axis = CompressedTimeAxis(
+            timestamps: samples.map(\.timestamp),
+            width: canvasWidth,
+            gapThreshold: Self.gapThreshold
+        )
 
-            // Graph area with Y-axis
+        return VStack(alignment: .leading, spacing: 4) {
+            header
+
             HStack(alignment: .top, spacing: 0) {
-                graphCanvas
-                    .frame(height: graphHeight)
-                    .overlay(alignment: .topLeading) {
-                        hoverTooltip
-                    }
-                    .overlay(alignment: .bottomLeading) {
-                        hoverLegend
-                    }
-
-                // Y-axis labels (right)
-                VStack(alignment: .trailing) {
-                    Text("100%").frame(height: 1)
-                    Spacer()
-                    Text("75%")
-                    Spacer()
-                    Text("50%")
-                    Spacer()
-                    Text("25%")
-                    Spacer()
-                    Text("0%").frame(height: 1)
+                UsageGraphCanvas(
+                    data: samples,
+                    axis: axis,
+                    hoverTarget: $hoverTarget
+                )
+                .frame(height: graphHeight)
+                .background(widthReader)
+                .overlay(alignment: .topLeading) {
+                    hoverTooltip(samples: samples)
                 }
-                .font(.system(size: 8, design: .monospaced))
-                .foregroundColor(.secondary)
-                .frame(width: yAxisWidth, height: graphHeight)
+                .overlay(alignment: .bottomLeading) {
+                    hoverLegend
+                }
+
+                yAxisLabels
             }
 
-            // X-axis time labels
-            xAxisLabels
+            xAxisLabels(axis: axis)
         }
-        .onChange(of: timeRange) { hoverIndex = nil }
+        .onChange(of: timeRange) { hoverTarget = nil }
+    }
+
+    private var yAxisLabels: some View {
+        VStack(alignment: .trailing) {
+            Text("100%").frame(height: 1)
+            Spacer()
+            Text("75%")
+            Spacer()
+            Text("50%")
+            Spacer()
+            Text("25%")
+            Spacer()
+            Text("0%").frame(height: 1)
+        }
+        .font(.system(size: 8, design: .monospaced))
+        .foregroundColor(.secondary)
+        .frame(width: yAxisWidth, height: graphHeight)
+    }
+
+    private var widthReader: some View {
+        GeometryReader { proxy in
+            Color.clear
+                .onChange(of: proxy.size.width, initial: true) { _, width in
+                    canvasWidth = width
+                }
+        }
+    }
+
+    // MARK: - Header
+
+    private var header: some View {
+        HStack {
+            HStack(spacing: 4) {
+                Image(systemName: "clock.arrow.circlepath")
+                    .font(.caption2)
+                    .foregroundColor(Theme.graphSession)
+                Text("History")
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+            }
+            Spacer()
+            HStack(spacing: 2) {
+                ForEach(GraphTimeRange.allCases, id: \.self) { range in
+                    Button {
+                        timeRange = range
+                    } label: {
+                        Text(range.rawValue)
+                            .font(.system(size: 10, weight: timeRange == range ? .semibold : .regular))
+                            .foregroundColor(timeRange == range ? .primary : .secondary)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(
+                                timeRange == range
+                                    ? Color.primary.opacity(0.1)
+                                    : Color.clear
+                            )
+                            .cornerRadius(4)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
     }
 
     // MARK: - Hover Tooltip
 
     @ViewBuilder
-    private var hoverTooltip: some View {
-        if let idx = hoverIndex, idx < filteredHistory.count {
-            let snap = filteredHistory[idx]
+    private func hoverTooltip(samples: [UsageSnapshot]) -> some View {
+        switch hoverTarget {
+        case .point(let index) where index < samples.count:
+            let snapshot = samples[index]
             HStack(spacing: 6) {
-                Text(formatTimestamp(snap.timestamp))
+                Text(formatTimestamp(snapshot.timestamp))
                     .foregroundColor(.secondary)
                 Spacer()
                 HStack(spacing: 3) {
-                    Circle().fill(claudeOrange).frame(width: 5, height: 5)
-                    Text("\(Int(snap.sessionUtilization))%")
-                        .foregroundColor(claudeOrange)
+                    Circle().fill(Theme.graphSession).frame(width: 5, height: 5)
+                    Text("\(Int(snapshot.sessionUtilization))%")
+                        .foregroundColor(Theme.graphSession)
                 }
                 HStack(spacing: 3) {
-                    Circle().fill(weeklyGray).frame(width: 5, height: 5)
-                    Text("\(Int(snap.weeklyUtilization))%")
-                        .foregroundColor(weeklyGray)
+                    Circle().fill(Theme.graphWeekly).frame(width: 5, height: 5)
+                    Text("\(Int(snapshot.weeklyUtilization))%")
+                        .foregroundColor(Theme.graphWeekly)
                 }
             }
-            .font(.system(.caption2, design: .monospaced))
-            .padding(.horizontal, 4)
-            .padding(.vertical, 2)
-            .adaptiveBackground(reduceTransparency: reduceTransparency)
+            .modifier(TooltipStyle(reduceTransparency: reduceTransparency))
+        case .gap(let band):
+            HStack(spacing: 4) {
+                Image(systemName: "moon.zzz")
+                Text("\(band.duration.shortDuration) · no data")
+            }
+            .foregroundColor(.secondary)
+            .modifier(TooltipStyle(reduceTransparency: reduceTransparency))
+        default:
+            EmptyView()
         }
     }
 
@@ -164,14 +175,14 @@ struct UsageGraphView: View {
 
     @ViewBuilder
     private var hoverLegend: some View {
-        if hoverIndex != nil {
+        if case .point = hoverTarget {
             HStack(spacing: 8) {
                 HStack(spacing: 3) {
-                    Circle().fill(claudeOrange).frame(width: 5, height: 5)
+                    Circle().fill(Theme.graphSession).frame(width: 5, height: 5)
                     Text("Session")
                 }
                 HStack(spacing: 3) {
-                    Circle().fill(weeklyGray).frame(width: 5, height: 5)
+                    Circle().fill(Theme.graphWeekly).frame(width: 5, height: 5)
                     Text("Weekly")
                 }
             }
@@ -183,122 +194,18 @@ struct UsageGraphView: View {
         }
     }
 
-    // MARK: - Graph Canvas
-
-    private var graphCanvas: some View {
-        GeometryReader { geometry in
-            let data = filteredHistory
-            let size = geometry.size
-            let start = windowStart
-            let end = windowEnd
-            let duration = end.timeIntervalSince(start)
-
-            Canvas { context, canvasSize in
-                // Grid lines at 25%, 50%, 75%, 100%
-                for threshold in [25.0, 50.0, 75.0, 100.0] {
-                    let y = canvasSize.height * (1 - threshold / 100)
-                    var gridPath = Path()
-                    gridPath.move(to: CGPoint(x: 0, y: y))
-                    gridPath.addLine(to: CGPoint(x: canvasSize.width, y: y))
-                    let opacity = threshold == 100.0 ? 0.3 : 0.15
-                    context.stroke(gridPath, with: .color(.gray.opacity(opacity)), lineWidth: 0.5)
-                }
-
-                guard data.count >= 2, duration > 0 else {
-                    context.draw(
-                        Text("Not enough data")
-                            .font(.caption2)
-                            .foregroundColor(.secondary),
-                        at: CGPoint(x: canvasSize.width / 2, y: canvasSize.height / 2)
-                    )
-                    return
-                }
-
-                // Time-proportional X position for a snapshot
-                func xPos(_ timestamp: Date) -> CGFloat {
-                    let t = timestamp.timeIntervalSince(start) / duration
-                    return canvasSize.width * CGFloat(t)
-                }
-
-                // Draw time-proportional lines
-                drawTimeLine(
-                    context: context, data: data, size: canvasSize,
-                    color: weeklyGray, start: start, duration: duration,
-                    keyPath: \.weeklyUtilization
-                )
-                drawTimeLine(
-                    context: context, data: data, size: canvasSize,
-                    color: claudeOrange, start: start, duration: duration,
-                    keyPath: \.sessionUtilization
-                )
-
-                // Hover indicator
-                if let idx = hoverIndex, idx < data.count {
-                    let x = xPos(data[idx].timestamp)
-
-                    // Vertical line
-                    var vLine = Path()
-                    vLine.move(to: CGPoint(x: x, y: 0))
-                    vLine.addLine(to: CGPoint(x: x, y: canvasSize.height))
-                    context.stroke(vLine, with: .color(.gray.opacity(0.4)), style: StrokeStyle(lineWidth: 0.5, dash: [3, 2]))
-
-                    // Dots
-                    let sessionY = canvasSize.height * (1 - min(data[idx].sessionUtilization, 100) / 100)
-                    let weeklyY = canvasSize.height * (1 - min(data[idx].weeklyUtilization, 100) / 100)
-                    let dotSize: CGFloat = 5
-
-                    context.fill(
-                        Path(ellipseIn: CGRect(x: x - dotSize / 2, y: sessionY - dotSize / 2, width: dotSize, height: dotSize)),
-                        with: .color(claudeOrange)
-                    )
-                    context.fill(
-                        Path(ellipseIn: CGRect(x: x - dotSize / 2, y: weeklyY - dotSize / 2, width: dotSize, height: dotSize)),
-                        with: .color(weeklyGray)
-                    )
-                }
-            }
-            .onContinuousHover { phase in
-                switch phase {
-                case .active(let location):
-                    guard data.count >= 2, duration > 0 else {
-                        hoverIndex = nil
-                        return
-                    }
-                    // Find nearest data point to mouse X
-                    let hoverTime = start.addingTimeInterval(duration * Double(location.x / size.width))
-                    var bestIdx = 0
-                    var bestDist = Double.infinity
-                    for (i, snap) in data.enumerated() {
-                        let dist = abs(snap.timestamp.timeIntervalSince(hoverTime))
-                        if dist < bestDist {
-                            bestDist = dist
-                            bestIdx = i
-                        }
-                    }
-                    hoverIndex = bestIdx
-                case .ended:
-                    hoverIndex = nil
-                }
-            }
-        }
-    }
-
     // MARK: - X-Axis
 
-    private var xAxisLabels: some View {
+    /// Labels sit at fixed positions but report the time actually shown there —
+    /// on a compressed axis that is no longer a linear function of the window.
+    private func xAxisLabels(axis: CompressedTimeAxis) -> some View {
         let tickCount = 3
-        let start = windowStart
-        let end = windowEnd
 
         return HStack {
-            ForEach(0..<tickCount, id: \.self) { i in
-                if i > 0 { Spacer() }
-                let fraction = Double(i) / Double(tickCount - 1)
-                let date = Date(
-                    timeIntervalSince1970: start.timeIntervalSince1970
-                        + fraction * end.timeIntervalSince(start)
-                )
-                Text(formatAxisTime(date))
+            ForEach(0..<tickCount, id: \.self) { index in
+                if index > 0 { Spacer() }
+                let fraction = CGFloat(index) / CGFloat(tickCount - 1)
+                Text(axis.date(atX: canvasWidth * fraction).map(formatAxisTime) ?? "")
                     .font(.system(size: 8, design: .monospaced))
                     .foregroundColor(.secondary)
             }
@@ -307,53 +214,33 @@ struct UsageGraphView: View {
         .frame(height: xAxisHeight)
     }
 
-    // MARK: - Drawing
-
-    // swiftlint:disable:next function_parameter_count
-    private func drawTimeLine(
-        context: GraphicsContext,
-        data: [UsageSnapshot],
-        size: CGSize,
-        color: Color,
-        start: Date,
-        duration: TimeInterval,
-        keyPath: KeyPath<UsageSnapshot, Double>
-    ) {
-        guard data.count >= 2, duration > 0 else { return }
-
-        var path = Path()
-        for (index, snap) in data.enumerated() {
-            let t = snap.timestamp.timeIntervalSince(start) / duration
-            let x = size.width * CGFloat(t)
-            let y = size.height * (1 - min(snap[keyPath: keyPath], 100) / 100)
-            if index == 0 {
-                path.move(to: CGPoint(x: x, y: y))
-            } else {
-                path.addLine(to: CGPoint(x: x, y: y))
-            }
-        }
-        context.stroke(path, with: .color(color), lineWidth: 1.5)
-    }
-
     // MARK: - Formatting
+
+    private var usesDateInLabels: Bool {
+        timeRange == .sevenDays || timeRange == .thirtyDays
+    }
 
     private func formatTimestamp(_ date: Date) -> String {
         let formatter = DateFormatter()
-        if timeRange == .sevenDays || timeRange == .thirtyDays {
-            formatter.dateFormat = "dd.MM HH:mm"
-        } else {
-            formatter.dateFormat = "HH:mm"
-        }
+        formatter.dateFormat = usesDateInLabels ? "dd.MM HH:mm" : "HH:mm"
         return formatter.string(from: date)
     }
 
     private func formatAxisTime(_ date: Date) -> String {
         let formatter = DateFormatter()
-        if timeRange == .sevenDays || timeRange == .thirtyDays {
-            formatter.dateFormat = "dd.MM"
-        } else {
-            formatter.dateFormat = "HH:mm"
-        }
+        formatter.dateFormat = usesDateInLabels ? "dd.MM" : "HH:mm"
         return formatter.string(from: date)
+    }
+}
+
+private struct TooltipStyle: ViewModifier {
+    let reduceTransparency: Bool
+
+    func body(content: Content) -> some View {
+        content
+            .font(.system(.caption2, design: .monospaced))
+            .padding(.horizontal, 4)
+            .padding(.vertical, 2)
+            .adaptiveBackground(reduceTransparency: reduceTransparency)
     }
 }

@@ -9,6 +9,10 @@ enum Theme {
     static let sparkOrange = Color(nsColor: sparkOrangeNS)
     static let sparkOrangeNS = NSColor(red: 0.85, green: 0.47, blue: 0.34, alpha: 1)
 
+    /// History graph lines
+    static let graphSession = sparkOrange
+    static let graphWeekly = Color(nsColor: NSColor(red: 0.55, green: 0.60, blue: 0.67, alpha: 1))
+
     /// Returns a distinct color per ring, based on utilization thresholds.
     /// ringIndex: 0 = outermost (Session), 1 = middle (Weekly), 2 = innermost (Sonnet)
     static func ringColor(
