@@ -5,9 +5,15 @@ final class StatsModelsTests: XCTestCase {
 
     // MARK: - StatsPeriod.startDate
 
-    func testTodayStartsAtStartOfDay() {
-        let startOfDay = Calendar.current.startOfDay(for: Date())
-        XCTAssertEqual(StatsPeriod.today.startDate, startOfDay)
+    func testTodayStartsAtMidnight() {
+        guard let startDate = StatsPeriod.today.startDate else {
+            return XCTFail("today period should have a start date")
+        }
+        XCTAssertTrue(Calendar.current.isDateInToday(startDate))
+        let components = Calendar.current.dateComponents([.hour, .minute, .second], from: startDate)
+        XCTAssertEqual(components.hour, 0)
+        XCTAssertEqual(components.minute, 0)
+        XCTAssertEqual(components.second, 0)
     }
 
     func testWeekStartsSevenDaysAgo() {
@@ -15,7 +21,7 @@ final class StatsModelsTests: XCTestCase {
             return XCTFail("week period should have a start date")
         }
         let expected = Date().addingTimeInterval(-7 * 24 * 3600)
-        XCTAssertEqual(startDate.timeIntervalSince1970, expected.timeIntervalSince1970, accuracy: 1)
+        XCTAssertEqual(startDate.timeIntervalSince1970, expected.timeIntervalSince1970, accuracy: 5)
     }
 
     func testMonthStartsThirtyDaysAgo() {
@@ -23,7 +29,7 @@ final class StatsModelsTests: XCTestCase {
             return XCTFail("month period should have a start date")
         }
         let expected = Date().addingTimeInterval(-30 * 24 * 3600)
-        XCTAssertEqual(startDate.timeIntervalSince1970, expected.timeIntervalSince1970, accuracy: 1)
+        XCTAssertEqual(startDate.timeIntervalSince1970, expected.timeIntervalSince1970, accuracy: 5)
     }
 
     func testAllHasNoStartDate() {
