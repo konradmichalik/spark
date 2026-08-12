@@ -285,3 +285,39 @@ struct StatusComponent: Codable, Sendable {
     let name: String
     let status: String
 }
+
+// MARK: - Claude Code Install Method
+
+/// How the Claude Code CLI was installed, as recorded by the CLI itself in
+/// `~/.claude.json`'s `installMethod` field. `native`, `local`, `standalone`, `unknown`,
+/// and any unrecognized/missing value all collapse into `.other` — they self-update via
+/// `claude update` and have no distinct remediation command to offer.
+enum ClaudeCodeInstallMethod: String, Sendable {
+    case npmGlobal
+    case homebrew
+    case other
+
+    init(rawConfigValue: String?) {
+        switch rawConfigValue {
+        case "npm-global": self = .npmGlobal
+        case "homebrew": self = .homebrew
+        default: self = .other
+        }
+    }
+
+    var displayLabel: String {
+        switch self {
+        case .npmGlobal: "npm"
+        case .homebrew: "Homebrew"
+        case .other: "native"
+        }
+    }
+
+    var updateCommand: String {
+        switch self {
+        case .npmGlobal: "npm update -g @anthropic-ai/claude-code"
+        case .homebrew: "brew upgrade --cask claude-code"
+        case .other: "claude update"
+        }
+    }
+}

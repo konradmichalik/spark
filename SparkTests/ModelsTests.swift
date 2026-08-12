@@ -385,4 +385,35 @@ final class ModelsTests: XCTestCase {
         XCTAssertEqual(AuthMethod.claudeCode.rawValue, "Claude Code")
         XCTAssertEqual(AuthMethod.oauth.rawValue, "OAuth (Browser)")
     }
+
+    // MARK: - ClaudeCodeInstallMethod
+
+    func testInstallMethodMapsNpmGlobal() {
+        XCTAssertEqual(ClaudeCodeInstallMethod(rawConfigValue: "npm-global"), .npmGlobal)
+    }
+
+    func testInstallMethodMapsHomebrew() {
+        XCTAssertEqual(ClaudeCodeInstallMethod(rawConfigValue: "homebrew"), .homebrew)
+    }
+
+    func testInstallMethodCollapsesOthersToOther() {
+        XCTAssertEqual(ClaudeCodeInstallMethod(rawConfigValue: "native"), .other)
+        XCTAssertEqual(ClaudeCodeInstallMethod(rawConfigValue: "local"), .other)
+        XCTAssertEqual(ClaudeCodeInstallMethod(rawConfigValue: "standalone"), .other)
+        XCTAssertEqual(ClaudeCodeInstallMethod(rawConfigValue: "unknown"), .other)
+        XCTAssertEqual(ClaudeCodeInstallMethod(rawConfigValue: "something-future-value"), .other)
+        XCTAssertEqual(ClaudeCodeInstallMethod(rawConfigValue: nil), .other)
+    }
+
+    func testInstallMethodDisplayLabels() {
+        XCTAssertEqual(ClaudeCodeInstallMethod.npmGlobal.displayLabel, "npm")
+        XCTAssertEqual(ClaudeCodeInstallMethod.homebrew.displayLabel, "Homebrew")
+        XCTAssertEqual(ClaudeCodeInstallMethod.other.displayLabel, "native")
+    }
+
+    func testInstallMethodUpdateCommands() {
+        XCTAssertEqual(ClaudeCodeInstallMethod.npmGlobal.updateCommand, "npm update -g @anthropic-ai/claude-code")
+        XCTAssertEqual(ClaudeCodeInstallMethod.homebrew.updateCommand, "brew upgrade --cask claude-code")
+        XCTAssertEqual(ClaudeCodeInstallMethod.other.updateCommand, "claude update")
+    }
 }
