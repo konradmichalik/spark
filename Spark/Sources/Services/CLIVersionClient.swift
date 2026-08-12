@@ -32,7 +32,6 @@ enum CLIVersionClient {
         let version: String
     }
 
-    // swiftlint:disable:next force_unwrapping
     private static let brewCaskURL = URL(string: "https://formulae.brew.sh/api/cask/claude-code.json")!
 
     static func fetchLatestVersion(for method: ClaudeCodeInstallMethod) async throws -> String {
