@@ -179,9 +179,14 @@ struct MenuBarView: View {
 
             Divider()
 
-            // Today's Stats
+            // Stats
             if state.showStats {
-                TodayStatsRow(liveStats: state.liveStats)
+                StatsRow(
+                    liveStats: state.liveStats,
+                    period: state.statsPeriod,
+                    isLoading: state.isLoadingStats,
+                    onSelectPeriod: state.setStatsPeriod
+                )
             }
 
             // Mini Graph
@@ -231,29 +236,62 @@ struct MenuBarView: View {
     }
 }
 
-// MARK: - Today Stats Row
+// MARK: - Stats Row
 
-struct TodayStatsRow: View {
-    let liveStats: LiveDayStats?
+struct StatsRow: View {
+    let liveStats: LiveStats?
+    let period: StatsPeriod
+    let isLoading: Bool
+    let onSelectPeriod: (StatsPeriod) -> Void
 
     var body: some View {
-        if let live = liveStats {
+        if liveStats != nil || isLoading {
             VStack(alignment: .leading, spacing: 4) {
-                HStack(spacing: 4) {
-                    Image(systemName: "number.square")
-                        .font(.caption2)
-                        .foregroundColor(claudeOrange)
-                    Text("Stats (today)")
-                        .font(.caption2)
-                        .foregroundColor(.secondary)
-                }
+                header
 
-                StatsLine(label: "Messages", value: "\(live.messageCount)")
-                StatsLine(label: "Sessions", value: "\(live.sessionCount)")
-                StatsLine(label: "Tokens", value: live.formattedTokens)
+                if let live = liveStats {
+                    StatsLine(label: "Messages", value: "\(live.messageCount)")
+                    StatsLine(label: "Sessions", value: "\(live.sessionCount)")
+                    StatsLine(label: "Tokens", value: live.formattedTokens)
+                }
             }
+            .opacity(isLoading ? 0.5 : 1)
 
             Divider()
+        }
+    }
+
+    private var header: some View {
+        HStack {
+            HStack(spacing: 4) {
+                Image(systemName: "number.square")
+                    .font(.caption2)
+                    .foregroundColor(claudeOrange)
+                Text("Stats")
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+            }
+            Spacer()
+            HStack(spacing: 2) {
+                ForEach(StatsPeriod.allCases, id: \.self) { candidate in
+                    Button {
+                        onSelectPeriod(candidate)
+                    } label: {
+                        Text(candidate.rawValue)
+                            .font(.system(size: 10, weight: period == candidate ? .semibold : .regular))
+                            .foregroundColor(period == candidate ? .primary : .secondary)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(
+                                period == candidate
+                                    ? Color.primary.opacity(0.1)
+                                    : Color.clear
+                            )
+                            .cornerRadius(4)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
         }
     }
 }
