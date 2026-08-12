@@ -26,6 +26,47 @@ enum CLIVersionClient {
         return package.version
     }
 
+    // MARK: - Homebrew Cask API
+
+    struct BrewCask: Decodable {
+        let version: String
+    }
+
+    // swiftlint:disable:next force_unwrapping
+    private static let brewCaskURL = URL(string: "https://formulae.brew.sh/api/cask/claude-code.json")!
+
+    static func fetchLatestVersion(for method: ClaudeCodeInstallMethod) async throws -> String {
+        switch method {
+        case .homebrew:
+            var request = URLRequest(url: brewCaskURL)
+            request.setValue("application/json", forHTTPHeaderField: "Accept")
+            request.timeoutInterval = 10
+
+            let (data, response) = try await URLSession.shared.data(for: request)
+            guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
+                throw URLError(.badServerResponse)
+            }
+            return try JSONDecoder().decode(BrewCask.self, from: data).version
+        case .npmGlobal, .other:
+            return try await fetchLatestVersion()
+        }
+    }
+
+    // MARK: - Install Method Detection
+
+    static func detectInstallMethod() async -> ClaudeCodeInstallMethod {
+        await Task.detached {
+            let url = FileManager.default.homeDirectoryForCurrentUser
+                .appendingPathComponent(".claude.json")
+            guard let data = try? Data(contentsOf: url),
+                  let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                  let raw = json["installMethod"] as? String else {
+                return ClaudeCodeInstallMethod(rawConfigValue: nil)
+            }
+            return ClaudeCodeInstallMethod(rawConfigValue: raw)
+        }.value
+    }
+
     // MARK: - Local CLI
 
     static func readLocalVersion() async -> String? {
