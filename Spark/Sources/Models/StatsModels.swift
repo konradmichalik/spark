@@ -82,7 +82,11 @@ enum LiveStatsParser {
         let (messageCount, sessionCount, sessionIds) = parseHistoryCounts(url: historyURL, period: period)
 
         // 2. Parse project JSONLs for token counts
-        let (inputTokens, outputTokens) = parseTokenCounts(claudeDir: claudeDir, sessionIds: sessionIds)
+        let (inputTokens, outputTokens) = parseTokenCounts(
+            claudeDir: claudeDir,
+            sessionIds: sessionIds,
+            cutoff: period.startDate
+        )
 
         guard messageCount > 0 else { return nil }
 
@@ -126,7 +130,11 @@ enum LiveStatsParser {
         return (messageCount, sessionIds.count, sessionIds)
     }
 
-    private static func parseTokenCounts(claudeDir: URL, sessionIds: Set<String>) -> (input: Int, output: Int) {
+    private static func parseTokenCounts(
+        claudeDir: URL,
+        sessionIds: Set<String>,
+        cutoff: Date?
+    ) -> (input: Int, output: Int) {
         let projectsDir = claudeDir.appendingPathComponent("projects")
         guard let projectDirs = try? FileManager.default.contentsOfDirectory(
             at: projectsDir, includingPropertiesForKeys: nil
@@ -151,7 +159,8 @@ enum LiveStatsParser {
                           let lineData = line.data(using: .utf8),
                           let entry = try? JSONDecoder().decode(SessionEntry.self, from: lineData),
                           entry.message?.role == "assistant",
-                          let usage = entry.message?.usage else {
+                          let usage = entry.message?.usage,
+                          isOnOrAfter(cutoff: cutoff, timestamp: entry.timestamp) else {
                         continue
                     }
                     totalInput += usage.inputTokens ?? 0
@@ -161,5 +170,22 @@ enum LiveStatsParser {
         }
 
         return (totalInput, totalOutput)
+    }
+
+    /// Whether a session message falls on or after `cutoff`. Messages with no cutoff (`.all`
+    /// period) or an unparsable timestamp are kept — an unparsable timestamp shouldn't silently
+    /// drop tokens that would otherwise count toward the total.
+    private static func isOnOrAfter(cutoff: Date?, timestamp: String?) -> Bool {
+        guard let cutoff else { return true }
+        guard let timestamp, let date = parseISO8601(timestamp) else { return true }
+        return date >= cutoff
+    }
+
+    private static func parseISO8601(_ string: String) -> Date? {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        if let date = formatter.date(from: string) { return date }
+        formatter.formatOptions = [.withInternetDateTime]
+        return formatter.date(from: string)
     }
 }
