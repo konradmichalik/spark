@@ -22,6 +22,7 @@ final class AppState: ObservableObject {
     @Published var currentRefreshInterval: TimeInterval = 300
     @Published var latestCLIVersion: String?
     @Published var localCLIVersion: String?
+    @Published var claudeCodeInstallMethod: ClaudeCodeInstallMethod = .other
 
     // Status
     @Published var status: ClaudeServiceStatus = .unknown
@@ -83,10 +84,12 @@ final class AppState: ObservableObject {
     private var hasSentSessionResetNotification = true
     private var hasSentWeeklyResetNotification = true
     @AppStorage("lastNotifiedCLIVersion") private var lastNotifiedCLIVersion: String = ""
+    @AppStorage("claudeCodeInstallMethod") private var storedInstallMethodRaw: String = ClaudeCodeInstallMethod.other.rawValue
 
     // MARK: - Lifecycle
 
     func onLaunch() {
+        claudeCodeInstallMethod = ClaudeCodeInstallMethod(rawValue: storedInstallMethodRaw) ?? .other
         loadHistory()
         loadStats()
         tryAutoLogin()
@@ -488,16 +491,20 @@ final class AppState: ObservableObject {
 
     private func checkForCLIUpdate() async {
         do {
+            let method = await CLIVersionClient.detectInstallMethod()
+            claudeCodeInstallMethod = method
+            storedInstallMethodRaw = method.rawValue
+
             async let remoteResult = Task.detached {
-                try await CLIVersionClient.fetchLatestVersion()
+                try await CLIVersionClient.fetchLatestVersion(for: method)
             }.value
             async let localResult = CLIVersionClient.readLocalVersion()
 
-            let remote = try await remoteResult
             let local = await localResult
-
-            latestCLIVersion = remote
             localCLIVersion = local
+
+            let remote = try await remoteResult
+            latestCLIVersion = remote
 
             guard notificationsEnabled, notifyOnCLIUpdate else { return }
             guard let local, CLIVersionClient.isNewer(remote, than: local) else { return }
@@ -507,7 +514,7 @@ final class AppState: ObservableObject {
             sendNotification(
                 id: "cli-update-\(remote)",
                 title: "Claude Code \(remote) available",
-                body: "You're running \(local). Run `claude update` or `npm update -g @anthropic-ai/claude-code` to update."
+                body: "You're running \(local). Run `\(method.updateCommand)` to update."
             )
         } catch {
             // Silently ignore — non-critical check

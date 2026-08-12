@@ -1037,15 +1037,24 @@ struct AboutTab: View {
                 .foregroundColor(.secondary)
 
             if let local = state.localCLIVersion {
-                HStack(spacing: 4) {
-                    Text("Claude Code \(local)")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                    if let latest = state.latestCLIVersion,
-                       CLIVersionClient.isNewer(latest, than: local) {
-                        Text("\u{2192} \(latest)")
+                let isOutdated = state.latestCLIVersion.map { CLIVersionClient.isNewer($0, than: local) } ?? false
+
+                VStack(spacing: 2) {
+                    HStack(spacing: 4) {
+                        Text("Claude Code \(local) \u{00B7} via \(state.claudeCodeInstallMethod.displayLabel)")
                             .font(.caption)
-                            .foregroundColor(.orange)
+                            .foregroundColor(.secondary)
+                        if isOutdated, let latest = state.latestCLIVersion {
+                            Text("\u{2192} \(latest)")
+                                .font(.caption)
+                                .foregroundColor(.orange)
+                        }
+                    }
+                    if isOutdated {
+                        Text(state.claudeCodeInstallMethod.updateCommand)
+                            .font(.system(.caption2, design: .monospaced))
+                            .foregroundColor(.secondary)
+                            .textSelection(.enabled)
                     }
                 }
             }
