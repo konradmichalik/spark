@@ -58,7 +58,9 @@ final class AppState: ObservableObject {
 
     // MARK: - Stats
 
-    @Published var liveStats: LiveDayStats?
+    @Published var liveStats: LiveStats?
+    @Published var statsPeriod: StatsPeriod = .today
+    @Published var isLoadingStats: Bool = false
 
     // MARK: - OAuth Token (Keychain)
 
@@ -684,10 +686,20 @@ final class AppState: ObservableObject {
         refreshLiveStats()
     }
 
+    func setStatsPeriod(_ period: StatsPeriod) {
+        statsPeriod = period
+        refreshLiveStats()
+    }
+
     func refreshLiveStats() {
+        let period = statsPeriod
+        isLoadingStats = true
         Task.detached {
-            let stats = LiveStatsParser.parseTodayStats()
-            await MainActor.run { self.liveStats = stats }
+            let stats = LiveStatsParser.parseStats(period: period)
+            await MainActor.run {
+                self.liveStats = stats
+                self.isLoadingStats = false
+            }
         }
     }
 
