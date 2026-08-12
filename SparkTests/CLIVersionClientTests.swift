@@ -13,6 +13,16 @@ final class CLIVersionClientTests: XCTestCase {
         XCTAssertEqual(cask.version, "2.1.221")
     }
 
+    // MARK: - normalizedBrewVersion
+
+    func testNormalizedBrewVersionStripsBuildSuffix() {
+        XCTAssertEqual(CLIVersionClient.normalizedBrewVersion("2.1.221,1234"), "2.1.221")
+    }
+
+    func testNormalizedBrewVersionPassesThroughPlainVersion() {
+        XCTAssertEqual(CLIVersionClient.normalizedBrewVersion("2.1.221"), "2.1.221")
+    }
+
     // MARK: - isNewer (pre-existing behavior, not previously covered)
 
     func testIsNewerDetectsGreaterVersion() {

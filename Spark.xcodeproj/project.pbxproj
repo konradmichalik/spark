@@ -36,6 +36,7 @@
 		D4224BCA555578280006F2E8 /* MenuBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC917B43DD2A87E3FC1C9E77 /* MenuBarView.swift */; };
 		D90395B93114188C0177A4AC /* UsageRingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 67F7A4612A57906540BFA7B5 /* UsageRingsView.swift */; };
 		F76472EA58342B77C94B41CC /* UsageGraphCanvas.swift in Sources */ = {isa = PBXBuildFile; fileRef = 434290BE7AAE6383B3B558AA /* UsageGraphCanvas.swift */; };
+		FFAA0E7296265258960B3DBC /* CLIVersionClientTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C4DFC70AE73D06B9435C0CB /* CLIVersionClientTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -62,6 +63,7 @@
 		3A2927AA5C9E74B2EF59DD2B /* StatsModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatsModels.swift; sourceTree = "<group>"; };
 		434290BE7AAE6383B3B558AA /* UsageGraphCanvas.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UsageGraphCanvas.swift; sourceTree = "<group>"; };
 		47981BFA0481C7734C2F4910 /* ThemeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThemeTests.swift; sourceTree = "<group>"; };
+		4C4DFC70AE73D06B9435C0CB /* CLIVersionClientTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CLIVersionClientTests.swift; sourceTree = "<group>"; };
 		5ED00B7E4898807D3C31E392 /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
 		64EF402C9B4F506026E84A90 /* RingComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RingComponents.swift; sourceTree = "<group>"; };
 		66389C7043A5F5E704F64B03 /* ClaudeLogoShape.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudeLogoShape.swift; sourceTree = "<group>"; };
@@ -163,6 +165,7 @@
 			isa = PBXGroup;
 			children = (
 				D7C6AEB39CCABA0D4B4A655D /* AccountTierTests.swift */,
+				4C4DFC70AE73D06B9435C0CB /* CLIVersionClientTests.swift */,
 				C1871D46DD2167EDF9A6DD39 /* CompressedTimeAxisTests.swift */,
 				E8E79C7AA7E77C09C0BB883E /* LongLivedTokenTests.swift */,
 				2F43EB7F3BEA4E064CE613B3 /* ModelsTests.swift */,
@@ -316,6 +319,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				C16DF81A0CD6F250F3CC6C30 /* AccountTierTests.swift in Sources */,
+				FFAA0E7296265258960B3DBC /* CLIVersionClientTests.swift in Sources */,
 				6382007F2324E7AA9D1B6A96 /* CompressedTimeAxisTests.swift in Sources */,
 				066DDDBE8B118B5C470493EC /* LongLivedTokenTests.swift in Sources */,
 				51F4BC65749C08B7AAD13F07 /* ModelsTests.swift in Sources */,

@@ -46,10 +46,18 @@ enum CLIVersionClient {
             guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
                 throw URLError(.badServerResponse)
             }
-            return try JSONDecoder().decode(BrewCask.self, from: data).version
+            let cask = try JSONDecoder().decode(BrewCask.self, from: data)
+            return normalizedBrewVersion(cask.version)
         case .npmGlobal, .other:
             return try await fetchLatestVersion()
         }
+    }
+
+    /// Homebrew cask `version` fields sometimes use a `"<version>,<build>"` convention
+    /// for casks with a secondary version component. Strip anything from the comma
+    /// onward so `isNewer`'s numeric split doesn't silently corrupt on the build suffix.
+    static func normalizedBrewVersion(_ raw: String) -> String {
+        String(raw.split(separator: ",", maxSplits: 1).first ?? Substring(raw))
     }
 
     // MARK: - Install Method Detection

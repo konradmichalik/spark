@@ -500,11 +500,11 @@ final class AppState: ObservableObject {
             }.value
             async let localResult = CLIVersionClient.readLocalVersion()
 
-            let remote = try await remoteResult
             let local = await localResult
-
-            latestCLIVersion = remote
             localCLIVersion = local
+
+            let remote = try await remoteResult
+            latestCLIVersion = remote
 
             guard notificationsEnabled, notifyOnCLIUpdate else { return }
             guard let local, CLIVersionClient.isNewer(remote, than: local) else { return }
