@@ -50,12 +50,12 @@ struct LiveStats: Sendable {
 enum LiveStatsParser {
     private struct HistoryEntry: Decodable {
         let timestamp: Double
-        let sessionId: String?
     }
 
     private struct SessionEntry: Decodable {
         let message: SessionMessage?
         let timestamp: String?
+        let sessionId: String?
     }
 
     private struct SessionMessage: Decodable {
@@ -76,43 +76,38 @@ enum LiveStatsParser {
     static func parseStats(period: StatsPeriod) -> LiveStats? {
         let claudeDir = FileManager.default.homeDirectoryForCurrentUser
             .appendingPathComponent(".claude")
+        return parseStats(period: period, claudeDir: claudeDir)
+    }
 
-        // 1. Parse history.jsonl for message/session counts
+    /// Exposed with an explicit `claudeDir` so tests can point it at a fixture tree instead of
+    /// the real `~/.claude`.
+    static func parseStats(period: StatsPeriod, claudeDir: URL) -> LiveStats? {
+        // history.jsonl only ever backs the user-message count — it records interactive
+        // prompts, not the sessions or tokens Claude Code actually spent (see #46).
         let historyURL = claudeDir.appendingPathComponent("history.jsonl")
-        let (messageCount, sessionCount, sessionIds) = parseHistoryCounts(url: historyURL, period: period)
+        let messageCount = parseMessageCount(url: historyURL, period: period)
 
-        // 2. Parse project JSONLs for token counts
-        let (inputTokens, outputTokens) = parseTokenCounts(
-            claudeDir: claudeDir,
-            sessionIds: sessionIds,
-            cutoff: period.startDate
-        )
+        let transcripts = parseTranscripts(claudeDir: claudeDir, cutoff: period.startDate)
 
-        guard messageCount > 0 else { return nil }
+        guard messageCount > 0 || !transcripts.sessionIds.isEmpty else { return nil }
 
         return LiveStats(
             period: period,
             messageCount: messageCount,
-            sessionCount: sessionCount,
-            inputTokens: inputTokens,
-            outputTokens: outputTokens
+            sessionCount: transcripts.sessionIds.count,
+            inputTokens: transcripts.input,
+            outputTokens: transcripts.output
         )
     }
 
-    // swiftlint:disable large_tuple
-    private static func parseHistoryCounts(
-        url: URL,
-        period: StatsPeriod
-    ) -> (messages: Int, sessions: Int, sessionIds: Set<String>) {
-        // swiftlint:enable large_tuple
+    private static func parseMessageCount(url: URL, period: StatsPeriod) -> Int {
         guard let data = try? Data(contentsOf: url),
               let content = String(data: data, encoding: .utf8) else {
-            return (0, 0, [])
+            return 0
         }
 
         let startTimestamp = (period.startDate?.timeIntervalSince1970 ?? 0) * 1000
         var messageCount = 0
-        var sessionIds: Set<String> = []
 
         for line in content.components(separatedBy: "\n").reversed() {
             guard !line.isEmpty,
@@ -122,54 +117,71 @@ enum LiveStatsParser {
             }
             if entry.timestamp < startTimestamp { break }
             messageCount += 1
-            if let sid = entry.sessionId {
-                sessionIds.insert(sid)
-            }
         }
 
-        return (messageCount, sessionIds.count, sessionIds)
+        return messageCount
     }
 
-    private static func parseTokenCounts(
+    /// Derives the session a transcript file belongs to, from its path relative to `projects/`.
+    /// A session file's stem IS the session ID (`<project>/<uuid>.jsonl`). A subagent file's
+    /// stem is an agent identifier, not a session (`<project>/<uuid>/subagents/agent-*.jsonl`) —
+    /// its session is the directory two levels up. Returns `nil` for any other shape, so callers
+    /// can fall back to the entry's own `sessionId` field.
+    static func sessionId(forTranscriptAt url: URL, projectsDir: URL) -> String? {
+        let relative = Array(url.pathComponents.dropFirst(projectsDir.pathComponents.count))
+        switch relative.count {
+        case 2 where relative[1].hasSuffix(".jsonl"):
+            return String(relative[1].dropLast(".jsonl".count))
+        case 4 where relative[2] == "subagents":
+            return relative[1]
+        default:
+            return nil
+        }
+    }
+
+    // swiftlint:disable large_tuple
+    private static func parseTranscripts(
         claudeDir: URL,
-        sessionIds: Set<String>,
         cutoff: Date?
-    ) -> (input: Int, output: Int) {
+    ) -> (sessionIds: Set<String>, input: Int, output: Int) {
+        // swiftlint:enable large_tuple
         let projectsDir = claudeDir.appendingPathComponent("projects")
-        guard let projectDirs = try? FileManager.default.contentsOfDirectory(
-            at: projectsDir, includingPropertiesForKeys: nil
+        guard let enumerator = FileManager.default.enumerator(
+            at: projectsDir,
+            includingPropertiesForKeys: nil,
+            options: [.skipsHiddenFiles]
         ) else {
-            return (0, 0)
+            return ([], 0, 0)
         }
 
+        var sessionIds: Set<String> = []
         var totalInput = 0
         var totalOutput = 0
 
-        for dir in projectDirs {
-            for sessionId in sessionIds {
-                let jsonlURL = dir.appendingPathComponent("\(sessionId).jsonl")
-                guard FileManager.default.fileExists(atPath: jsonlURL.path),
-                      let data = try? Data(contentsOf: jsonlURL),
-                      let content = String(data: data, encoding: .utf8) else {
+        for case let fileURL as URL in enumerator where fileURL.pathExtension == "jsonl" {
+            guard let data = try? Data(contentsOf: fileURL),
+                  let content = String(data: data, encoding: .utf8) else {
+                continue
+            }
+            let pathSessionId = sessionId(forTranscriptAt: fileURL, projectsDir: projectsDir)
+
+            for line in content.components(separatedBy: "\n") {
+                guard !line.isEmpty,
+                      let lineData = line.data(using: .utf8),
+                      let entry = try? JSONDecoder().decode(SessionEntry.self, from: lineData),
+                      entry.message?.role == "assistant",
+                      let usage = entry.message?.usage,
+                      isOnOrAfter(cutoff: cutoff, timestamp: entry.timestamp),
+                      let resolvedSessionId = pathSessionId ?? entry.sessionId else {
                     continue
                 }
-
-                for line in content.components(separatedBy: "\n") {
-                    guard !line.isEmpty,
-                          let lineData = line.data(using: .utf8),
-                          let entry = try? JSONDecoder().decode(SessionEntry.self, from: lineData),
-                          entry.message?.role == "assistant",
-                          let usage = entry.message?.usage,
-                          isOnOrAfter(cutoff: cutoff, timestamp: entry.timestamp) else {
-                        continue
-                    }
-                    totalInput += usage.inputTokens ?? 0
-                    totalOutput += usage.outputTokens ?? 0
-                }
+                sessionIds.insert(resolvedSessionId)
+                totalInput += usage.inputTokens ?? 0
+                totalOutput += usage.outputTokens ?? 0
             }
         }
 
-        return (totalInput, totalOutput)
+        return (sessionIds, totalInput, totalOutput)
     }
 
     /// Whether a session message falls on or after `cutoff`. Messages with no cutoff (`.all`
