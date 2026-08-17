@@ -118,6 +118,29 @@ final class SessionDiscoveryTests: XCTestCase {
         XCTAssertNil(stats)
     }
 
+    func testPathBasedSessionIdResolvesWithoutAnySessionIdFallbackInTheEntry() throws {
+        // Regression test: `tempClaudeDir` lives under the real temp directory, which on macOS
+        // is reached through the `/var` -> `/private/var` symlink. `FileManager.enumerator`
+        // yields fully symlink-resolved paths while a naively-constructed `projectsDir` does
+        // not, so component-count-based path math silently breaks unless both sides are
+        // resolved consistently. This fixture has no `sessionId` JSON field, so a broken
+        // path resolution surfaces as a dropped entry (nil stats) rather than being masked by
+        // the fallback the other tests in this file rely on.
+        let sessionId = "55555555-5555-5555-5555-555555555555"
+        try write(
+            """
+            {"message":{"role":"assistant","usage":{"input_tokens":9,"output_tokens":1}},\
+            "timestamp":"2026-01-01T00:00:00Z"}
+            """,
+            to: "projects/-Users-me-app/\(sessionId).jsonl"
+        )
+
+        let stats = try XCTUnwrap(LiveStatsParser.parseStats(period: .all, claudeDir: tempClaudeDir))
+
+        XCTAssertEqual(stats.inputTokens, 9)
+        XCTAssertEqual(stats.sessionCount, 1)
+    }
+
     func testOrphanedTranscriptFallsBackToEntrySessionIdField() throws {
         // A path shape the depth-based resolver doesn't recognise (directly under `projects/`,
         // no project directory). The scan must still count it using the entry's own `sessionId`.

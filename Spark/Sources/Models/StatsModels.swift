@@ -145,7 +145,12 @@ enum LiveStatsParser {
         cutoff: Date?
     ) -> (sessionIds: Set<String>, input: Int, output: Int) {
         // swiftlint:enable large_tuple
-        let projectsDir = claudeDir.appendingPathComponent("projects")
+        // `FileManager.enumerator` fully resolves symlinks in the paths it yields (e.g. macOS's
+        // `/var` -> `/private/var`), while `URL.resolvingSymlinksInPath()` deliberately leaves
+        // BSD alias roots like `/var` and `/tmp` unresolved. Left unreconciled, the two disagree
+        // on path-component count, breaking `sessionId(forTranscriptAt:)`'s depth-based
+        // resolution — resolve with `realpath(3)` up front so both sides agree.
+        let projectsDir = resolvedPath(claudeDir.appendingPathComponent("projects"))
         guard let enumerator = FileManager.default.enumerator(
             at: projectsDir,
             includingPropertiesForKeys: nil,
@@ -182,6 +187,16 @@ enum LiveStatsParser {
         }
 
         return (sessionIds, totalInput, totalOutput)
+    }
+
+    /// Fully resolves symlinks via `realpath(3)`, unlike `URL.resolvingSymlinksInPath()` which
+    /// intentionally preserves BSD alias roots (`/var`, `/tmp`, `/etc`). Falls back to the
+    /// original URL if the path doesn't exist yet (e.g. no `projects/` directory at all) — the
+    /// enumerator guard right after this call handles that case.
+    private static func resolvedPath(_ url: URL) -> URL {
+        var buffer = [Int8](repeating: 0, count: Int(PATH_MAX))
+        guard realpath(url.path, &buffer) != nil else { return url }
+        return URL(fileURLWithPath: String(cString: buffer))
     }
 
     /// Whether a session message falls on or after `cutoff`. Messages with no cutoff (`.all`
