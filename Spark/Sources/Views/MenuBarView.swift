@@ -189,6 +189,11 @@ struct MenuBarView: View {
                 )
             }
 
+            // Top Projects
+            if state.showProjectBreakdown {
+                ProjectBreakdownRow(liveStats: state.liveStats)
+            }
+
             // Mini Graph
             if state.showGraph, !state.history.isEmpty {
                 UsageGraphView(history: state.history)
@@ -312,6 +317,101 @@ private struct StatsLine: View {
                 .fontWeight(.medium)
         }
         .help(tooltip ?? "")
+    }
+}
+
+// MARK: - Project Breakdown Row
+
+/// Top projects by token volume for the currently selected Stats period. Always shows the top
+/// three at a fixed height (rule 2: the popover must stay readable without scrolling); anything
+/// beyond that sits behind a native disclosure so opening it never surprises with a variable-size
+/// section.
+struct ProjectBreakdownRow: View {
+    let liveStats: LiveStats?
+    @State private var isExpanded = false
+
+    private var ranked: [ProjectUsage] {
+        guard let liveStats else { return [] }
+        return liveStats.topProjects(limit: liveStats.projectTotals.count)
+    }
+
+    private var topThree: [ProjectUsage] { Array(ranked.prefix(3)) }
+    private var remaining: [ProjectUsage] { Array(ranked.dropFirst(3)) }
+    private var maxTokens: Int { topThree.first?.tokens ?? 1 }
+
+    var body: some View {
+        if !topThree.isEmpty {
+            VStack(alignment: .leading, spacing: 4) {
+                header
+
+                ForEach(topThree) { project in
+                    ProjectLine(project: project, maxTokens: maxTokens)
+                }
+
+                if !remaining.isEmpty {
+                    DisclosureGroup(isExpanded: $isExpanded) {
+                        VStack(alignment: .leading, spacing: 4) {
+                            ForEach(remaining) { project in
+                                ProjectLine(project: project, maxTokens: maxTokens)
+                            }
+                        }
+                        .padding(.top, 4)
+                    } label: {
+                        Text("\(remaining.count) more")
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                    }
+                }
+            }
+
+            Divider()
+        }
+    }
+
+    private var header: some View {
+        HStack(spacing: 4) {
+            Image(systemName: "folder")
+                .font(.caption2)
+                .foregroundColor(claudeOrange)
+            Text("Top Projects")
+                .font(.caption2)
+                .foregroundColor(.secondary)
+        }
+    }
+}
+
+private struct ProjectLine: View {
+    let project: ProjectUsage
+    let maxTokens: Int
+
+    private var share: CGFloat {
+        maxTokens > 0 ? CGFloat(project.tokens) / CGFloat(maxTokens) : 0
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            HStack {
+                Text(project.displayName)
+                    .font(.caption)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                Spacer()
+                Text(formatTokenCount(project.tokens))
+                    .font(.system(.caption2, design: .monospaced))
+                    .foregroundColor(.secondary)
+            }
+
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    RoundedRectangle(cornerRadius: 2)
+                        .fill(Color.secondary.opacity(0.12))
+                    RoundedRectangle(cornerRadius: 2)
+                        .fill(claudeOrange)
+                        .frame(width: geo.size.width * share)
+                }
+            }
+            .frame(height: 3)
+        }
     }
 }
 

@@ -391,6 +391,13 @@ struct GeneralTab: View {
                             subtitle: "Show token count, messages and sessions."
                         )
                     }
+
+                    Toggle(isOn: $state.showProjectBreakdown) {
+                        SettingLabel(
+                            title: "Top Projects",
+                            subtitle: "Show which projects used the most tokens."
+                        )
+                    }
                 }
 
                 SectionHeader(title: "Startup", icon: "power")
