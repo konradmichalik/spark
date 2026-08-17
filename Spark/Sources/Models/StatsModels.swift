@@ -47,6 +47,11 @@ struct LiveStats: Sendable {
     /// Total tokens per raw model ID (e.g. `claude-opus-4-6`). Kept raw here — grouping into
     /// families and display normalisation happen only at the view layer, via `ModelFamily`.
     let modelTotals: [String: Int]
+    /// Total tokens per encoded project directory name (e.g. `-Users-me-app`), with the best
+    /// available display name (resolved `cwd`, or the encoded key itself as a last resort) —
+    /// see `ProjectFamily`.
+    let projectTotals: [String: Int]
+    let projectDisplayNames: [String: String]
 
     init(
         period: StatsPeriod,
@@ -56,7 +61,9 @@ struct LiveStats: Sendable {
         outputTokens: Int,
         cacheCreationTokens: Int,
         cacheReadTokens: Int,
-        modelTotals: [String: Int] = [:]
+        modelTotals: [String: Int] = [:],
+        projectTotals: [String: Int] = [:],
+        projectDisplayNames: [String: String] = [:]
     ) {
         self.period = period
         self.messageCount = messageCount
@@ -66,6 +73,8 @@ struct LiveStats: Sendable {
         self.cacheCreationTokens = cacheCreationTokens
         self.cacheReadTokens = cacheReadTokens
         self.modelTotals = modelTotals
+        self.projectTotals = projectTotals
+        self.projectDisplayNames = projectDisplayNames
     }
 
     var totalTokens: Int { inputTokens + outputTokens + cacheCreationTokens + cacheReadTokens }
@@ -86,6 +95,24 @@ struct LiveStats: Sendable {
             ModelFamily.family(forRawModelId: entry.key) == family ? partial + entry.value : partial
         }
     }
+
+    /// Top projects by token volume, each with a display name resolved from `cwd` where known.
+    func topProjects(limit: Int) -> [ProjectUsage] {
+        projectTotals
+            .sorted { $0.value > $1.value }
+            .prefix(limit)
+            .map { key, tokens in
+                ProjectUsage(key: key, displayName: ProjectFamily.displayName(forKey: key, cwd: projectDisplayNames[key]), tokens: tokens)
+            }
+    }
+}
+
+struct ProjectUsage: Identifiable, Sendable {
+    let key: String
+    let displayName: String
+    let tokens: Int
+
+    var id: String { key }
 }
 
 enum LiveStatsParser {
@@ -133,7 +160,9 @@ enum LiveStatsParser {
             outputTokens: transcripts.output,
             cacheCreationTokens: transcripts.cacheCreation,
             cacheReadTokens: transcripts.cacheRead,
-            modelTotals: transcripts.modelTotals.mapValues { $0.total }
+            modelTotals: transcripts.modelTotals.mapValues { $0.total },
+            projectTotals: transcripts.projectTotals.mapValues { $0.total },
+            projectDisplayNames: transcripts.projectDisplayNames
         )
     }
 

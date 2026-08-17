@@ -27,6 +27,7 @@ enum TranscriptCache {
         let timestamp: String?
         let sessionId: String?
         let requestId: String?
+        let cwd: String?
     }
 
     struct SessionMessage: Decodable {
@@ -88,6 +89,13 @@ enum TranscriptCache {
         }
     }
 
+    /// The encoded project directory name a transcript file lives under — the first path
+    /// component under `projects/`, for both session files and their subagent transcripts.
+    static func projectKey(forTranscriptAt url: URL, projectsDir: URL) -> String? {
+        let relative = Array(url.pathComponents.dropFirst(projectsDir.pathComponents.count))
+        return relative.count >= 2 ? relative[0] : nil
+    }
+
     /// Scans every transcript under `claudeDir/projects`, updating `store` in place, and returns
     /// totals filtered to `cutoff` (`nil` = all-time). Files whose cache entry already matches
     /// their on-disk mtime/size are never opened.
@@ -123,6 +131,7 @@ enum TranscriptCache {
             }
 
             let path = fileURL.path
+            let project = projectKey(forTranscriptAt: fileURL, projectsDir: projectsDir)
             let updated = updatedCache(
                 existing: store.files[path],
                 fileURL: fileURL,
@@ -132,6 +141,10 @@ enum TranscriptCache {
             )
             store.files[path] = updated
 
+            if let project, let cwd = updated.discoveredCwd, totals.projectDisplayNames[project] == nil {
+                totals.projectDisplayNames[project] = cwd
+            }
+
             for (day, bucket) in updated.dailyBuckets where isWithin(day: day, cutoffDayKey: cutoffDayKey) {
                 totals.sessionIds.formUnion(bucket.sessionIds)
                 totals.input += bucket.input
@@ -140,6 +153,14 @@ enum TranscriptCache {
                 totals.cacheRead += bucket.cacheRead
                 for (model, modelTotals) in bucket.perModel {
                     totals.modelTotals[model, default: ModelTokenTotals()].merge(modelTotals)
+                }
+                if let project {
+                    totals.projectTotals[project, default: ProjectTokenTotals()].merge(ProjectTokenTotals(
+                        input: bucket.input,
+                        output: bucket.output,
+                        cacheCreation: bucket.cacheCreation,
+                        cacheRead: bucket.cacheRead
+                    ))
                 }
             }
         }
@@ -187,15 +208,23 @@ enum TranscriptCache {
                 mtime: mtime,
                 size: size,
                 parsedByteOffset: appended.offset,
-                dailyBuckets: mergedBuckets
+                dailyBuckets: mergedBuckets,
+                discoveredCwd: existing.discoveredCwd ?? appended.discoveredCwd
             )
         }
 
         // No existing entry, or the file shrank (truncated/rewritten) — full reparse.
         let full = parseByteRange(fileURL: fileURL, from: 0, pathSessionId: pathSessionId)
-        return FileParseCache(mtime: mtime, size: size, parsedByteOffset: full.offset, dailyBuckets: full.buckets)
+        return FileParseCache(
+            mtime: mtime,
+            size: size,
+            parsedByteOffset: full.offset,
+            dailyBuckets: full.buckets,
+            discoveredCwd: full.discoveredCwd
+        )
     }
 
+    // swiftlint:disable large_tuple
     /// Parses every line from `byteOffset` to end of file. A line still being written when this
     /// runs (rare — the writer hasn't flushed its closing newline yet) fails JSON decoding and is
     /// silently skipped, same as any other malformed line — including on the next scan, since the
@@ -204,9 +233,10 @@ enum TranscriptCache {
         fileURL: URL,
         from byteOffset: Int64,
         pathSessionId: String?
-    ) -> (buckets: [String: DayAggregate], offset: Int64) {
+    ) -> (buckets: [String: DayAggregate], offset: Int64, discoveredCwd: String?) {
+        // swiftlint:enable large_tuple
         guard let handle = try? FileHandle(forReadingFrom: fileURL) else {
-            return ([:], byteOffset)
+            return ([:], byteOffset, nil)
         }
         defer { try? handle.close() }
 
@@ -215,22 +245,32 @@ enum TranscriptCache {
             try handle.seek(toOffset: UInt64(byteOffset))
             data = try handle.readToEnd()
         } catch {
-            return ([:], byteOffset)
+            return ([:], byteOffset, nil)
         }
 
         guard let data, !data.isEmpty, let content = String(data: data, encoding: .utf8) else {
-            return ([:], byteOffset)
+            return ([:], byteOffset, nil)
         }
 
         let lines = content.components(separatedBy: "\n")
         var buckets: [String: DayAggregate] = [:]
         var dedup = TokenDeduplicator()
+        var discoveredCwd: String?
 
         for line in lines {
             guard !line.isEmpty,
                   let lineData = line.data(using: .utf8),
-                  let entry = try? JSONDecoder().decode(SessionEntry.self, from: lineData),
-                  entry.message?.role == "assistant",
+                  let entry = try? JSONDecoder().decode(SessionEntry.self, from: lineData) else {
+                continue
+            }
+
+            // `cwd` can appear on any entry type, not only assistant messages — captured
+            // independently of the token-counting guard below.
+            if discoveredCwd == nil, let cwd = entry.cwd, !cwd.isEmpty {
+                discoveredCwd = cwd
+            }
+
+            guard entry.message?.role == "assistant",
                   let usage = entry.message?.usage,
                   let resolvedSessionId = pathSessionId ?? entry.sessionId,
                   dedup.shouldCount(messageId: entry.message?.id, requestId: entry.requestId) else {
@@ -262,7 +302,7 @@ enum TranscriptCache {
             buckets[key] = bucket
         }
 
-        return (buckets, byteOffset + Int64(data.count))
+        return (buckets, byteOffset + Int64(data.count), discoveredCwd)
     }
 
     private static func mtimeFallback(for fileURL: URL) -> Date {

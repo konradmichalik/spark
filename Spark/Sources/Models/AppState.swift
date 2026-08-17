@@ -49,6 +49,7 @@ final class AppState: ObservableObject {
     @AppStorage("notifyOnNewVersion") var notifyOnNewVersion: Bool = true
     @AppStorage("notifyOnCLIUpdate") var notifyOnCLIUpdate: Bool = true
     @AppStorage("showStats") var showStats: Bool = true
+    @AppStorage("showProjectBreakdown") var showProjectBreakdown: Bool = true
     @AppStorage("coloredIcon") var coloredIcon: Bool = true
     @AppStorage("usageDisplayStyle") var usageDisplayStyle: String = "bars"
     @AppStorage("reduceTransparency") var reduceTransparency: Bool = false
