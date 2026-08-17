@@ -40,7 +40,7 @@ final class SessionDiscoveryTests: XCTestCase {
 
     // MARK: - Full scan against a real fixture tree
 
-    private var tempClaudeDir: URL!
+    private var tempClaudeDir = FileManager.default.temporaryDirectory
 
     override func setUpWithError() throws {
         tempClaudeDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
