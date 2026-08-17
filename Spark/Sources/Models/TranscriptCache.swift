@@ -1,46 +1,5 @@
 import Foundation
 
-// MARK: - Daily aggregate
-
-/// Token totals and distinct session IDs seen on one local calendar day, keyed as `"yyyy-MM-dd"`
-/// so it serializes directly as a JSON object key.
-struct DayAggregate: Codable, Equatable, Sendable {
-    var sessionIds: Set<String> = []
-    var input = 0
-    var output = 0
-    var cacheCreation = 0
-    var cacheRead = 0
-
-    mutating func merge(_ other: DayAggregate) {
-        sessionIds.formUnion(other.sessionIds)
-        input += other.input
-        output += other.output
-        cacheCreation += other.cacheCreation
-        cacheRead += other.cacheRead
-    }
-}
-
-// MARK: - Per-file cache entry
-
-/// What's persisted for one transcript file: enough to detect whether it changed since the
-/// last scan, and where to resume parsing if it only grew (transcripts are append-only).
-struct FileParseCache: Codable, Equatable, Sendable {
-    var mtime: Date
-    var size: Int64
-    var parsedByteOffset: Int64
-    var dailyBuckets: [String: DayAggregate]
-}
-
-// MARK: - Store
-
-struct TranscriptCacheStore: Codable, Equatable, Sendable {
-    static let currentSchemaVersion = 1
-    static let empty = TranscriptCacheStore(schemaVersion: currentSchemaVersion, files: [:])
-
-    var schemaVersion: Int
-    var files: [String: FileParseCache]
-}
-
 // MARK: - Cache engine
 
 /// Maintains a per-file, per-day cache of transcript token totals so that:
@@ -73,8 +32,13 @@ enum TranscriptCache {
     struct SessionMessage: Decodable {
         let id: String?
         let role: String?
+        let model: String?
         let usage: TokenUsage?
     }
+
+    /// Locally generated messages (e.g. API error notices) rather than billable inference —
+    /// must never appear as a model in the per-model breakdown.
+    static let syntheticModelMarker = "<synthetic>"
 
     struct TokenUsage: Decodable {
         let inputTokens: Int?
@@ -124,7 +88,6 @@ enum TranscriptCache {
         }
     }
 
-    // swiftlint:disable large_tuple
     /// Scans every transcript under `claudeDir/projects`, updating `store` in place, and returns
     /// totals filtered to `cutoff` (`nil` = all-time). Files whose cache entry already matches
     /// their on-disk mtime/size are never opened.
@@ -132,8 +95,7 @@ enum TranscriptCache {
         claudeDir: URL,
         cutoff: Date?,
         store: inout TranscriptCacheStore
-    ) -> (sessionIds: Set<String>, input: Int, output: Int, cacheCreation: Int, cacheRead: Int) {
-        // swiftlint:enable large_tuple
+    ) -> TranscriptTotals {
         // `FileManager.enumerator` fully resolves symlinks in the paths it yields (e.g. macOS's
         // `/var` -> `/private/var`), while `URL.resolvingSymlinksInPath()` deliberately leaves
         // BSD alias roots like `/var` and `/tmp` unresolved. Left unreconciled, the two disagree
@@ -145,16 +107,11 @@ enum TranscriptCache {
             includingPropertiesForKeys: [.contentModificationDateKey, .fileSizeKey],
             options: [.skipsHiddenFiles]
         ) else {
-            return ([], 0, 0, 0, 0)
+            return TranscriptTotals()
         }
 
         let cutoffDayKey = cutoff.map { dayKey(for: $0) }
-
-        var sessionIds: Set<String> = []
-        var totalInput = 0
-        var totalOutput = 0
-        var totalCacheCreation = 0
-        var totalCacheRead = 0
+        var totals = TranscriptTotals()
 
         for case let fileURL as URL in enumerator where fileURL.pathExtension == "jsonl" {
             guard let resourceValues = try? fileURL.resourceValues(
@@ -176,15 +133,18 @@ enum TranscriptCache {
             store.files[path] = updated
 
             for (day, bucket) in updated.dailyBuckets where isWithin(day: day, cutoffDayKey: cutoffDayKey) {
-                sessionIds.formUnion(bucket.sessionIds)
-                totalInput += bucket.input
-                totalOutput += bucket.output
-                totalCacheCreation += bucket.cacheCreation
-                totalCacheRead += bucket.cacheRead
+                totals.sessionIds.formUnion(bucket.sessionIds)
+                totals.input += bucket.input
+                totals.output += bucket.output
+                totals.cacheCreation += bucket.cacheCreation
+                totals.cacheRead += bucket.cacheRead
+                for (model, modelTotals) in bucket.perModel {
+                    totals.modelTotals[model, default: ModelTokenTotals()].merge(modelTotals)
+                }
             }
         }
 
-        return (sessionIds, totalInput, totalOutput, totalCacheCreation, totalCacheRead)
+        return totals
     }
 
     /// Fully resolves symlinks via `realpath(3)`, unlike `URL.resolvingSymlinksInPath()` which
@@ -289,6 +249,16 @@ enum TranscriptCache {
             bucket.output += usage.outputTokens ?? 0
             bucket.cacheCreation += usage.cacheCreationTokens ?? 0
             bucket.cacheRead += usage.cacheReadTokens ?? 0
+
+            if let model = entry.message?.model, model != syntheticModelMarker {
+                bucket.perModel[model, default: ModelTokenTotals()].merge(ModelTokenTotals(
+                    input: usage.inputTokens ?? 0,
+                    output: usage.outputTokens ?? 0,
+                    cacheCreation: usage.cacheCreationTokens ?? 0,
+                    cacheRead: usage.cacheReadTokens ?? 0
+                ))
+            }
+
             buckets[key] = bucket
         }
 
@@ -349,12 +319,7 @@ actor LiveTranscriptCache {
 
     private var store: TranscriptCacheStore?
 
-    // swiftlint:disable large_tuple
-    func aggregate(
-        claudeDir: URL,
-        cutoff: Date?
-    ) -> (sessionIds: Set<String>, input: Int, output: Int, cacheCreation: Int, cacheRead: Int) {
-        // swiftlint:enable large_tuple
+    func aggregate(claudeDir: URL, cutoff: Date?) -> TranscriptTotals {
         var current = store ?? TranscriptCachePersistence.load()
         let result = TranscriptCache.aggregate(claudeDir: claudeDir, cutoff: cutoff, store: &current)
         store = current
