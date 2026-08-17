@@ -47,4 +47,46 @@ final class StatsModelsTests: XCTestCase {
         let stats = LiveStats(period: .all, messageCount: 1, sessionCount: 1, inputTokens: 1_200_000, outputTokens: 0)
         XCTAssertEqual(stats.formattedTokens, "1.2M")
     }
+
+    // MARK: - Assistant entry deduplication
+
+    func testDeduplicatorCountsFirstOccurrence() {
+        var dedup = LiveStatsParser.TokenDeduplicator()
+        XCTAssertTrue(dedup.shouldCount(messageId: "msg_1", requestId: "req_1"))
+    }
+
+    func testDeduplicatorSkipsRepeatedMessageAndRequestId() {
+        var dedup = LiveStatsParser.TokenDeduplicator()
+        XCTAssertTrue(dedup.shouldCount(messageId: "msg_1", requestId: "req_1"))
+        XCTAssertFalse(dedup.shouldCount(messageId: "msg_1", requestId: "req_1"))
+        XCTAssertFalse(dedup.shouldCount(messageId: "msg_1", requestId: "req_1"))
+    }
+
+    func testDeduplicatorCountsSameMessageIdWithDifferentRequestIdSeparately() {
+        var dedup = LiveStatsParser.TokenDeduplicator()
+        XCTAssertTrue(dedup.shouldCount(messageId: "msg_1", requestId: "req_1"))
+        XCTAssertTrue(dedup.shouldCount(messageId: "msg_1", requestId: "req_2"))
+    }
+
+    func testDeduplicatorAlwaysCountsEntriesMissingEitherField() {
+        var dedup = LiveStatsParser.TokenDeduplicator()
+        XCTAssertTrue(dedup.shouldCount(messageId: nil, requestId: "req_1"))
+        XCTAssertTrue(dedup.shouldCount(messageId: nil, requestId: "req_1"))
+        XCTAssertTrue(dedup.shouldCount(messageId: "msg_1", requestId: nil))
+        XCTAssertTrue(dedup.shouldCount(messageId: "msg_1", requestId: nil))
+        XCTAssertTrue(dedup.shouldCount(messageId: nil, requestId: nil))
+    }
+
+    func testDeduplicatorReproducesMeasuredThreeToOneOvercount() {
+        // 7 distinct responses, each streamed as 3 usage-bearing entries (text + 2 tool_use
+        // blocks) sharing the same message.id/requestId — the pattern found in real transcripts.
+        var dedup = LiveStatsParser.TokenDeduplicator()
+        var countedEntries = 0
+        for messageIndex in 0..<7 {
+            for _ in 0..<3 where dedup.shouldCount(messageId: "msg_\(messageIndex)", requestId: "req_\(messageIndex)") {
+                countedEntries += 1
+            }
+        }
+        XCTAssertEqual(countedEntries, 7)
+    }
 }
