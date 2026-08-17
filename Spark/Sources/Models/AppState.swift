@@ -696,7 +696,7 @@ final class AppState: ObservableObject {
         let period = statsPeriod
         isLoadingStats = true
         Task.detached {
-            let stats = LiveStatsParser.parseStats(period: period)
+            let stats = await LiveStatsParser.parseStats(period: period)
             await MainActor.run {
                 // Discard results from a stale request if the period changed while parsing ran.
                 guard period == self.statsPeriod else { return }

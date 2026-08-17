@@ -62,63 +62,37 @@ enum LiveStatsParser {
         let timestamp: Double
     }
 
-    private struct SessionEntry: Decodable {
-        let message: SessionMessage?
-        let timestamp: String?
-        let sessionId: String?
-        let requestId: String?
-    }
-
-    private struct SessionMessage: Decodable {
-        let id: String?
-        let role: String?
-        let usage: TokenUsage?
-    }
-
-    /// Skips assistant entries that share a `(message.id, requestId)` pair already seen in this
-    /// scan. Claude Code writes duplicate usage-bearing entries for a single response (one per
-    /// streamed block, e.g. text + tool_use), each carrying the identical `usage` payload — left
-    /// unfiltered, a response streamed as N entries is counted N times.
-    struct TokenDeduplicator {
-        private var seenKeys: Set<String> = []
-
-        /// Entries missing either field are always counted, so an unexpected schema change
-        /// doesn't silently drop their tokens instead of merely failing to dedupe them.
-        mutating func shouldCount(messageId: String?, requestId: String?) -> Bool {
-            guard let messageId, let requestId else { return true }
-            return seenKeys.insert("\(messageId):\(requestId)").inserted
-        }
-    }
-
-    private struct TokenUsage: Decodable {
-        let inputTokens: Int?
-        let outputTokens: Int?
-        let cacheCreationTokens: Int?
-        let cacheReadTokens: Int?
-        // swiftlint:disable:next nesting
-        enum CodingKeys: String, CodingKey {
-            case inputTokens = "input_tokens"
-            case outputTokens = "output_tokens"
-            case cacheCreationTokens = "cache_creation_input_tokens"
-            case cacheReadTokens = "cache_read_input_tokens"
-        }
-    }
-
-    static func parseStats(period: StatsPeriod) -> LiveStats? {
+    /// Production entry point. Goes through the shared, disk-persisted transcript cache.
+    static func parseStats(period: StatsPeriod) async -> LiveStats? {
         let claudeDir = FileManager.default.homeDirectoryForCurrentUser
             .appendingPathComponent(".claude")
-        return parseStats(period: period, claudeDir: claudeDir)
+        let transcripts = await LiveTranscriptCache.shared.aggregate(claudeDir: claudeDir, cutoff: period.startDate)
+        return makeLiveStats(period: period, claudeDir: claudeDir, transcripts: transcripts)
     }
 
-    /// Exposed with an explicit `claudeDir` so tests can point it at a fixture tree instead of
-    /// the real `~/.claude`.
+    /// Test entry point with an explicit `claudeDir`, pointing at a fixture tree instead of the
+    /// real `~/.claude`. Deliberately bypasses `LiveTranscriptCache.shared` — going through the
+    /// disk-persisted production singleton here would pollute the real cache file (and any other
+    /// test's fixture data) with throwaway test data. Uses a fresh, discarded-after-use store,
+    /// so this does not exercise the incremental-caching behavior itself — see
+    /// `TranscriptCacheTests` for that.
     static func parseStats(period: StatsPeriod, claudeDir: URL) -> LiveStats? {
+        var store = TranscriptCacheStore.empty
+        let transcripts = TranscriptCache.aggregate(claudeDir: claudeDir, cutoff: period.startDate, store: &store)
+        return makeLiveStats(period: period, claudeDir: claudeDir, transcripts: transcripts)
+    }
+
+    // swiftlint:disable large_tuple
+    private static func makeLiveStats(
+        period: StatsPeriod,
+        claudeDir: URL,
+        transcripts: (sessionIds: Set<String>, input: Int, output: Int, cacheCreation: Int, cacheRead: Int)
+    ) -> LiveStats? {
+        // swiftlint:enable large_tuple
         // history.jsonl only ever backs the user-message count — it records interactive
         // prompts, not the sessions or tokens Claude Code actually spent (see #46).
         let historyURL = claudeDir.appendingPathComponent("history.jsonl")
         let messageCount = parseMessageCount(url: historyURL, period: period)
-
-        let transcripts = parseTranscripts(claudeDir: claudeDir, cutoff: period.startDate)
 
         guard messageCount > 0 || !transcripts.sessionIds.isEmpty else { return nil }
 
@@ -153,90 +127,5 @@ enum LiveStatsParser {
         }
 
         return messageCount
-    }
-
-    /// Derives the session a transcript file belongs to, from its path relative to `projects/`.
-    /// A session file's stem IS the session ID (`<project>/<uuid>.jsonl`). A subagent file's
-    /// stem is an agent identifier, not a session (`<project>/<uuid>/subagents/agent-*.jsonl`) —
-    /// its session is the directory two levels up. Returns `nil` for any other shape, so callers
-    /// can fall back to the entry's own `sessionId` field.
-    static func sessionId(forTranscriptAt url: URL, projectsDir: URL) -> String? {
-        let relative = Array(url.pathComponents.dropFirst(projectsDir.pathComponents.count))
-        switch relative.count {
-        case 2 where relative[1].hasSuffix(".jsonl"):
-            return String(relative[1].dropLast(".jsonl".count))
-        case 4 where relative[2] == "subagents":
-            return relative[1]
-        default:
-            return nil
-        }
-    }
-
-    // swiftlint:disable large_tuple
-    private static func parseTranscripts(
-        claudeDir: URL,
-        cutoff: Date?
-    ) -> (sessionIds: Set<String>, input: Int, output: Int, cacheCreation: Int, cacheRead: Int) {
-        // swiftlint:enable large_tuple
-        let projectsDir = claudeDir.appendingPathComponent("projects")
-        guard let enumerator = FileManager.default.enumerator(
-            at: projectsDir,
-            includingPropertiesForKeys: nil,
-            options: [.skipsHiddenFiles]
-        ) else {
-            return ([], 0, 0, 0, 0)
-        }
-
-        var sessionIds: Set<String> = []
-        var totalInput = 0
-        var totalOutput = 0
-        var totalCacheCreation = 0
-        var totalCacheRead = 0
-        var dedup = TokenDeduplicator()
-
-        for case let fileURL as URL in enumerator where fileURL.pathExtension == "jsonl" {
-            guard let data = try? Data(contentsOf: fileURL),
-                  let content = String(data: data, encoding: .utf8) else {
-                continue
-            }
-            let pathSessionId = sessionId(forTranscriptAt: fileURL, projectsDir: projectsDir)
-
-            for line in content.components(separatedBy: "\n") {
-                guard !line.isEmpty,
-                      let lineData = line.data(using: .utf8),
-                      let entry = try? JSONDecoder().decode(SessionEntry.self, from: lineData),
-                      entry.message?.role == "assistant",
-                      let usage = entry.message?.usage,
-                      isOnOrAfter(cutoff: cutoff, timestamp: entry.timestamp),
-                      let resolvedSessionId = pathSessionId ?? entry.sessionId,
-                      dedup.shouldCount(messageId: entry.message?.id, requestId: entry.requestId) else {
-                    continue
-                }
-                sessionIds.insert(resolvedSessionId)
-                totalInput += usage.inputTokens ?? 0
-                totalOutput += usage.outputTokens ?? 0
-                totalCacheCreation += usage.cacheCreationTokens ?? 0
-                totalCacheRead += usage.cacheReadTokens ?? 0
-            }
-        }
-
-        return (sessionIds, totalInput, totalOutput, totalCacheCreation, totalCacheRead)
-    }
-
-    /// Whether a session message falls on or after `cutoff`. Messages with no cutoff (`.all`
-    /// period) or an unparsable timestamp are kept — an unparsable timestamp shouldn't silently
-    /// drop tokens that would otherwise count toward the total.
-    private static func isOnOrAfter(cutoff: Date?, timestamp: String?) -> Bool {
-        guard let cutoff else { return true }
-        guard let timestamp, let date = parseISO8601(timestamp) else { return true }
-        return date >= cutoff
-    }
-
-    private static func parseISO8601(_ string: String) -> Date? {
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        if let date = formatter.date(from: string) { return date }
-        formatter.formatOptions = [.withInternetDateTime]
-        return formatter.date(from: string)
     }
 }
