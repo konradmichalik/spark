@@ -121,4 +121,57 @@ final class StatsModelsTests: XCTestCase {
         }
         XCTAssertEqual(countedEntries, 7)
     }
+
+    // MARK: - Top projects
+
+    func testTopProjectsRanksByTokenVolumeDescending() {
+        let stats = LiveStats(
+            period: .today,
+            messageCount: 1,
+            sessionCount: 1,
+            inputTokens: 0,
+            outputTokens: 0,
+            cacheCreationTokens: 0,
+            cacheReadTokens: 0,
+            projectTotals: ["-Users-a": 10, "-Users-b": 100, "-Users-c": 50],
+            projectDisplayNames: [:]
+        )
+
+        let top = stats.topProjects(limit: 3)
+
+        XCTAssertEqual(top.map(\.key), ["-Users-b", "-Users-c", "-Users-a"])
+        XCTAssertEqual(top.map(\.tokens), [100, 50, 10])
+    }
+
+    func testTopProjectsRespectsLimit() {
+        let stats = LiveStats(
+            period: .today,
+            messageCount: 1,
+            sessionCount: 1,
+            inputTokens: 0,
+            outputTokens: 0,
+            cacheCreationTokens: 0,
+            cacheReadTokens: 0,
+            projectTotals: ["-Users-a": 10, "-Users-b": 100, "-Users-c": 50, "-Users-d": 5],
+            projectDisplayNames: [:]
+        )
+
+        XCTAssertEqual(stats.topProjects(limit: 2).map(\.key), ["-Users-b", "-Users-c"])
+    }
+
+    func testTopProjectsUsesResolvedDisplayNameWhenAvailable() {
+        let stats = LiveStats(
+            period: .today,
+            messageCount: 1,
+            sessionCount: 1,
+            inputTokens: 0,
+            outputTokens: 0,
+            cacheCreationTokens: 0,
+            cacheReadTokens: 0,
+            projectTotals: ["-Users-konrad-dev-typo3-routing": 10],
+            projectDisplayNames: ["-Users-konrad-dev-typo3-routing": "/Users/konrad/dev/typo3-routing"]
+        )
+
+        XCTAssertEqual(stats.topProjects(limit: 1).first?.displayName, "typo3-routing")
+    }
 }
