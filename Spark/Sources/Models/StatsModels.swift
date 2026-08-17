@@ -66,11 +66,28 @@ enum LiveStatsParser {
         let message: SessionMessage?
         let timestamp: String?
         let sessionId: String?
+        let requestId: String?
     }
 
     private struct SessionMessage: Decodable {
+        let id: String?
         let role: String?
         let usage: TokenUsage?
+    }
+
+    /// Skips assistant entries that share a `(message.id, requestId)` pair already seen in this
+    /// scan. Claude Code writes duplicate usage-bearing entries for a single response (one per
+    /// streamed block, e.g. text + tool_use), each carrying the identical `usage` payload — left
+    /// unfiltered, a response streamed as N entries is counted N times.
+    struct TokenDeduplicator {
+        private var seenKeys: Set<String> = []
+
+        /// Entries missing either field are always counted, so an unexpected schema change
+        /// doesn't silently drop their tokens instead of merely failing to dedupe them.
+        mutating func shouldCount(messageId: String?, requestId: String?) -> Bool {
+            guard let messageId, let requestId else { return true }
+            return seenKeys.insert("\(messageId):\(requestId)").inserted
+        }
     }
 
     private struct TokenUsage: Decodable {
@@ -175,6 +192,7 @@ enum LiveStatsParser {
         var totalOutput = 0
         var totalCacheCreation = 0
         var totalCacheRead = 0
+        var dedup = TokenDeduplicator()
 
         for case let fileURL as URL in enumerator where fileURL.pathExtension == "jsonl" {
             guard let data = try? Data(contentsOf: fileURL),
@@ -190,7 +208,8 @@ enum LiveStatsParser {
                       entry.message?.role == "assistant",
                       let usage = entry.message?.usage,
                       isOnOrAfter(cutoff: cutoff, timestamp: entry.timestamp),
-                      let resolvedSessionId = pathSessionId ?? entry.sessionId else {
+                      let resolvedSessionId = pathSessionId ?? entry.sessionId,
+                      dedup.shouldCount(messageId: entry.message?.id, requestId: entry.requestId) else {
                     continue
                 }
                 sessionIds.insert(resolvedSessionId)
