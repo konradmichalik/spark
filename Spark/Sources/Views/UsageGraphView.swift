@@ -20,14 +20,29 @@ enum GraphTimeRange: String, CaseIterable {
         case .thirtyDays: 3600 * 24 * 30
         }
     }
+
+    /// Rollups have no resolution below a day — sub-day ranges would render an empty Volume
+    /// chart rather than being meaningful, so Volume mode only offers these.
+    static let dayGranularityCases: [GraphTimeRange] = [.oneDay, .sevenDays, .thirtyDays]
+}
+
+enum GraphMode: String, CaseIterable {
+    case limits = "Limits"
+    case volume = "Volume"
 }
 
 struct UsageGraphView: View {
     let history: [UsageSnapshot]
+    let rollups: [String: DailyRollup]
     @AppStorage("reduceTransparency") private var reduceTransparency: Bool = false
+    @State private var graphMode: GraphMode = .limits
     @State private var timeRange: GraphTimeRange = .sixHours
     @State private var hoverTarget: GraphHoverTarget?
     @State private var canvasWidth: CGFloat = 0
+
+    private var availableTimeRanges: [GraphTimeRange] {
+        graphMode == .volume ? GraphTimeRange.dayGranularityCases : GraphTimeRange.allCases
+    }
 
     /// Maximum gap (seconds) before we assume the app was inactive — anything longer
     /// is collapsed into a narrow band instead of stretching the axis.
@@ -51,27 +66,36 @@ struct UsageGraphView: View {
         return VStack(alignment: .leading, spacing: 4) {
             header
 
-            HStack(alignment: .top, spacing: 0) {
-                UsageGraphCanvas(
-                    data: samples,
-                    axis: axis,
-                    hoverTarget: $hoverTarget
-                )
-                .frame(height: graphHeight)
-                .background(widthReader)
-                .overlay(alignment: .topLeading) {
-                    hoverTooltip(samples: samples)
-                }
-                .overlay(alignment: .bottomLeading) {
-                    hoverLegend
+            if graphMode == .limits {
+                HStack(alignment: .top, spacing: 0) {
+                    UsageGraphCanvas(
+                        data: samples,
+                        axis: axis,
+                        hoverTarget: $hoverTarget
+                    )
+                    .frame(height: graphHeight)
+                    .background(widthReader)
+                    .overlay(alignment: .topLeading) {
+                        hoverTooltip(samples: samples)
+                    }
+                    .overlay(alignment: .bottomLeading) {
+                        hoverLegend(samples: samples)
+                    }
+
+                    yAxisLabels
                 }
 
-                yAxisLabels
+                xAxisLabels(axis: axis)
+            } else {
+                VolumeGraphView(rollups: rollups, timeRange: timeRange)
             }
-
-            xAxisLabels(axis: axis)
         }
         .onChange(of: timeRange) { hoverTarget = nil }
+        .onChange(of: graphMode) {
+            if !availableTimeRanges.contains(timeRange) {
+                timeRange = .sevenDays
+            }
+        }
     }
 
     private var yAxisLabels: some View {
@@ -112,9 +136,20 @@ struct UsageGraphView: View {
                     .font(.caption2)
                     .foregroundColor(.secondary)
             }
+
+            Picker("", selection: $graphMode) {
+                ForEach(GraphMode.allCases, id: \.self) { mode in
+                    Text(mode.rawValue).tag(mode)
+                }
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+            .frame(width: 110)
+
             Spacer()
+
             HStack(spacing: 2) {
-                ForEach(GraphTimeRange.allCases, id: \.self) { range in
+                ForEach(availableTimeRanges, id: \.self) { range in
                     Button {
                         timeRange = range
                     } label: {
@@ -138,6 +173,19 @@ struct UsageGraphView: View {
 
     // MARK: - Hover Tooltip
 
+    /// Renders nothing for `nil` — Sonnet/Opus are absent on snapshots recorded before those
+    /// fields existed, and on a Session/Weekly-only bucket the tooltip should just omit them.
+    @ViewBuilder
+    private func tooltipValue(_ value: Double?, color: Color) -> some View {
+        if let value {
+            HStack(spacing: 3) {
+                Circle().fill(color).frame(width: 5, height: 5)
+                Text("\(Int(value))%")
+                    .foregroundColor(color)
+            }
+        }
+    }
+
     @ViewBuilder
     private func hoverTooltip(samples: [UsageSnapshot]) -> some View {
         switch hoverTarget {
@@ -147,16 +195,10 @@ struct UsageGraphView: View {
                 Text(formatTimestamp(snapshot.timestamp))
                     .foregroundColor(.secondary)
                 Spacer()
-                HStack(spacing: 3) {
-                    Circle().fill(Theme.graphSession).frame(width: 5, height: 5)
-                    Text("\(Int(snapshot.sessionUtilization))%")
-                        .foregroundColor(Theme.graphSession)
-                }
-                HStack(spacing: 3) {
-                    Circle().fill(Theme.graphWeekly).frame(width: 5, height: 5)
-                    Text("\(Int(snapshot.weeklyUtilization))%")
-                        .foregroundColor(Theme.graphWeekly)
-                }
+                tooltipValue(snapshot.sessionUtilization, color: Theme.graphSession)
+                tooltipValue(snapshot.weeklyUtilization, color: Theme.graphWeekly)
+                tooltipValue(snapshot.sonnetUtilization, color: Theme.graphSonnet)
+                tooltipValue(snapshot.opusUtilization, color: Theme.graphOpus)
             }
             .modifier(TooltipStyle(reduceTransparency: reduceTransparency))
         case .gap(let band):
@@ -174,16 +216,18 @@ struct UsageGraphView: View {
     // MARK: - Hover Legend
 
     @ViewBuilder
-    private var hoverLegend: some View {
+    private func hoverLegend(samples: [UsageSnapshot]) -> some View {
         if case .point = hoverTarget {
             HStack(spacing: 8) {
-                HStack(spacing: 3) {
-                    Circle().fill(Theme.graphSession).frame(width: 5, height: 5)
-                    Text("Session")
+                legendItem("Session", color: Theme.graphSession)
+                legendItem("Weekly", color: Theme.graphWeekly)
+                // Omitted until real data exists, rather than always showing an entry for a
+                // series that's empty for every launch before this feature shipped.
+                if samples.contains(where: { $0.sonnetUtilization != nil }) {
+                    legendItem("Sonnet", color: Theme.graphSonnet)
                 }
-                HStack(spacing: 3) {
-                    Circle().fill(Theme.graphWeekly).frame(width: 5, height: 5)
-                    Text("Weekly")
+                if samples.contains(where: { $0.opusUtilization != nil }) {
+                    legendItem("Opus", color: Theme.graphOpus)
                 }
             }
             .font(.caption2)
@@ -191,6 +235,13 @@ struct UsageGraphView: View {
             .padding(.horizontal, 4)
             .padding(.vertical, 2)
             .adaptiveBackground(reduceTransparency: reduceTransparency)
+        }
+    }
+
+    private func legendItem(_ label: String, color: Color) -> some View {
+        HStack(spacing: 3) {
+            Circle().fill(color).frame(width: 5, height: 5)
+            Text(label)
         }
     }
 

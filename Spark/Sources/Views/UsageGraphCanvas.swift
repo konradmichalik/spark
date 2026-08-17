@@ -28,8 +28,10 @@ struct UsageGraphCanvas: View {
                 return
             }
 
-            drawLine(context: context, size: size, color: Theme.graphWeekly, keyPath: \.weeklyUtilization)
-            drawLine(context: context, size: size, color: Theme.graphSession, keyPath: \.sessionUtilization)
+            drawLine(context: context, size: size, color: Theme.graphWeekly) { $0.weeklyUtilization }
+            drawLine(context: context, size: size, color: Theme.graphSession) { $0.sessionUtilization }
+            drawLine(context: context, size: size, color: Theme.graphSonnet) { $0.sonnetUtilization }
+            drawLine(context: context, size: size, color: Theme.graphOpus) { $0.opusUtilization }
             drawHoverIndicator(context: context, size: size)
         }
         .onContinuousHover { phase in
@@ -89,15 +91,19 @@ struct UsageGraphCanvas: View {
         }
     }
 
+    /// `value` returns `nil` to skip a sample entirely — used for Sonnet/Opus, which are absent
+    /// on snapshots recorded before those fields existed. A segment with no present values draws
+    /// nothing; this is how an all-nil series (no Sonnet/Opus data yet) costs nothing to draw.
     private func drawLine(
         context: GraphicsContext,
         size: CGSize,
         color: Color,
-        keyPath: KeyPath<UsageSnapshot, Double>
+        value: (UsageSnapshot) -> Double?
     ) {
         for segment in axis.segments {
-            let points = data[segment.sampleRange].map {
-                CGPoint(x: axis.x(for: $0.timestamp), y: yPosition($0[keyPath: keyPath], in: size))
+            let points = data[segment.sampleRange].compactMap { sample -> CGPoint? in
+                guard let utilization = value(sample) else { return nil }
+                return CGPoint(x: axis.x(for: sample.timestamp), y: yPosition(utilization, in: size))
             }
             guard let first = points.first else { continue }
 
@@ -128,10 +134,14 @@ struct UsageGraphCanvas: View {
         context.stroke(vLine, with: .color(.gray.opacity(0.4)), style: StrokeStyle(lineWidth: 0.5, dash: [3, 2]))
 
         let dotSize: CGFloat = 5
-        for (value, color) in [
+        let points: [(value: Double?, color: Color)] = [
             (snapshot.sessionUtilization, Theme.graphSession),
-            (snapshot.weeklyUtilization, Theme.graphWeekly)
-        ] {
+            (snapshot.weeklyUtilization, Theme.graphWeekly),
+            (snapshot.sonnetUtilization, Theme.graphSonnet),
+            (snapshot.opusUtilization, Theme.graphOpus)
+        ]
+        for (value, color) in points {
+            guard let value else { continue }
             let y = yPosition(value, in: size)
             let rect = CGRect(x: x - dotSize / 2, y: y - dotSize / 2, width: dotSize, height: dotSize)
             context.fill(Path(ellipseIn: rect), with: .color(color))
