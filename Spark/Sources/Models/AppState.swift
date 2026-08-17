@@ -440,10 +440,14 @@ final class AppState: ObservableObject {
     private func startSleepWakeObservers() {
         let center = NSWorkspace.shared.notificationCenter
         sleepObserver = center.addObserver(forName: NSWorkspace.willSleepNotification, object: nil, queue: .main) { [weak self] _ in
-            self?.stopFileWatching()
+            Task { @MainActor in
+                self?.stopFileWatching()
+            }
         }
         wakeObserver = center.addObserver(forName: NSWorkspace.didWakeNotification, object: nil, queue: .main) { [weak self] _ in
-            self?.startFileWatching()
+            Task { @MainActor in
+                self?.startFileWatching()
+            }
         }
     }
 
