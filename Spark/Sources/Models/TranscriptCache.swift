@@ -122,50 +122,60 @@ enum TranscriptCache {
         var totals = TranscriptTotals()
 
         for case let fileURL as URL in enumerator where fileURL.pathExtension == "jsonl" {
-            guard let resourceValues = try? fileURL.resourceValues(
-                forKeys: [.contentModificationDateKey, .fileSizeKey]
-            ),
-                let mtime = resourceValues.contentModificationDate,
-                let size = resourceValues.fileSize else {
-                continue
-            }
-
-            let path = fileURL.path
-            let project = projectKey(forTranscriptAt: fileURL, projectsDir: projectsDir)
-            let updated = updatedCache(
-                existing: store.files[path],
-                fileURL: fileURL,
-                mtime: mtime,
-                size: Int64(size),
-                pathSessionId: sessionId(forTranscriptAt: fileURL, projectsDir: projectsDir)
-            )
-            store.files[path] = updated
-
-            if let project, let cwd = updated.discoveredCwd, totals.projectDisplayNames[project] == nil {
-                totals.projectDisplayNames[project] = cwd
-            }
-
-            for (day, bucket) in updated.dailyBuckets where isWithin(day: day, cutoffDayKey: cutoffDayKey) {
-                totals.sessionIds.formUnion(bucket.sessionIds)
-                totals.input += bucket.input
-                totals.output += bucket.output
-                totals.cacheCreation += bucket.cacheCreation
-                totals.cacheRead += bucket.cacheRead
-                for (model, modelTotals) in bucket.perModel {
-                    totals.modelTotals[model, default: ModelTokenTotals()].merge(modelTotals)
-                }
-                if let project {
-                    totals.projectTotals[project, default: ProjectTokenTotals()].merge(ProjectTokenTotals(
-                        input: bucket.input,
-                        output: bucket.output,
-                        cacheCreation: bucket.cacheCreation,
-                        cacheRead: bucket.cacheRead
-                    ))
-                }
-            }
+            processFile(fileURL, projectsDir: projectsDir, cutoffDayKey: cutoffDayKey, store: &store, totals: &totals)
         }
 
         return totals
+    }
+
+    private static func processFile(
+        _ fileURL: URL,
+        projectsDir: URL,
+        cutoffDayKey: String?,
+        store: inout TranscriptCacheStore,
+        totals: inout TranscriptTotals
+    ) {
+        guard let resourceValues = try? fileURL.resourceValues(
+            forKeys: [.contentModificationDateKey, .fileSizeKey]
+        ),
+            let mtime = resourceValues.contentModificationDate,
+            let size = resourceValues.fileSize else {
+            return
+        }
+
+        let path = fileURL.path
+        let project = projectKey(forTranscriptAt: fileURL, projectsDir: projectsDir)
+        let updated = updatedCache(
+            existing: store.files[path],
+            fileURL: fileURL,
+            mtime: mtime,
+            size: Int64(size),
+            pathSessionId: sessionId(forTranscriptAt: fileURL, projectsDir: projectsDir)
+        )
+        store.files[path] = updated
+
+        if let project, let cwd = updated.discoveredCwd, totals.projectDisplayNames[project] == nil {
+            totals.projectDisplayNames[project] = cwd
+        }
+
+        for (day, bucket) in updated.dailyBuckets where isWithin(day: day, cutoffDayKey: cutoffDayKey) {
+            totals.sessionIds.formUnion(bucket.sessionIds)
+            totals.input += bucket.input
+            totals.output += bucket.output
+            totals.cacheCreation += bucket.cacheCreation
+            totals.cacheRead += bucket.cacheRead
+            for (model, modelTotals) in bucket.perModel {
+                totals.modelTotals[model, default: ModelTokenTotals()].merge(modelTotals)
+            }
+            if let project {
+                totals.projectTotals[project, default: ProjectTokenTotals()].merge(ProjectTokenTotals(
+                    input: bucket.input,
+                    output: bucket.output,
+                    cacheCreation: bucket.cacheCreation,
+                    cacheRead: bucket.cacheRead
+                ))
+            }
+        }
     }
 
     /// Fully resolves symlinks via `realpath(3)`, unlike `URL.resolvingSymlinksInPath()` which
@@ -277,32 +287,42 @@ enum TranscriptCache {
                 continue
             }
 
-            // Entries with no parsable timestamp fall back to the file's own mtime's day rather
-            // than being dropped — matches the "don't silently lose tokens" stance elsewhere in
-            // this parser, adapted to a model that needs a concrete day to bucket into.
-            let entryDate = entry.timestamp.flatMap(parseISO8601) ?? mtimeFallback(for: fileURL)
-            let key = dayKey(for: entryDate)
-
-            var bucket = buckets[key] ?? DayAggregate()
-            bucket.sessionIds.insert(resolvedSessionId)
-            bucket.input += usage.inputTokens ?? 0
-            bucket.output += usage.outputTokens ?? 0
-            bucket.cacheCreation += usage.cacheCreationTokens ?? 0
-            bucket.cacheRead += usage.cacheReadTokens ?? 0
-
-            if let model = entry.message?.model, model != syntheticModelMarker {
-                bucket.perModel[model, default: ModelTokenTotals()].merge(ModelTokenTotals(
-                    input: usage.inputTokens ?? 0,
-                    output: usage.outputTokens ?? 0,
-                    cacheCreation: usage.cacheCreationTokens ?? 0,
-                    cacheRead: usage.cacheReadTokens ?? 0
-                ))
-            }
-
-            buckets[key] = bucket
+            recordAssistantEntry(entry, usage: usage, resolvedSessionId: resolvedSessionId, fileURL: fileURL, into: &buckets)
         }
 
         return (buckets, byteOffset + Int64(data.count), discoveredCwd)
+    }
+
+    private static func recordAssistantEntry(
+        _ entry: SessionEntry,
+        usage: TokenUsage,
+        resolvedSessionId: String,
+        fileURL: URL,
+        into buckets: inout [String: DayAggregate]
+    ) {
+        // Entries with no parsable timestamp fall back to the file's own mtime's day rather
+        // than being dropped — matches the "don't silently lose tokens" stance elsewhere in
+        // this parser, adapted to a model that needs a concrete day to bucket into.
+        let entryDate = entry.timestamp.flatMap(parseISO8601) ?? mtimeFallback(for: fileURL)
+        let key = dayKey(for: entryDate)
+
+        var bucket = buckets[key] ?? DayAggregate()
+        bucket.sessionIds.insert(resolvedSessionId)
+        bucket.input += usage.inputTokens ?? 0
+        bucket.output += usage.outputTokens ?? 0
+        bucket.cacheCreation += usage.cacheCreationTokens ?? 0
+        bucket.cacheRead += usage.cacheReadTokens ?? 0
+
+        if let model = entry.message?.model, model != syntheticModelMarker {
+            bucket.perModel[model, default: ModelTokenTotals()].merge(ModelTokenTotals(
+                input: usage.inputTokens ?? 0,
+                output: usage.outputTokens ?? 0,
+                cacheCreation: usage.cacheCreationTokens ?? 0,
+                cacheRead: usage.cacheReadTokens ?? 0
+            ))
+        }
+
+        buckets[key] = bucket
     }
 
     private static func mtimeFallback(for fileURL: URL) -> Date {
