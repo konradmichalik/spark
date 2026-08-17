@@ -176,17 +176,31 @@ struct UsageData: Sendable {
 
 // MARK: - Usage History
 
-struct UsageSnapshot: Codable, Identifiable, Sendable {
+struct UsageSnapshot: Codable, Identifiable, Equatable, Sendable {
     let id: UUID
     let timestamp: Date
     let sessionUtilization: Double
     let weeklyUtilization: Double
+    /// Optional so snapshots written before these fields existed still decode.
+    let sonnetUtilization: Double?
+    let opusUtilization: Double?
+    let extraUsageSpend: Double?
 
-    init(timestamp: Date = Date(), sessionUtilization: Double, weeklyUtilization: Double) {
+    init(
+        timestamp: Date = Date(),
+        sessionUtilization: Double,
+        weeklyUtilization: Double,
+        sonnetUtilization: Double? = nil,
+        opusUtilization: Double? = nil,
+        extraUsageSpend: Double? = nil
+    ) {
         self.id = UUID()
         self.timestamp = timestamp
         self.sessionUtilization = sessionUtilization
         self.weeklyUtilization = weeklyUtilization
+        self.sonnetUtilization = sonnetUtilization
+        self.opusUtilization = opusUtilization
+        self.extraUsageSpend = extraUsageSpend
     }
 }
 

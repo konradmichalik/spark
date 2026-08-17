@@ -283,13 +283,35 @@ final class ModelsTests: XCTestCase {
     // MARK: - UsageSnapshot
 
     func testUsageSnapshotCodable() throws {
-        let snapshot = UsageSnapshot(sessionUtilization: 42.0, weeklyUtilization: 65.0)
+        let snapshot = UsageSnapshot(
+            sessionUtilization: 42.0,
+            weeklyUtilization: 65.0,
+            sonnetUtilization: 10.0,
+            opusUtilization: 20.0,
+            extraUsageSpend: 1.5
+        )
         let data = try JSONEncoder().encode(snapshot)
         let decoded = try JSONDecoder().decode(UsageSnapshot.self, from: data)
 
         XCTAssertEqual(decoded.sessionUtilization, 42.0)
         XCTAssertEqual(decoded.weeklyUtilization, 65.0)
+        XCTAssertEqual(decoded.sonnetUtilization, 10.0)
+        XCTAssertEqual(decoded.opusUtilization, 20.0)
+        XCTAssertEqual(decoded.extraUsageSpend, 1.5)
         XCTAssertEqual(decoded.id, snapshot.id)
+    }
+
+    func testUsageSnapshotDecodesLegacyJSONMissingNewerFields() throws {
+        let legacyJSON = """
+        {"id":"\(UUID().uuidString)","timestamp":\(Date().timeIntervalSinceReferenceDate),\
+        "sessionUtilization":42.0,"weeklyUtilization":65.0}
+        """
+        let decoded = try JSONDecoder().decode(UsageSnapshot.self, from: Data(legacyJSON.utf8))
+
+        XCTAssertEqual(decoded.sessionUtilization, 42.0)
+        XCTAssertNil(decoded.sonnetUtilization)
+        XCTAssertNil(decoded.opusUtilization)
+        XCTAssertNil(decoded.extraUsageSpend)
     }
 
     // MARK: - SessionProjection
