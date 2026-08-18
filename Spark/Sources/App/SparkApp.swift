@@ -76,6 +76,7 @@ struct SparkApp: App {
                 hasLaunched = true
                 state.onLaunch()
             }
+            .background(MenuBarWindowTopPinner())
         } label: {
             MenuBarLabel(state: state)
         }
