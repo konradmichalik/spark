@@ -3,6 +3,9 @@ import Foundation
 // MARK: - Helpers
 
 func formatTokenCount(_ count: Int) -> String {
+    if count >= 1_000_000_000 {
+        return String(format: "%.1fB", Double(count) / 1_000_000_000)
+    }
     if count >= 1_000_000 {
         return String(format: "%.1fM", Double(count) / 1_000_000)
     }
@@ -39,12 +42,27 @@ struct LiveStats: Sendable {
     let sessionCount: Int
     let inputTokens: Int
     let outputTokens: Int
+    let cacheCreationTokens: Int
+    let cacheReadTokens: Int
 
-    var totalTokens: Int { inputTokens + outputTokens }
+    var totalTokens: Int { inputTokens + outputTokens + cacheCreationTokens + cacheReadTokens }
 
     var formattedTokens: String {
         formatTokenCount(totalTokens)
     }
+
+    var tokenBreakdown: String {
+        "Input \(formatTokenCount(inputTokens)) · Output \(formatTokenCount(outputTokens)) · " +
+        "Cache write \(formatTokenCount(cacheCreationTokens)) · Cache read \(formatTokenCount(cacheReadTokens))"
+    }
+}
+
+/// Structured identifier pair used by `LiveStatsParser.TokenDeduplicator`. A concatenated string
+/// key (e.g. `"\(messageId):\(requestId)"`) can collide for distinct pairs whose fields themselves
+/// contain the separator, so the fields are hashed independently instead.
+private struct DedupKey: Hashable {
+    let messageId: String
+    let requestId: String
 }
 
 enum LiveStatsParser {
@@ -56,47 +74,87 @@ enum LiveStatsParser {
         let message: SessionMessage?
         let timestamp: String?
         let sessionId: String?
+        let requestId: String?
     }
 
     private struct SessionMessage: Decodable {
+        let id: String?
         let role: String?
         let usage: TokenUsage?
+    }
+
+    /// Skips assistant entries that share a `(message.id, requestId)` pair already seen in this
+    /// scan. Claude Code writes duplicate usage-bearing entries for a single response (one per
+    /// streamed block, e.g. text + tool_use), each carrying the identical `usage` payload — left
+    /// unfiltered, a response streamed as N entries is counted N times.
+    struct TokenDeduplicator {
+        private var seenKeys: Set<DedupKey> = []
+
+        /// Entries missing either field are always counted, so an unexpected schema change
+        /// doesn't silently drop their tokens instead of merely failing to dedupe them.
+        mutating func shouldCount(messageId: String?, requestId: String?) -> Bool {
+            guard let messageId, let requestId else { return true }
+            return seenKeys.insert(DedupKey(messageId: messageId, requestId: requestId)).inserted
+        }
     }
 
     private struct TokenUsage: Decodable {
         let inputTokens: Int?
         let outputTokens: Int?
+        let cacheCreationTokens: Int?
+        let cacheReadTokens: Int?
         // swiftlint:disable:next nesting
         enum CodingKeys: String, CodingKey {
             case inputTokens = "input_tokens"
             case outputTokens = "output_tokens"
+            case cacheCreationTokens = "cache_creation_input_tokens"
+            case cacheReadTokens = "cache_read_input_tokens"
         }
     }
 
     static func parseStats(period: StatsPeriod) -> LiveStats? {
-        let claudeDir = FileManager.default.homeDirectoryForCurrentUser
-            .appendingPathComponent(".claude")
-        return parseStats(period: period, claudeDir: claudeDir)
+        let roots = ClaudeConfigDirectory.resolveCurrent().roots
+        return aggregateStats(period: period, roots: roots)
     }
 
     /// Exposed with an explicit `claudeDir` so tests can point it at a fixture tree instead of
     /// the real `~/.claude`.
     static func parseStats(period: StatsPeriod, claudeDir: URL) -> LiveStats? {
-        // history.jsonl only ever backs the user-message count — it records interactive
-        // prompts, not the sessions or tokens Claude Code actually spent (see #46).
-        let historyURL = claudeDir.appendingPathComponent("history.jsonl")
-        let messageCount = parseMessageCount(url: historyURL, period: period)
+        aggregateStats(period: period, roots: [claudeDir])
+    }
 
-        let transcripts = parseTranscripts(claudeDir: claudeDir, cutoff: period.startDate)
+    private static func aggregateStats(period: StatsPeriod, roots: [URL]) -> LiveStats? {
+        var messageCount = 0
+        var sessionIds: Set<String> = []
+        var totalInput = 0
+        var totalOutput = 0
+        var totalCacheCreation = 0
+        var totalCacheRead = 0
 
-        guard messageCount > 0 || !transcripts.sessionIds.isEmpty else { return nil }
+        for claudeDir in roots {
+            // history.jsonl only ever backs the user-message count — it records interactive
+            // prompts, not the sessions or tokens Claude Code actually spent (see #46).
+            let historyURL = claudeDir.appendingPathComponent("history.jsonl")
+            messageCount += parseMessageCount(url: historyURL, period: period)
+
+            let transcripts = parseTranscripts(claudeDir: claudeDir, cutoff: period.startDate)
+            sessionIds.formUnion(transcripts.sessionIds)
+            totalInput += transcripts.input
+            totalOutput += transcripts.output
+            totalCacheCreation += transcripts.cacheCreation
+            totalCacheRead += transcripts.cacheRead
+        }
+
+        guard messageCount > 0 || !sessionIds.isEmpty else { return nil }
 
         return LiveStats(
             period: period,
             messageCount: messageCount,
-            sessionCount: transcripts.sessionIds.count,
-            inputTokens: transcripts.input,
-            outputTokens: transcripts.output
+            sessionCount: sessionIds.count,
+            inputTokens: totalInput,
+            outputTokens: totalOutput,
+            cacheCreationTokens: totalCacheCreation,
+            cacheReadTokens: totalCacheRead
         )
     }
 
@@ -143,7 +201,7 @@ enum LiveStatsParser {
     private static func parseTranscripts(
         claudeDir: URL,
         cutoff: Date?
-    ) -> (sessionIds: Set<String>, input: Int, output: Int) {
+    ) -> (sessionIds: Set<String>, input: Int, output: Int, cacheCreation: Int, cacheRead: Int) {
         // swiftlint:enable large_tuple
         // `FileManager.enumerator` fully resolves symlinks in the paths it yields (e.g. macOS's
         // `/var` -> `/private/var`), while `URL.resolvingSymlinksInPath()` deliberately leaves
@@ -156,12 +214,15 @@ enum LiveStatsParser {
             includingPropertiesForKeys: nil,
             options: [.skipsHiddenFiles]
         ) else {
-            return ([], 0, 0)
+            return ([], 0, 0, 0, 0)
         }
 
         var sessionIds: Set<String> = []
         var totalInput = 0
         var totalOutput = 0
+        var totalCacheCreation = 0
+        var totalCacheRead = 0
+        var dedup = TokenDeduplicator()
 
         for case let fileURL as URL in enumerator where fileURL.pathExtension == "jsonl" {
             guard let data = try? Data(contentsOf: fileURL),
@@ -181,15 +242,18 @@ enum LiveStatsParser {
                 sessionIds.insert(resolvedSessionId)
 
                 guard entry.message?.role == "assistant",
-                      let usage = entry.message?.usage else {
+                      let usage = entry.message?.usage,
+                      dedup.shouldCount(messageId: entry.message?.id, requestId: entry.requestId) else {
                     continue
                 }
                 totalInput += usage.inputTokens ?? 0
                 totalOutput += usage.outputTokens ?? 0
+                totalCacheCreation += usage.cacheCreationTokens ?? 0
+                totalCacheRead += usage.cacheReadTokens ?? 0
             }
         }
 
-        return (sessionIds, totalInput, totalOutput)
+        return (sessionIds, totalInput, totalOutput, totalCacheCreation, totalCacheRead)
     }
 
     /// Fully resolves symlinks via `realpath(3)`, unlike `URL.resolvingSymlinksInPath()` which
