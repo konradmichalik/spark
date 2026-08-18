@@ -50,6 +50,12 @@ actor LiveTranscriptCache {
             for (model, totals) in result.modelTotals {
                 combined.modelTotals[model, default: ModelTokenTotals()].merge(totals)
             }
+            for (project, totals) in result.projectTotals {
+                combined.projectTotals[project, default: ProjectTokenTotals()].merge(totals)
+            }
+            for (project, cwd) in result.projectDisplayNames where combined.projectDisplayNames[project] == nil {
+                combined.projectDisplayNames[project] = cwd
+            }
         }
 
         store = current

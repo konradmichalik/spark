@@ -27,6 +27,7 @@ enum TranscriptCache {
         let timestamp: String?
         let sessionId: String?
         let requestId: String?
+        let cwd: String?
     }
 
     struct SessionMessage: Decodable {
@@ -92,6 +93,13 @@ enum TranscriptCache {
         }
     }
 
+    /// The encoded project directory name a transcript file lives under — the first path
+    /// component under `projects/`, for both session files and their subagent transcripts.
+    static func projectKey(forTranscriptAt url: URL, projectsDir: URL) -> String? {
+        let relative = Array(url.pathComponents.dropFirst(projectsDir.pathComponents.count))
+        return relative.count >= 2 ? relative[0] : nil
+    }
+
     /// Scans every transcript under `claudeDir/projects`, updating `store` in place, and returns
     /// totals filtered to `cutoff` (`nil` = all-time). Files whose cache entry already matches
     /// their on-disk mtime/size are never opened.
@@ -127,6 +135,7 @@ enum TranscriptCache {
             }
 
             let path = fileURL.path
+            let project = projectKey(forTranscriptAt: fileURL, projectsDir: projectsDir)
             let updated = updatedCache(
                 existing: store.files[path],
                 fileURL: fileURL,
@@ -136,19 +145,35 @@ enum TranscriptCache {
             )
             store.files[path] = updated
 
+            if let project, let cwd = updated.discoveredCwd, totals.projectDisplayNames[project] == nil {
+                totals.projectDisplayNames[project] = cwd
+            }
+
             for (day, bucket) in updated.dailyBuckets where isWithin(day: day, cutoffDayKey: cutoffDayKey) {
-                totals.sessionIds.formUnion(bucket.sessionIds)
-                totals.input += bucket.input
-                totals.output += bucket.output
-                totals.cacheCreation += bucket.cacheCreation
-                totals.cacheRead += bucket.cacheRead
-                for (model, modelTotals) in bucket.perModel {
-                    totals.modelTotals[model, default: ModelTokenTotals()].merge(modelTotals)
-                }
+                accumulate(bucket: bucket, project: project, into: &totals)
             }
         }
 
         return totals
+    }
+
+    private static func accumulate(bucket: DayAggregate, project: String?, into totals: inout TranscriptTotals) {
+        totals.sessionIds.formUnion(bucket.sessionIds)
+        totals.input += bucket.input
+        totals.output += bucket.output
+        totals.cacheCreation += bucket.cacheCreation
+        totals.cacheRead += bucket.cacheRead
+        for (model, modelTotals) in bucket.perModel {
+            totals.modelTotals[model, default: ModelTokenTotals()].merge(modelTotals)
+        }
+        if let project {
+            totals.projectTotals[project, default: ProjectTokenTotals()].merge(ProjectTokenTotals(
+                input: bucket.input,
+                output: bucket.output,
+                cacheCreation: bucket.cacheCreation,
+                cacheRead: bucket.cacheRead
+            ))
+        }
     }
 
     /// Fully resolves symlinks via `realpath(3)`, unlike `URL.resolvingSymlinksInPath()` which
@@ -194,7 +219,8 @@ enum TranscriptCache {
                 size: size,
                 parsedByteOffset: appended.offset,
                 dailyBuckets: mergedBuckets,
-                seenDedupKeys: appended.seenDedupKeys
+                seenDedupKeys: appended.seenDedupKeys,
+                discoveredCwd: existing.discoveredCwd ?? appended.discoveredCwd
             )
         }
 
@@ -206,7 +232,8 @@ enum TranscriptCache {
             size: size,
             parsedByteOffset: full.offset,
             dailyBuckets: full.buckets,
-            seenDedupKeys: full.seenDedupKeys
+            seenDedupKeys: full.seenDedupKeys,
+            discoveredCwd: full.discoveredCwd
         )
     }
 
@@ -221,9 +248,11 @@ enum TranscriptCache {
         from byteOffset: Int64,
         pathSessionId: String?,
         seenDedupKeys: Set<DedupKey>
-    ) -> (buckets: [String: DayAggregate], offset: Int64, seenDedupKeys: Set<DedupKey>) {
+    ) -> (buckets: [String: DayAggregate], offset: Int64, seenDedupKeys: Set<DedupKey>, discoveredCwd: String?) {
         // swiftlint:enable large_tuple
-        guard let handle = try? FileHandle(forReadingFrom: fileURL) else { return ([:], byteOffset, seenDedupKeys) }
+        guard let handle = try? FileHandle(forReadingFrom: fileURL) else {
+            return ([:], byteOffset, seenDedupKeys, nil)
+        }
         defer { try? handle.close() }
 
         let data: Data?
@@ -231,59 +260,81 @@ enum TranscriptCache {
             try handle.seek(toOffset: UInt64(byteOffset))
             data = try handle.readToEnd()
         } catch {
-            return ([:], byteOffset, seenDedupKeys)
+            return ([:], byteOffset, seenDedupKeys, nil)
         }
 
-        guard let data, !data.isEmpty else { return ([:], byteOffset, seenDedupKeys) }
+        guard let data, !data.isEmpty else { return ([:], byteOffset, seenDedupKeys, nil) }
 
         // No complete line anywhere in this read — leave the offset untouched so the whole,
         // still-unterminated chunk is retried next scan.
-        guard let lastNewline = data.lastIndex(of: UInt8(ascii: "\n")) else { return ([:], byteOffset, seenDedupKeys) }
-
-        let complete = data[data.startIndex...lastNewline]
-        guard let content = String(data: complete, encoding: .utf8) else { return ([:], byteOffset, seenDedupKeys) }
-
-        let lines = content.components(separatedBy: "\n")
-        var buckets: [String: DayAggregate] = [:]
-        var dedup = TokenDeduplicator(seenKeys: seenDedupKeys)
-
-        for line in lines {
-            guard !line.isEmpty,
-                  let lineData = line.data(using: .utf8),
-                  let entry = try? JSONDecoder().decode(SessionEntry.self, from: lineData),
-                  let resolvedSessionId = pathSessionId ?? entry.sessionId else {
-                continue
-            }
-
-            // Entries with no parsable timestamp fall back to the file's own mtime's day rather
-            // than being dropped — matches the "don't silently lose tokens" stance elsewhere in
-            // this parser, adapted to a model that needs a concrete day to bucket into.
-            let entryDate = entry.timestamp.flatMap(parseISO8601) ?? mtimeFallback(for: fileURL)
-            let key = dayKey(for: entryDate)
-
-            var bucket = buckets[key] ?? DayAggregate()
-            // Session-ID resolution must not be gated behind the same guard as token
-            // aggregation: a transcript with only a user record, or an assistant record
-            // without usage yet, is still a real session and must be counted.
-            bucket.sessionIds.insert(resolvedSessionId)
-
-            guard entry.message?.role == "assistant",
-                  let usage = entry.message?.usage,
-                  dedup.shouldCount(messageId: entry.message?.id, requestId: entry.requestId) else {
-                buckets[key] = bucket
-                continue
-            }
-            bucket.input += usage.inputTokens ?? 0
-            bucket.output += usage.outputTokens ?? 0
-            bucket.cacheCreation += usage.cacheCreationTokens ?? 0
-            bucket.cacheRead += usage.cacheReadTokens ?? 0
-
-            applyModelAttribution(to: &bucket, entry: entry, usage: usage)
-
-            buckets[key] = bucket
+        guard let lastNewline = data.lastIndex(of: UInt8(ascii: "\n")) else {
+            return ([:], byteOffset, seenDedupKeys, nil)
         }
 
-        return (buckets, byteOffset + Int64(complete.count), dedup.seenKeys)
+        let complete = data[data.startIndex...lastNewline]
+        guard let content = String(data: complete, encoding: .utf8) else {
+            return ([:], byteOffset, seenDedupKeys, nil)
+        }
+
+        let lines = content.components(separatedBy: "\n")
+        var state = LineParseState(dedup: TokenDeduplicator(seenKeys: seenDedupKeys))
+
+        for line in lines {
+            processLine(line, fileURL: fileURL, pathSessionId: pathSessionId, state: &state)
+        }
+
+        return (state.buckets, byteOffset + Int64(complete.count), state.dedup.seenKeys, state.discoveredCwd)
+    }
+
+    /// Mutable state threaded through one file's line-by-line parse.
+    private struct LineParseState {
+        var buckets: [String: DayAggregate] = [:]
+        var dedup: TokenDeduplicator
+        var discoveredCwd: String?
+    }
+
+    /// Decodes one line and folds it into `state.buckets`. Session-ID resolution must not be
+    /// gated behind the same guard as token aggregation: a transcript with only a user record, or
+    /// an assistant record without usage yet, is still a real session and must be counted. `cwd`
+    /// can appear on any entry type, not only assistant messages, so it's captured independently.
+    private static func processLine(_ line: String, fileURL: URL, pathSessionId: String?, state: inout LineParseState) {
+        guard !line.isEmpty,
+              let lineData = line.data(using: .utf8),
+              let entry = try? JSONDecoder().decode(SessionEntry.self, from: lineData) else {
+            return
+        }
+
+        if state.discoveredCwd == nil, let cwd = entry.cwd, !cwd.isEmpty {
+            state.discoveredCwd = cwd
+        }
+
+        guard let resolvedSessionId = pathSessionId ?? entry.sessionId else {
+            return
+        }
+
+        // Entries with no parsable timestamp fall back to the file's own mtime's day rather
+        // than being dropped — matches the "don't silently lose tokens" stance elsewhere in
+        // this parser, adapted to a model that needs a concrete day to bucket into.
+        let entryDate = entry.timestamp.flatMap(parseISO8601) ?? mtimeFallback(for: fileURL)
+        let key = dayKey(for: entryDate)
+
+        var bucket = state.buckets[key] ?? DayAggregate()
+        bucket.sessionIds.insert(resolvedSessionId)
+
+        guard entry.message?.role == "assistant",
+              let usage = entry.message?.usage,
+              state.dedup.shouldCount(messageId: entry.message?.id, requestId: entry.requestId) else {
+            state.buckets[key] = bucket
+            return
+        }
+        bucket.input += usage.inputTokens ?? 0
+        bucket.output += usage.outputTokens ?? 0
+        bucket.cacheCreation += usage.cacheCreationTokens ?? 0
+        bucket.cacheRead += usage.cacheReadTokens ?? 0
+
+        applyModelAttribution(to: &bucket, entry: entry, usage: usage)
+
+        state.buckets[key] = bucket
     }
 
     /// Attributes `usage` to the entry's model in `bucket.perModel`, unless the entry came from
