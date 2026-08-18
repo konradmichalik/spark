@@ -11,7 +11,7 @@
 <p align="center">
   <a href="https://konradmichalik.github.io/spark/"><img src="https://img.shields.io/badge/Website-konradmichalik.github.io%2Fspark-d97757" alt="Website"></a>
   <img src="https://img.shields.io/badge/macOS-14%2B-blue" alt="macOS 14+">
-  <img src="https://img.shields.io/badge/Swift-5.9-orange" alt="Swift 5.9">
+  <img src="https://img.shields.io/badge/Swift-6.0-orange" alt="Swift 6.0">
   <img src="https://img.shields.io/badge/license-MIT-green" alt="License">
 </p>
 
@@ -33,13 +33,13 @@
 
 - **Usage ring** in the menu bar that fills based on current usage — ring color shifts green → orange → red as you approach your limit
 - **Account tier badge** showing your plan (Pro, Max, Team, etc.) directly in the popover header
-- **Session, Weekly, Sonnet & Opus usage** with progress bars and countdown timers to the next reset, plus a pay-as-you-go extra-usage line when you exceed plan limits
+- **Session, Weekly, Sonnet & Opus usage** with progress bars, countdown timers to the next reset, a pace marker showing whether you're tracking ahead of or behind an even-pace budget, and a pay-as-you-go extra-usage line when you exceed plan limits
 - **Session projection** that estimates whether you'll hit the limit before the reset window closes
-- **Usage history graph** with time-proportional rendering, hover tooltips, and selectable ranges (1h / 6h / 1d / 7d / 30d)
-- **Today's stats** — message count, session count, and token totals at a glance
+- **Usage history graph** with two modes — **Limits** (time-proportional utilization line chart, selectable 1h–30d) and **Volume** (daily token bar chart from permanent history, 7d/30d) — both with hover tooltips
+- **Stats for any period** (Today / 7d / 30d / All) — message count, session count, token totals, local per-model (Sonnet/Opus) attribution, and a collapsible **Top Projects** breakdown by token volume
 - **Claude service status** pulled from `status.anthropic.com` — only surfaces when there's an active incident
 - **Native notifications** for warning thresholds, critical levels, limit resets, and service incidents
-- **Smart refresh** that adapts polling from 5 min (active) down to 30 min (idle) and snaps back instantly when usage changes
+- **Smart refresh** that reacts to your actual Claude Code activity — watches your transcripts directly and snaps back to active polling the moment you start working, instead of waiting for the next scheduled check
 - **Customizable icon** — Minimal, Dot, or Logo style; colored or monochrome
 - **Auto-connect** via Claude Code CLI credentials from macOS Keychain
 
@@ -111,7 +111,7 @@ Click the icon to open the detailed popover with usage stats, the history graph,
 | Sleep | 30 min | No change for 10+ cycles |
 
 > [!TIP]
-> Smart refresh drops back to **Active** instantly the moment a usage change is detected, so you never miss a spike.
+> Smart refresh drops back to **Active** instantly the moment it detects a change — either in your reported usage percentage, or in your local Claude Code transcripts, which Spark watches directly. Local activity is the faster signal in practice: it fires the moment you start a new message, not just when the next poll happens to notice a changed percentage.
 
 ## 🐛 Troubleshooting
 

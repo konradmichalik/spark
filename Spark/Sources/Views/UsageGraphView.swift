@@ -21,14 +21,23 @@ enum GraphTimeRange: String, CaseIterable {
         }
     }
 
-    /// Rollups have no resolution below a day — sub-day ranges would render an empty Volume
-    /// chart rather than being meaningful, so Volume mode only offers these.
-    static let dayGranularityCases: [GraphTimeRange] = [.oneDay, .sevenDays, .thirtyDays]
+    /// Rollups have no resolution below a day, and a single day is a single bar — neither is
+    /// meaningful as a Volume chart, so Volume mode only offers ranges that plot more than one.
+    static let dayGranularityCases: [GraphTimeRange] = [.sevenDays, .thirtyDays]
 }
 
 enum GraphMode: String, CaseIterable {
     case limits = "Limits"
     case volume = "Volume"
+
+    /// Icon-only segmented control labels — the full words don't fit on one line alongside the
+    /// "History" label and the time-range buttons at the popover's 300pt width.
+    var iconName: String {
+        switch self {
+        case .limits: "chart.line.uptrend.xyaxis"
+        case .volume: "chart.bar.xaxis"
+        }
+    }
 }
 
 struct UsageGraphView: View {
@@ -40,8 +49,10 @@ struct UsageGraphView: View {
     @State private var hoverTarget: GraphHoverTarget?
     @State private var canvasWidth: CGFloat = 0
 
-    private var availableTimeRanges: [GraphTimeRange] {
-        graphMode == .volume ? GraphTimeRange.dayGranularityCases : GraphTimeRange.allCases
+    private var availableTimeRanges: [GraphTimeRange] { availableTimeRanges(for: graphMode) }
+
+    private func availableTimeRanges(for mode: GraphMode) -> [GraphTimeRange] {
+        mode == .volume ? GraphTimeRange.dayGranularityCases : GraphTimeRange.allCases
     }
 
     /// Maximum gap (seconds) before we assume the app was inactive — anything longer
@@ -91,11 +102,6 @@ struct UsageGraphView: View {
             }
         }
         .onChange(of: timeRange) { hoverTarget = nil }
-        .onChange(of: graphMode) {
-            if !availableTimeRanges.contains(timeRange) {
-                timeRange = .sevenDays
-            }
-        }
     }
 
     private var yAxisLabels: some View {
@@ -126,6 +132,11 @@ struct UsageGraphView: View {
 
     // MARK: - Header
 
+    /// The mode toggle is icon-only (see `GraphMode.iconName`) rather than spelling out
+    /// "Limits"/"Volume" — that's what keeps the label, the toggle, and all five time-range
+    /// buttons (`1h`…`30d`) fitting on one row within the popover's 300pt width. With the full
+    /// words, this row would overflow, and since none of these views have a fixed size, SwiftUI
+    /// would resolve the overflow by wrapping each button's text mid-word.
     private var header: some View {
         HStack {
             HStack(spacing: 4) {
@@ -137,14 +148,38 @@ struct UsageGraphView: View {
                     .foregroundColor(.secondary)
             }
 
-            Picker("", selection: $graphMode) {
+            HStack(spacing: 2) {
                 ForEach(GraphMode.allCases, id: \.self) { mode in
-                    Text(mode.rawValue).tag(mode)
+                    Button {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            graphMode = mode
+                            // Corrected in the same update as the mode switch, not via a
+                            // follow-up `.onChange` — that leaves one render in between where
+                            // the mode has switched but the time range hasn't, and Volume's
+                            // rollup lookup treats an unadjusted sub-day range as "no data for
+                            // today," flashing the empty state before the real chart appears.
+                            if !availableTimeRanges(for: mode).contains(timeRange) {
+                                timeRange = .sevenDays
+                            }
+                        }
+                    } label: {
+                        Image(systemName: mode.iconName)
+                            .font(.system(size: 10, weight: graphMode == mode ? .semibold : .regular))
+                            .foregroundColor(graphMode == mode ? .primary : .secondary)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(
+                                graphMode == mode
+                                    ? Color.primary.opacity(0.1)
+                                    : Color.clear
+                            )
+                            .cornerRadius(4)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(mode.rawValue)
+                    .help(mode.rawValue)
                 }
             }
-            .pickerStyle(.segmented)
-            .labelsHidden()
-            .frame(width: 110)
 
             Spacer()
 

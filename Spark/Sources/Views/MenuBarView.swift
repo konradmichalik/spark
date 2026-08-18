@@ -88,40 +88,51 @@ struct MenuBarView: View {
 
                 // Sonnet Usage
                 if state.showSonnetUsage {
-                    let sonnet = state.usageData.weeklySonnet ?? .zero
-                    UsageRow(
-                        label: "Sonnet (Weekly)",
-                        utilization: sonnet.utilization,
-                        resetTime: sonnet.timeUntilReset,
-                        resetDate: sonnet.resetsAtDate,
-                        warningThreshold: state.warningThreshold,
-                        criticalThreshold: state.criticalThreshold,
-                        localTokens: formattedLocalTokens(state.liveStats, family: .sonnet),
-                        pace: Pace.calculate(
+                    // `weeklySonnet` is nil when the account's plan doesn't report a
+                    // Sonnet-specific weekly quota — falling back to a zeroed bucket there would
+                    // draw an empty 0% bar that reads as "no usage" when it actually means "no
+                    // such quota to measure against." Local token attribution, unlike the quota,
+                    // always exists independently, so it's shown as a plain line instead.
+                    if let sonnet = state.usageData.weeklySonnet {
+                        UsageRow(
+                            label: "Sonnet (Weekly)",
                             utilization: sonnet.utilization,
-                            resetsAt: sonnet.resetsAtDate,
-                            windowLength: Self.sevenDays
+                            resetTime: sonnet.timeUntilReset,
+                            resetDate: sonnet.resetsAtDate,
+                            warningThreshold: state.warningThreshold,
+                            criticalThreshold: state.criticalThreshold,
+                            localTokens: formattedLocalTokens(state.liveStats, family: .sonnet),
+                            pace: Pace.calculate(
+                                utilization: sonnet.utilization,
+                                resetsAt: sonnet.resetsAtDate,
+                                windowLength: Self.sevenDays
+                            )
                         )
-                    )
+                    } else if let localTokens = formattedLocalTokens(state.liveStats, family: .sonnet) {
+                        LocalOnlyUsageRow(label: "Sonnet", localTokens: localTokens)
+                    }
                 }
 
                 // Opus Usage
                 if state.showOpusUsage {
-                    let opus = state.usageData.weeklyOpus ?? .zero
-                    UsageRow(
-                        label: "Opus (Weekly)",
-                        utilization: opus.utilization,
-                        resetTime: opus.timeUntilReset,
-                        resetDate: opus.resetsAtDate,
-                        warningThreshold: state.warningThreshold,
-                        criticalThreshold: state.criticalThreshold,
-                        localTokens: formattedLocalTokens(state.liveStats, family: .opus),
-                        pace: Pace.calculate(
+                    if let opus = state.usageData.weeklyOpus {
+                        UsageRow(
+                            label: "Opus (Weekly)",
                             utilization: opus.utilization,
-                            resetsAt: opus.resetsAtDate,
-                            windowLength: Self.sevenDays
+                            resetTime: opus.timeUntilReset,
+                            resetDate: opus.resetsAtDate,
+                            warningThreshold: state.warningThreshold,
+                            criticalThreshold: state.criticalThreshold,
+                            localTokens: formattedLocalTokens(state.liveStats, family: .opus),
+                            pace: Pace.calculate(
+                                utilization: opus.utilization,
+                                resetsAt: opus.resetsAtDate,
+                                windowLength: Self.sevenDays
+                            )
                         )
-                    )
+                    } else if let localTokens = formattedLocalTokens(state.liveStats, family: .opus) {
+                        LocalOnlyUsageRow(label: "Opus", localTokens: localTokens)
+                    }
                 }
 
                 if state.usageData.session == nil && state.lastError == nil && !state.isLoading {
@@ -210,13 +221,9 @@ struct MenuBarView: View {
                     liveStats: state.liveStats,
                     period: state.statsPeriod,
                     isLoading: state.isLoadingStats,
+                    showProjectBreakdown: state.showProjectBreakdown,
                     onSelectPeriod: state.setStatsPeriod
                 )
-            }
-
-            // Top Projects
-            if state.showProjectBreakdown {
-                ProjectBreakdownRow(liveStats: state.liveStats)
             }
 
             // Mini Graph
@@ -280,6 +287,7 @@ struct StatsRow: View {
     let liveStats: LiveStats?
     let period: StatsPeriod
     let isLoading: Bool
+    let showProjectBreakdown: Bool
     let onSelectPeriod: (StatsPeriod) -> Void
 
     var body: some View {
@@ -291,6 +299,10 @@ struct StatsRow: View {
                     StatsLine(label: "Messages", value: "\(live.messageCount)")
                     StatsLine(label: "Sessions", value: "\(live.sessionCount)")
                     StatsLine(label: "Tokens", value: live.formattedTokens, tooltip: live.tokenBreakdown)
+
+                    if showProjectBreakdown {
+                        ProjectBreakdownDisclosure(liveStats: live)
+                    }
                 }
             }
             .opacity(isLoading ? 0.5 : 1)
@@ -353,62 +365,107 @@ private struct StatsLine: View {
     }
 }
 
-// MARK: - Project Breakdown Row
+// MARK: - Project Breakdown Disclosure
 
-/// Top projects by token volume for the currently selected Stats period. Always shows the top
-/// three at a fixed height (rule 2: the popover must stay readable without scrolling); anything
-/// beyond that sits behind a native disclosure so opening it never surprises with a variable-size
-/// section.
-struct ProjectBreakdownRow: View {
-    let liveStats: LiveStats?
+/// Top projects by token volume for the currently selected Stats period, nested inside the Stats
+/// card rather than as its own section — the ranking already tracks whichever period is
+/// selected above it, so visually it reads as one more Stats line rather than an unrelated block.
+/// Collapsed by default: unlike the always-visible Messages/Sessions/Tokens lines, a project
+/// breakdown is the kind of detail someone drills into occasionally, not on every glance.
+private struct ProjectBreakdownDisclosure: View {
+    let liveStats: LiveStats
     @State private var isExpanded = false
+    @State private var showAll = false
+
+    /// Beyond this, the list keeps growing with the number of distinct projects in the period
+    /// (up to dozens on `All`) — loading only this many by default keeps the common case cheap
+    /// to render, with the rest a single tap away via "Show all".
+    private static let collapsedLimit = 5
+    /// Bounds the fully-expanded list's height once "Show all" is tapped, so a period with many
+    /// projects scrolls internally instead of growing the popover without limit.
+    private static let scrollCapHeight: CGFloat = 160
+    private static let animation = Animation.easeInOut(duration: 0.2)
 
     private var ranked: [ProjectUsage] {
-        guard let liveStats else { return [] }
-        return liveStats.topProjects(limit: liveStats.projectTotals.count)
+        liveStats.topProjects(limit: liveStats.projectTotals.count)
     }
 
-    private var topThree: [ProjectUsage] { Array(ranked.prefix(3)) }
-    private var remaining: [ProjectUsage] { Array(ranked.dropFirst(3)) }
-    private var maxTokens: Int { topThree.first?.tokens ?? 1 }
+    private var maxTokens: Int { ranked.first?.tokens ?? 1 }
 
     var body: some View {
-        if !topThree.isEmpty {
-            VStack(alignment: .leading, spacing: 4) {
+        if !ranked.isEmpty {
+            VStack(alignment: .leading, spacing: 0) {
                 header
-
-                ForEach(topThree) { project in
-                    ProjectLine(project: project, maxTokens: maxTokens)
-                }
-
-                if !remaining.isEmpty {
-                    DisclosureGroup(isExpanded: $isExpanded) {
-                        VStack(alignment: .leading, spacing: 4) {
-                            ForEach(remaining) { project in
-                                ProjectLine(project: project, maxTokens: maxTokens)
-                            }
-                        }
+                if isExpanded {
+                    content
                         .padding(.top, 4)
-                    } label: {
-                        Text("\(remaining.count) more")
-                            .font(.caption2)
-                            .foregroundColor(.secondary)
-                    }
                 }
             }
-
-            Divider()
+            .padding(.top, 2)
         }
     }
 
+    /// A `Button` rather than `.onTapGesture` — a tap gesture exposes no keyboard focus or
+    /// activation on macOS, which would leave keyboard-only and VoiceOver users unable to expand
+    /// this section at all. The full row — icon, label, and trailing chevron — is one tap target
+    /// via `contentShape`, not just the label text, so clicking anywhere across its width works.
     private var header: some View {
-        HStack(spacing: 4) {
-            Image(systemName: "folder")
-                .font(.caption2)
-                .foregroundColor(claudeOrange)
-            Text("Top Projects")
-                .font(.caption2)
-                .foregroundColor(.secondary)
+        Button {
+            withAnimation(Self.animation) {
+                isExpanded.toggle()
+            }
+        } label: {
+            HStack(spacing: 4) {
+                Image(systemName: "folder")
+                    .font(.caption2)
+                    .foregroundColor(claudeOrange)
+                Text("Top Projects")
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 8, weight: .semibold))
+                    .foregroundColor(.secondary)
+                    .rotationEffect(.degrees(isExpanded ? 90 : 0))
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityValue(isExpanded ? "Expanded" : "Collapsed")
+    }
+
+    @ViewBuilder
+    private var content: some View {
+        if showAll {
+            ScrollView {
+                projectList(ranked)
+            }
+            .frame(maxHeight: Self.scrollCapHeight)
+        } else {
+            VStack(alignment: .leading, spacing: 4) {
+                projectList(Array(ranked.prefix(Self.collapsedLimit)))
+
+                if ranked.count > Self.collapsedLimit {
+                    Button {
+                        withAnimation(Self.animation) {
+                            showAll = true
+                        }
+                    } label: {
+                        Text("Show all \(ranked.count)")
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+    }
+
+    private func projectList(_ projects: [ProjectUsage]) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            ForEach(projects) { project in
+                ProjectLine(project: project, maxTokens: maxTokens)
+            }
         }
     }
 }
@@ -444,6 +501,35 @@ private struct ProjectLine: View {
                 }
             }
             .frame(height: 3)
+        }
+    }
+}
+
+// MARK: - Local-Only Usage Row
+
+/// Shown instead of `UsageRow` when the API doesn't report a Sonnet/Opus-specific weekly quota
+/// for this account's plan — a bare label plus the local token count, with no percentage or bar
+/// implying a quota that doesn't exist.
+struct LocalOnlyUsageRow: View {
+    let label: String
+    let localTokens: String
+
+    private var iconName: String {
+        label == "Sonnet" ? "wand.and.stars" : "chart.bar.fill"
+    }
+
+    var body: some View {
+        HStack(spacing: 4) {
+            Image(systemName: iconName)
+                .font(.caption2)
+                .foregroundColor(claudeOrange)
+            Text(label)
+                .font(.caption)
+                .foregroundColor(.secondary)
+            Text("· \(localTokens) local")
+                .font(.caption2)
+                .foregroundColor(.secondary)
+            Spacer()
         }
     }
 }

@@ -393,6 +393,17 @@ a:hover { color: var(--accent-hover); }
 .pop-stat-row .label { color: rgba(255,255,255,0.55); }
 .pop-stat-row .value { color: rgba(255,255,255,0.85); font-weight: 500; font-variant-numeric: tabular-nums; }
 
+.pop-projects-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: rgba(255,255,255,0.4);
+  margin-top: 2px;
+}
+
+.pop-projects-row .chevron { margin-left: auto; }
+
 .pop-chart {
   position: relative;
   height: 110px;
@@ -425,6 +436,24 @@ a:hover { color: var(--accent-hover); }
   color: rgba(255,255,255,0.2);
   margin-top: 2px;
   padding-right: 30px;
+}
+
+.pop-mode-toggle {
+  display: flex;
+  gap: 2px;
+}
+
+.pop-mode-tab {
+  display: flex;
+  align-items: center;
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: rgba(255,255,255,0.35);
+}
+
+.pop-mode-tab.active {
+  background: rgba(255,255,255,0.12);
+  color: rgba(255,255,255,0.75);
 }
 
 .pop-range-tabs {
@@ -548,6 +577,8 @@ a:hover { color: var(--accent-hover); }
 .icon-bell { background: rgba(180,142,173,0.1); color: #b48ead; }
 .icon-key { background: rgba(136,192,208,0.1); color: #88c0d0; }
 .icon-stats { background: rgba(208,135,112,0.1); color: #d08770; }
+.icon-pace { background: rgba(191,97,106,0.1); color: #bf616a; }
+.icon-folder { background: rgba(94,129,172,0.1); color: #5e81ac; }
 
 /* ─── Install ─── */
 .install {
@@ -764,6 +795,8 @@ a:hover { color: var(--accent-hover); }
 .features-grid .feature-card:nth-child(4) { transition-delay: 0.24s; }
 .features-grid .feature-card:nth-child(5) { transition-delay: 0.32s; }
 .features-grid .feature-card:nth-child(6) { transition-delay: 0.40s; }
+.features-grid .feature-card:nth-child(7) { transition-delay: 0.48s; }
+.features-grid .feature-card:nth-child(8) { transition-delay: 0.56s; }
 
 /* ─── Responsive ─── */
 @media (max-width: 640px) {
