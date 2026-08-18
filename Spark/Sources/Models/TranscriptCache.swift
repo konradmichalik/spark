@@ -250,19 +250,24 @@ enum TranscriptCache {
             bucket.cacheCreation += usage.cacheCreationTokens ?? 0
             bucket.cacheRead += usage.cacheReadTokens ?? 0
 
-            if let model = entry.message?.model, model != syntheticModelMarker {
-                bucket.perModel[model, default: ModelTokenTotals()].merge(ModelTokenTotals(
-                    input: usage.inputTokens ?? 0,
-                    output: usage.outputTokens ?? 0,
-                    cacheCreation: usage.cacheCreationTokens ?? 0,
-                    cacheRead: usage.cacheReadTokens ?? 0
-                ))
-            }
+            applyModelAttribution(to: &bucket, entry: entry, usage: usage)
 
             buckets[key] = bucket
         }
 
         return (buckets, byteOffset + Int64(data.count))
+    }
+
+    /// Attributes `usage` to the entry's model in `bucket.perModel`, unless the entry came from
+    /// `syntheticModelMarker` (locally generated, not billable inference).
+    private static func applyModelAttribution(to bucket: inout DayAggregate, entry: SessionEntry, usage: TokenUsage) {
+        guard let model = entry.message?.model, model != syntheticModelMarker else { return }
+        bucket.perModel[model, default: ModelTokenTotals()].merge(ModelTokenTotals(
+            input: usage.inputTokens ?? 0,
+            output: usage.outputTokens ?? 0,
+            cacheCreation: usage.cacheCreationTokens ?? 0,
+            cacheRead: usage.cacheReadTokens ?? 0
+        ))
     }
 
     private static func mtimeFallback(for fileURL: URL) -> Date {
