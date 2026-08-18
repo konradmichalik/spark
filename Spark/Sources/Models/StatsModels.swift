@@ -68,12 +68,12 @@ private struct DedupKey: Hashable {
 enum LiveStatsParser {
     private struct HistoryEntry: Decodable {
         let timestamp: Double
-        let sessionId: String?
     }
 
     private struct SessionEntry: Decodable {
         let message: SessionMessage?
         let timestamp: String?
+        let sessionId: String?
         let requestId: String?
     }
 
@@ -114,7 +114,16 @@ enum LiveStatsParser {
 
     static func parseStats(period: StatsPeriod) -> LiveStats? {
         let roots = ClaudeConfigDirectory.resolveCurrent().roots
+        return aggregateStats(period: period, roots: roots)
+    }
 
+    /// Exposed with an explicit `claudeDir` so tests can point it at a fixture tree instead of
+    /// the real `~/.claude`.
+    static func parseStats(period: StatsPeriod, claudeDir: URL) -> LiveStats? {
+        aggregateStats(period: period, roots: [claudeDir])
+    }
+
+    private static func aggregateStats(period: StatsPeriod, roots: [URL]) -> LiveStats? {
         var messageCount = 0
         var sessionIds: Set<String> = []
         var totalInput = 0
@@ -123,19 +132,20 @@ enum LiveStatsParser {
         var totalCacheRead = 0
 
         for claudeDir in roots {
+            // history.jsonl only ever backs the user-message count — it records interactive
+            // prompts, not the sessions or tokens Claude Code actually spent (see #46).
             let historyURL = claudeDir.appendingPathComponent("history.jsonl")
-            let history = parseHistoryCounts(url: historyURL, period: period)
-            messageCount += history.messages
-            sessionIds.formUnion(history.sessionIds)
+            messageCount += parseMessageCount(url: historyURL, period: period)
 
-            let tokens = parseTokenCounts(claudeDir: claudeDir, sessionIds: history.sessionIds, cutoff: period.startDate)
-            totalInput += tokens.input
-            totalOutput += tokens.output
-            totalCacheCreation += tokens.cacheCreation
-            totalCacheRead += tokens.cacheRead
+            let transcripts = parseTranscripts(claudeDir: claudeDir, cutoff: period.startDate)
+            sessionIds.formUnion(transcripts.sessionIds)
+            totalInput += transcripts.input
+            totalOutput += transcripts.output
+            totalCacheCreation += transcripts.cacheCreation
+            totalCacheRead += transcripts.cacheRead
         }
 
-        guard messageCount > 0 else { return nil }
+        guard messageCount > 0 || !sessionIds.isEmpty else { return nil }
 
         return LiveStats(
             period: period,
@@ -148,20 +158,14 @@ enum LiveStatsParser {
         )
     }
 
-    // swiftlint:disable large_tuple
-    private static func parseHistoryCounts(
-        url: URL,
-        period: StatsPeriod
-    ) -> (messages: Int, sessions: Int, sessionIds: Set<String>) {
-        // swiftlint:enable large_tuple
+    private static func parseMessageCount(url: URL, period: StatsPeriod) -> Int {
         guard let data = try? Data(contentsOf: url),
               let content = String(data: data, encoding: .utf8) else {
-            return (0, 0, [])
+            return 0
         }
 
         let startTimestamp = (period.startDate?.timeIntervalSince1970 ?? 0) * 1000
         var messageCount = 0
-        var sessionIds: Set<String> = []
 
         for line in content.components(separatedBy: "\n").reversed() {
             guard !line.isEmpty,
@@ -171,62 +175,95 @@ enum LiveStatsParser {
             }
             if entry.timestamp < startTimestamp { break }
             messageCount += 1
-            if let sid = entry.sessionId {
-                sessionIds.insert(sid)
-            }
         }
 
-        return (messageCount, sessionIds.count, sessionIds)
+        return messageCount
+    }
+
+    /// Derives the session a transcript file belongs to, from its path relative to `projects/`.
+    /// A session file's stem IS the session ID (`<project>/<uuid>.jsonl`). A subagent file's
+    /// stem is an agent identifier, not a session (`<project>/<uuid>/subagents/agent-*.jsonl`) —
+    /// its session is the directory two levels up. Returns `nil` for any other shape, so callers
+    /// can fall back to the entry's own `sessionId` field.
+    static func sessionId(forTranscriptAt url: URL, projectsDir: URL) -> String? {
+        let relative = Array(url.pathComponents.dropFirst(projectsDir.pathComponents.count))
+        switch relative.count {
+        case 2 where relative[1].hasSuffix(".jsonl"):
+            return String(relative[1].dropLast(".jsonl".count))
+        case 4 where relative[2] == "subagents":
+            return relative[1]
+        default:
+            return nil
+        }
     }
 
     // swiftlint:disable large_tuple
-    private static func parseTokenCounts(
+    private static func parseTranscripts(
         claudeDir: URL,
-        sessionIds: Set<String>,
         cutoff: Date?
-    ) -> (input: Int, output: Int, cacheCreation: Int, cacheRead: Int) {
+    ) -> (sessionIds: Set<String>, input: Int, output: Int, cacheCreation: Int, cacheRead: Int) {
         // swiftlint:enable large_tuple
-        let projectsDir = claudeDir.appendingPathComponent("projects")
-        guard let projectDirs = try? FileManager.default.contentsOfDirectory(
-            at: projectsDir, includingPropertiesForKeys: nil
+        // `FileManager.enumerator` fully resolves symlinks in the paths it yields (e.g. macOS's
+        // `/var` -> `/private/var`), while `URL.resolvingSymlinksInPath()` deliberately leaves
+        // BSD alias roots like `/var` and `/tmp` unresolved. Left unreconciled, the two disagree
+        // on path-component count, breaking `sessionId(forTranscriptAt:)`'s depth-based
+        // resolution — resolve with `realpath(3)` up front so both sides agree.
+        let projectsDir = resolvedPath(claudeDir.appendingPathComponent("projects"))
+        guard let enumerator = FileManager.default.enumerator(
+            at: projectsDir,
+            includingPropertiesForKeys: nil,
+            options: [.skipsHiddenFiles]
         ) else {
-            return (0, 0, 0, 0)
+            return ([], 0, 0, 0, 0)
         }
 
+        var sessionIds: Set<String> = []
         var totalInput = 0
         var totalOutput = 0
         var totalCacheCreation = 0
         var totalCacheRead = 0
         var dedup = TokenDeduplicator()
 
-        for dir in projectDirs {
-            for sessionId in sessionIds {
-                let jsonlURL = dir.appendingPathComponent("\(sessionId).jsonl")
-                guard FileManager.default.fileExists(atPath: jsonlURL.path),
-                      let data = try? Data(contentsOf: jsonlURL),
-                      let content = String(data: data, encoding: .utf8) else {
+        for case let fileURL as URL in enumerator where fileURL.pathExtension == "jsonl" {
+            guard let data = try? Data(contentsOf: fileURL),
+                  let content = String(data: data, encoding: .utf8) else {
+                continue
+            }
+            let pathSessionId = sessionId(forTranscriptAt: fileURL, projectsDir: projectsDir)
+
+            for line in content.components(separatedBy: "\n") {
+                guard !line.isEmpty,
+                      let lineData = line.data(using: .utf8),
+                      let entry = try? JSONDecoder().decode(SessionEntry.self, from: lineData),
+                      isOnOrAfter(cutoff: cutoff, timestamp: entry.timestamp),
+                      let resolvedSessionId = pathSessionId ?? entry.sessionId else {
                     continue
                 }
+                sessionIds.insert(resolvedSessionId)
 
-                for line in content.components(separatedBy: "\n") {
-                    guard !line.isEmpty,
-                          let lineData = line.data(using: .utf8),
-                          let entry = try? JSONDecoder().decode(SessionEntry.self, from: lineData),
-                          entry.message?.role == "assistant",
-                          let usage = entry.message?.usage,
-                          isOnOrAfter(cutoff: cutoff, timestamp: entry.timestamp),
-                          dedup.shouldCount(messageId: entry.message?.id, requestId: entry.requestId) else {
-                        continue
-                    }
-                    totalInput += usage.inputTokens ?? 0
-                    totalOutput += usage.outputTokens ?? 0
-                    totalCacheCreation += usage.cacheCreationTokens ?? 0
-                    totalCacheRead += usage.cacheReadTokens ?? 0
+                guard entry.message?.role == "assistant",
+                      let usage = entry.message?.usage,
+                      dedup.shouldCount(messageId: entry.message?.id, requestId: entry.requestId) else {
+                    continue
                 }
+                totalInput += usage.inputTokens ?? 0
+                totalOutput += usage.outputTokens ?? 0
+                totalCacheCreation += usage.cacheCreationTokens ?? 0
+                totalCacheRead += usage.cacheReadTokens ?? 0
             }
         }
 
-        return (totalInput, totalOutput, totalCacheCreation, totalCacheRead)
+        return (sessionIds, totalInput, totalOutput, totalCacheCreation, totalCacheRead)
+    }
+
+    /// Fully resolves symlinks via `realpath(3)`, unlike `URL.resolvingSymlinksInPath()` which
+    /// intentionally preserves BSD alias roots (`/var`, `/tmp`, `/etc`). Falls back to the
+    /// original URL if the path doesn't exist yet (e.g. no `projects/` directory at all) — the
+    /// enumerator guard right after this call handles that case.
+    private static func resolvedPath(_ url: URL) -> URL {
+        var buffer = [Int8](repeating: 0, count: Int(PATH_MAX))
+        guard realpath(url.path, &buffer) != nil else { return url }
+        return URL(fileURLWithPath: String(cString: buffer))
     }
 
     /// Whether a session message falls on or after `cutoff`. Messages with no cutoff (`.all`
