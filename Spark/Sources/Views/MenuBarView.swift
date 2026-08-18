@@ -405,28 +405,33 @@ private struct ProjectBreakdownDisclosure: View {
         }
     }
 
-    /// The full row — icon, label, and trailing chevron — is one tap target via `contentShape`,
-    /// not just the label text, so clicking anywhere across the row's width toggles it.
+    /// A `Button` rather than `.onTapGesture` — a tap gesture exposes no keyboard focus or
+    /// activation on macOS, which would leave keyboard-only and VoiceOver users unable to expand
+    /// this section at all. The full row — icon, label, and trailing chevron — is one tap target
+    /// via `contentShape`, not just the label text, so clicking anywhere across its width works.
     private var header: some View {
-        HStack(spacing: 4) {
-            Image(systemName: "folder")
-                .font(.caption2)
-                .foregroundColor(claudeOrange)
-            Text("Top Projects")
-                .font(.caption2)
-                .foregroundColor(.secondary)
-            Spacer()
-            Image(systemName: "chevron.right")
-                .font(.system(size: 8, weight: .semibold))
-                .foregroundColor(.secondary)
-                .rotationEffect(.degrees(isExpanded ? 90 : 0))
-        }
-        .contentShape(Rectangle())
-        .onTapGesture {
+        Button {
             withAnimation(Self.animation) {
                 isExpanded.toggle()
             }
+        } label: {
+            HStack(spacing: 4) {
+                Image(systemName: "folder")
+                    .font(.caption2)
+                    .foregroundColor(claudeOrange)
+                Text("Top Projects")
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 8, weight: .semibold))
+                    .foregroundColor(.secondary)
+                    .rotationEffect(.degrees(isExpanded ? 90 : 0))
+            }
+            .contentShape(Rectangle())
         }
+        .buttonStyle(.plain)
+        .accessibilityValue(isExpanded ? "Expanded" : "Collapsed")
     }
 
     @ViewBuilder
