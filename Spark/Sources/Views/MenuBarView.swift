@@ -88,40 +88,51 @@ struct MenuBarView: View {
 
                 // Sonnet Usage
                 if state.showSonnetUsage {
-                    let sonnet = state.usageData.weeklySonnet ?? .zero
-                    UsageRow(
-                        label: "Sonnet (Weekly)",
-                        utilization: sonnet.utilization,
-                        resetTime: sonnet.timeUntilReset,
-                        resetDate: sonnet.resetsAtDate,
-                        warningThreshold: state.warningThreshold,
-                        criticalThreshold: state.criticalThreshold,
-                        localTokens: formattedLocalTokens(state.liveStats, family: .sonnet),
-                        pace: Pace.calculate(
+                    // `weeklySonnet` is nil when the account's plan doesn't report a
+                    // Sonnet-specific weekly quota — falling back to a zeroed bucket there would
+                    // draw an empty 0% bar that reads as "no usage" when it actually means "no
+                    // such quota to measure against." Local token attribution, unlike the quota,
+                    // always exists independently, so it's shown as a plain line instead.
+                    if let sonnet = state.usageData.weeklySonnet {
+                        UsageRow(
+                            label: "Sonnet (Weekly)",
                             utilization: sonnet.utilization,
-                            resetsAt: sonnet.resetsAtDate,
-                            windowLength: Self.sevenDays
+                            resetTime: sonnet.timeUntilReset,
+                            resetDate: sonnet.resetsAtDate,
+                            warningThreshold: state.warningThreshold,
+                            criticalThreshold: state.criticalThreshold,
+                            localTokens: formattedLocalTokens(state.liveStats, family: .sonnet),
+                            pace: Pace.calculate(
+                                utilization: sonnet.utilization,
+                                resetsAt: sonnet.resetsAtDate,
+                                windowLength: Self.sevenDays
+                            )
                         )
-                    )
+                    } else if let localTokens = formattedLocalTokens(state.liveStats, family: .sonnet) {
+                        LocalOnlyUsageRow(label: "Sonnet", localTokens: localTokens)
+                    }
                 }
 
                 // Opus Usage
                 if state.showOpusUsage {
-                    let opus = state.usageData.weeklyOpus ?? .zero
-                    UsageRow(
-                        label: "Opus (Weekly)",
-                        utilization: opus.utilization,
-                        resetTime: opus.timeUntilReset,
-                        resetDate: opus.resetsAtDate,
-                        warningThreshold: state.warningThreshold,
-                        criticalThreshold: state.criticalThreshold,
-                        localTokens: formattedLocalTokens(state.liveStats, family: .opus),
-                        pace: Pace.calculate(
+                    if let opus = state.usageData.weeklyOpus {
+                        UsageRow(
+                            label: "Opus (Weekly)",
                             utilization: opus.utilization,
-                            resetsAt: opus.resetsAtDate,
-                            windowLength: Self.sevenDays
+                            resetTime: opus.timeUntilReset,
+                            resetDate: opus.resetsAtDate,
+                            warningThreshold: state.warningThreshold,
+                            criticalThreshold: state.criticalThreshold,
+                            localTokens: formattedLocalTokens(state.liveStats, family: .opus),
+                            pace: Pace.calculate(
+                                utilization: opus.utilization,
+                                resetsAt: opus.resetsAtDate,
+                                windowLength: Self.sevenDays
+                            )
                         )
-                    )
+                    } else if let localTokens = formattedLocalTokens(state.liveStats, family: .opus) {
+                        LocalOnlyUsageRow(label: "Opus", localTokens: localTokens)
+                    }
                 }
 
                 if state.usageData.session == nil && state.lastError == nil && !state.isLoading {
@@ -444,6 +455,35 @@ private struct ProjectLine: View {
                 }
             }
             .frame(height: 3)
+        }
+    }
+}
+
+// MARK: - Local-Only Usage Row
+
+/// Shown instead of `UsageRow` when the API doesn't report a Sonnet/Opus-specific weekly quota
+/// for this account's plan — a bare label plus the local token count, with no percentage or bar
+/// implying a quota that doesn't exist.
+struct LocalOnlyUsageRow: View {
+    let label: String
+    let localTokens: String
+
+    private var iconName: String {
+        label == "Sonnet" ? "wand.and.stars" : "chart.bar.fill"
+    }
+
+    var body: some View {
+        HStack(spacing: 4) {
+            Image(systemName: iconName)
+                .font(.caption2)
+                .foregroundColor(claudeOrange)
+            Text(label)
+                .font(.caption)
+                .foregroundColor(.secondary)
+            Text("· \(localTokens) local")
+                .font(.caption2)
+                .foregroundColor(.secondary)
+            Spacer()
         }
     }
 }

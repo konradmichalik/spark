@@ -339,8 +339,11 @@ struct UsageRingsView: View {
             index += 1
         }
 
-        if showSonnet {
-            let sonnet = sonnet ?? .zero
+        // Unlike `session`/`weekly` above, `sonnet`/`opus` are only appended `if let` — falling
+        // back to a zeroed bucket here would draw a ring that always reads as 0% for any
+        // account whose plan doesn't report a Sonnet/Opus-specific weekly quota at all, which
+        // looks like real usage data rather than the absence of a quota to measure against.
+        if showSonnet, let sonnet {
             result.append(RingData(
                 label: "Sonnet (Weekly)",
                 utilization: sonnet.utilization,
@@ -352,8 +355,7 @@ struct UsageRingsView: View {
             index += 1
         }
 
-        if showOpus {
-            let opus = opus ?? .zero
+        if showOpus, let opus {
             result.append(RingData(
                 label: "Opus (Weekly)",
                 utilization: opus.utilization,
