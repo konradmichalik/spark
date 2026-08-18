@@ -113,30 +113,38 @@ enum LiveStatsParser {
     }
 
     static func parseStats(period: StatsPeriod) -> LiveStats? {
-        let claudeDir = FileManager.default.homeDirectoryForCurrentUser
-            .appendingPathComponent(".claude")
+        let roots = ClaudeConfigDirectory.resolveCurrent().roots
 
-        // 1. Parse history.jsonl for message/session counts
-        let historyURL = claudeDir.appendingPathComponent("history.jsonl")
-        let (messageCount, sessionCount, sessionIds) = parseHistoryCounts(url: historyURL, period: period)
+        var messageCount = 0
+        var sessionIds: Set<String> = []
+        var totalInput = 0
+        var totalOutput = 0
+        var totalCacheCreation = 0
+        var totalCacheRead = 0
 
-        // 2. Parse project JSONLs for token counts
-        let tokens = parseTokenCounts(
-            claudeDir: claudeDir,
-            sessionIds: sessionIds,
-            cutoff: period.startDate
-        )
+        for claudeDir in roots {
+            let historyURL = claudeDir.appendingPathComponent("history.jsonl")
+            let history = parseHistoryCounts(url: historyURL, period: period)
+            messageCount += history.messages
+            sessionIds.formUnion(history.sessionIds)
+
+            let tokens = parseTokenCounts(claudeDir: claudeDir, sessionIds: history.sessionIds, cutoff: period.startDate)
+            totalInput += tokens.input
+            totalOutput += tokens.output
+            totalCacheCreation += tokens.cacheCreation
+            totalCacheRead += tokens.cacheRead
+        }
 
         guard messageCount > 0 else { return nil }
 
         return LiveStats(
             period: period,
             messageCount: messageCount,
-            sessionCount: sessionCount,
-            inputTokens: tokens.input,
-            outputTokens: tokens.output,
-            cacheCreationTokens: tokens.cacheCreation,
-            cacheReadTokens: tokens.cacheRead
+            sessionCount: sessionIds.count,
+            inputTokens: totalInput,
+            outputTokens: totalOutput,
+            cacheCreationTokens: totalCacheCreation,
+            cacheReadTokens: totalCacheRead
         )
     }
 
