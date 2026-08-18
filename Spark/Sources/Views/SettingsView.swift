@@ -1,6 +1,7 @@
 // swiftlint:disable file_length
 import SwiftUI
 import ServiceManagement
+import UniformTypeIdentifiers
 @preconcurrency import UserNotifications
 
 // MARK: - Main Settings View
@@ -1025,6 +1026,7 @@ struct StatusTab: View {
 struct AboutTab: View {
     @EnvironmentObject var state: AppState
     @State private var updateState: UpdateCheckState = .idle
+    @State private var showClearRollupsConfirmation = false
 
     private var appVersion: String {
         Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.0.0"
@@ -1099,6 +1101,8 @@ struct AboutTab: View {
 
             updateCheckSection
 
+            rollupDataSection
+
             Spacer()
 
             Text("\u{00A9} 2026 Konrad Michalik")
@@ -1107,6 +1111,41 @@ struct AboutTab: View {
         }
         .frame(maxWidth: .infinity)
         .padding()
+    }
+
+    private var rollupDataSection: some View {
+        HStack(spacing: 8) {
+            Button("Export Rollups\u{2026}") {
+                exportRollups()
+            }
+            .buttonStyle(.bordered)
+            .disabled(state.rollups.isEmpty)
+
+            Button("Clear Rollups") {
+                showClearRollupsConfirmation = true
+            }
+            .buttonStyle(.bordered)
+            .disabled(state.rollups.isEmpty)
+        }
+        .confirmationDialog(
+            "Clear all rollup data?",
+            isPresented: $showClearRollupsConfirmation
+        ) {
+            Button("Clear Rollups", role: .destructive) {
+                state.clearRollups()
+            }
+        } message: {
+            Text("This permanently deletes daily token totals recorded beyond the transcript retention window. This cannot be undone.")
+        }
+    }
+
+    private func exportRollups() {
+        guard let data = state.exportRollupsJSON() else { return }
+        let panel = NSSavePanel()
+        panel.nameFieldStringValue = "spark-rollups.json"
+        panel.allowedContentTypes = [.json]
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        try? data.write(to: url)
     }
 
     @ViewBuilder

@@ -14,6 +14,7 @@ final class AppState: ObservableObject {
 
     @Published var usageData: UsageData = .empty
     @Published var history: [UsageSnapshot] = []
+    @Published var rollups: [String: DailyRollup] = [:]
     @Published var isLoading = false
     @Published var lastError: String?
     @Published var isAuthenticated = false
@@ -716,7 +717,10 @@ final class AppState: ObservableObject {
     private func addHistorySnapshot() {
         let snapshot = UsageSnapshot(
             sessionUtilization: usageData.sessionUtilization,
-            weeklyUtilization: usageData.weeklyUtilization
+            weeklyUtilization: usageData.weeklyUtilization,
+            sonnetUtilization: usageData.weeklySonnet?.utilization,
+            opusUtilization: usageData.weeklyOpus?.utilization,
+            extraUsageSpend: usageData.extraUsage?.spendAmount
         )
         history.append(snapshot)
         if history.count > maxHistoryEntries {
@@ -734,16 +738,37 @@ final class AppState: ObservableObject {
     }
 
     private func saveHistory() {
-        if let data = try? JSONEncoder().encode(history) {
-            try? data.write(to: historyFileURL)
-        }
+        let file = HistoryFile(schemaVersion: HistoryFile.currentSchemaVersion, snapshots: history, rollups: rollups)
+        HistoryPersistence.save(file, to: historyFileURL)
     }
 
     private func loadHistory() {
-        if let data = try? Data(contentsOf: historyFileURL),
-           let loaded = try? JSONDecoder().decode([UsageSnapshot].self, from: data) {
-            history = loaded
-        }
+        let file = HistoryPersistence.load(from: historyFileURL)
+        history = file.snapshots
+        rollups = file.rollups
+    }
+
+    /// Folds newly-closed days from the transcript cache into the permanent rollup store.
+    private func updateRollups() async {
+        let closedDays = await LiveTranscriptCache.shared.closedDayRollups()
+        let updated = DailyRollup.merging(closedDays, into: rollups)
+
+        guard updated.count != rollups.count else { return }
+        rollups = updated
+        saveHistory()
+    }
+
+    /// Rollups as pretty-printed JSON, for the Settings export action.
+    func exportRollupsJSON() -> Data? {
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+        return try? encoder.encode(rollups)
+    }
+
+    /// Clears all permanent rollups. Does not affect the snapshot ring buffer.
+    func clearRollups() {
+        rollups = [:]
+        saveHistory()
     }
 
     // MARK: - Stats
@@ -769,6 +794,9 @@ final class AppState: ObservableObject {
                 self.liveStats = stats
                 self.isLoadingStats = false
             }
+            // Runs after parseStats has warmed the transcript cache for this launch, so this
+            // never triggers its own scan.
+            await self.updateRollups()
         }
     }
 

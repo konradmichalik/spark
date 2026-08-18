@@ -62,4 +62,21 @@ actor LiveTranscriptCache {
         TranscriptCachePersistence.save(current)
         return combined
     }
+
+    /// Every calendar day strictly before today, merged across every cached file's day buckets —
+    /// the source data for permanent rollups. Reads whatever the cache currently holds (loading
+    /// from disk if this is the first call this launch) without triggering a fresh scan; call
+    /// `aggregate` first if the cache might be stale.
+    func closedDayRollups() -> [String: DayAggregate] {
+        let current = store ?? TranscriptCachePersistence.load()
+        let today = TranscriptCache.dayKey(for: Date())
+
+        var merged: [String: DayAggregate] = [:]
+        for file in current.files.values {
+            for (day, bucket) in file.dailyBuckets where day < today {
+                merged[day, default: DayAggregate()].merge(bucket)
+            }
+        }
+        return merged
+    }
 }

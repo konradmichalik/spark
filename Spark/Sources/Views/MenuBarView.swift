@@ -198,7 +198,7 @@ struct MenuBarView: View {
 
             // Mini Graph
             if state.showGraph, !state.history.isEmpty {
-                UsageGraphView(history: state.history)
+                UsageGraphView(history: state.history, rollups: state.rollups)
                 Divider()
             }
 

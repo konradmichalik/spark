@@ -12,6 +12,8 @@ enum Theme {
     /// History graph lines
     static let graphSession = sparkOrange
     static let graphWeekly = Color(nsColor: NSColor(red: 0.55, green: 0.60, blue: 0.67, alpha: 1))
+    static let graphSonnet = Color(hue: 0.80, saturation: 0.50, brightness: 0.80)
+    static let graphOpus = Color(hue: 0.12, saturation: 0.70, brightness: 0.85)
 
     /// Returns a distinct color per ring, based on utilization thresholds.
     /// ringIndex: 0 = outermost (Session), 1 = middle (Weekly), 2 = innermost (Sonnet)
