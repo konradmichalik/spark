@@ -38,13 +38,45 @@ final class StatsModelsTests: XCTestCase {
 
     // MARK: - LiveStats
 
-    func testTotalTokensSumsInputAndOutput() {
-        let stats = LiveStats(period: .today, messageCount: 5, sessionCount: 1, inputTokens: 100, outputTokens: 50)
-        XCTAssertEqual(stats.totalTokens, 150)
+    func testTotalTokensSumsAllFourFields() {
+        let stats = LiveStats(
+            period: .today,
+            messageCount: 5,
+            sessionCount: 1,
+            inputTokens: 100,
+            outputTokens: 50,
+            cacheCreationTokens: 20,
+            cacheReadTokens: 30
+        )
+        XCTAssertEqual(stats.totalTokens, 200)
     }
 
     func testFormattedTokensUsesCompactNotation() {
-        let stats = LiveStats(period: .all, messageCount: 1, sessionCount: 1, inputTokens: 1_200_000, outputTokens: 0)
+        let stats = LiveStats(
+            period: .all,
+            messageCount: 1,
+            sessionCount: 1,
+            inputTokens: 1_200_000,
+            outputTokens: 0,
+            cacheCreationTokens: 0,
+            cacheReadTokens: 0
+        )
         XCTAssertEqual(stats.formattedTokens, "1.2M")
+    }
+
+    func testFormattedTokensUsesBillionsNotation() {
+        // Reflects the normal shape of real Claude Code usage: cache reads dominate
+        // input/output by two orders of magnitude once prompt caching kicks in.
+        let stats = LiveStats(
+            period: .today,
+            messageCount: 1,
+            sessionCount: 1,
+            inputTokens: 53_166,
+            outputTokens: 13_663_194,
+            cacheCreationTokens: 57_110_168,
+            cacheReadTokens: 4_997_419_883
+        )
+        XCTAssertEqual(stats.totalTokens, 5_068_246_411)
+        XCTAssertEqual(stats.formattedTokens, "5.1B")
     }
 }
