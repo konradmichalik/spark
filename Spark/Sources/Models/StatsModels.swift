@@ -174,13 +174,16 @@ enum LiveStatsParser {
                 guard !line.isEmpty,
                       let lineData = line.data(using: .utf8),
                       let entry = try? JSONDecoder().decode(SessionEntry.self, from: lineData),
-                      entry.message?.role == "assistant",
-                      let usage = entry.message?.usage,
                       isOnOrAfter(cutoff: cutoff, timestamp: entry.timestamp),
                       let resolvedSessionId = pathSessionId ?? entry.sessionId else {
                     continue
                 }
                 sessionIds.insert(resolvedSessionId)
+
+                guard entry.message?.role == "assistant",
+                      let usage = entry.message?.usage else {
+                    continue
+                }
                 totalInput += usage.inputTokens ?? 0
                 totalOutput += usage.outputTokens ?? 0
             }
