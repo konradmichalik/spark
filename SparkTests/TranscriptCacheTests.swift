@@ -230,4 +230,38 @@ final class TranscriptCacheTests: XCTestCase {
         let loaded = TranscriptCachePersistence.load(from: tempDir.appendingPathComponent("does-not-exist.json"))
         XCTAssertEqual(loaded, TranscriptCacheStore.empty)
     }
+
+    // MARK: - Per-model breakdown
+
+    private func line(input: Int, output: Int, isoDate: String, messageId: String, model: String) -> String {
+        """
+        {"message":{"id":"\(messageId)","role":"assistant","model":"\(model)",\
+        "usage":{"input_tokens":\(input),"output_tokens":\(output)}},\
+        "timestamp":"\(isoDate)","requestId":"req_\(messageId)"}
+        """
+    }
+
+    func testPerModelBucketAttributesTokensToTheCorrectRawModelId() throws {
+        let content = line(input: 100, output: 0, isoDate: isoString(daysAgo: 0), messageId: "a", model: "claude-opus-5") + "\n" +
+            line(input: 30, output: 0, isoDate: isoString(daysAgo: 0), messageId: "b", model: "claude-sonnet-5") + "\n" +
+            line(input: 20, output: 0, isoDate: isoString(daysAgo: 0), messageId: "c", model: "claude-opus-5") + "\n"
+        try content.write(to: fileURL, atomically: false, encoding: .utf8)
+
+        var store = TranscriptCacheStore.empty
+        let result = TranscriptCache.aggregate(claudeDir: tempDir, cutoff: nil, store: &store)
+
+        XCTAssertEqual(result.modelTotals["claude-opus-5"]?.total, 120)
+        XCTAssertEqual(result.modelTotals["claude-sonnet-5"]?.total, 30)
+    }
+
+    func testSyntheticModelMarkerIsExcludedFromTheModelBreakdown() throws {
+        let content = line(input: 100, output: 0, isoDate: isoString(daysAgo: 0), messageId: "a", model: "<synthetic>") + "\n"
+        try content.write(to: fileURL, atomically: false, encoding: .utf8)
+
+        var store = TranscriptCacheStore.empty
+        let result = TranscriptCache.aggregate(claudeDir: tempDir, cutoff: nil, store: &store)
+
+        XCTAssertTrue(result.modelTotals.isEmpty)
+        XCTAssertEqual(result.input, 100, "the entry still counts toward overall totals — only the model breakdown excludes it")
+    }
 }

@@ -44,6 +44,29 @@ struct LiveStats: Sendable {
     let outputTokens: Int
     let cacheCreationTokens: Int
     let cacheReadTokens: Int
+    /// Total tokens per raw model ID (e.g. `claude-opus-4-6`). Kept raw here — grouping into
+    /// families and display normalisation happen only at the view layer, via `ModelFamily`.
+    let modelTotals: [String: Int]
+
+    init(
+        period: StatsPeriod,
+        messageCount: Int,
+        sessionCount: Int,
+        inputTokens: Int,
+        outputTokens: Int,
+        cacheCreationTokens: Int,
+        cacheReadTokens: Int,
+        modelTotals: [String: Int] = [:]
+    ) {
+        self.period = period
+        self.messageCount = messageCount
+        self.sessionCount = sessionCount
+        self.inputTokens = inputTokens
+        self.outputTokens = outputTokens
+        self.cacheCreationTokens = cacheCreationTokens
+        self.cacheReadTokens = cacheReadTokens
+        self.modelTotals = modelTotals
+    }
 
     var totalTokens: Int { inputTokens + outputTokens + cacheCreationTokens + cacheReadTokens }
 
@@ -54,6 +77,14 @@ struct LiveStats: Sendable {
     var tokenBreakdown: String {
         "Input \(formatTokenCount(inputTokens)) · Output \(formatTokenCount(outputTokens)) · " +
         "Cache write \(formatTokenCount(cacheCreationTokens)) · Cache read \(formatTokenCount(cacheReadTokens))"
+    }
+
+    /// Sum of tokens across every model in the given family — the local-attribution figure shown
+    /// next to the Sonnet/Opus API buckets.
+    func tokens(for family: ModelFamily) -> Int {
+        modelTotals.reduce(0) { partial, entry in
+            ModelFamily.family(forRawModelId: entry.key) == family ? partial + entry.value : partial
+        }
     }
 }
 
@@ -81,13 +112,11 @@ enum LiveStatsParser {
         return makeLiveStats(period: period, claudeDirs: [claudeDir], transcripts: transcripts)
     }
 
-    // swiftlint:disable large_tuple
     private static func makeLiveStats(
         period: StatsPeriod,
         claudeDirs: [URL],
-        transcripts: (sessionIds: Set<String>, input: Int, output: Int, cacheCreation: Int, cacheRead: Int)
+        transcripts: TranscriptTotals
     ) -> LiveStats? {
-        // swiftlint:enable large_tuple
         // history.jsonl only ever backs the user-message count — it records interactive
         // prompts, not the sessions or tokens Claude Code actually spent (see #46).
         let messageCount = claudeDirs.reduce(0) { total, claudeDir in
@@ -104,7 +133,8 @@ enum LiveStatsParser {
             inputTokens: transcripts.input,
             outputTokens: transcripts.output,
             cacheCreationTokens: transcripts.cacheCreation,
-            cacheReadTokens: transcripts.cacheRead
+            cacheReadTokens: transcripts.cacheRead,
+            modelTotals: transcripts.modelTotals.mapValues { $0.total }
         )
     }
 

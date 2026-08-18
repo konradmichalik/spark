@@ -80,6 +80,45 @@ final class StatsModelsTests: XCTestCase {
         XCTAssertEqual(stats.formattedTokens, "5.1B")
     }
 
+    // MARK: - Per-model token attribution
+
+    func testTokensForFamilySumsMatchingModelsOnly() {
+        let stats = LiveStats(
+            period: .today,
+            messageCount: 1,
+            sessionCount: 1,
+            inputTokens: 0,
+            outputTokens: 0,
+            cacheCreationTokens: 0,
+            cacheReadTokens: 0,
+            modelTotals: [
+                "claude-opus-4-6": 100,
+                "claude-opus-5": 50,
+                "claude-sonnet-5": 30,
+                "claude-haiku-4-5": 10
+            ]
+        )
+
+        XCTAssertEqual(stats.tokens(for: .opus), 150)
+        XCTAssertEqual(stats.tokens(for: .sonnet), 30)
+        XCTAssertEqual(stats.tokens(for: .other), 10)
+    }
+
+    func testTokensForFamilyIsZeroWhenNoModelsMatch() {
+        let stats = LiveStats(
+            period: .today,
+            messageCount: 1,
+            sessionCount: 1,
+            inputTokens: 0,
+            outputTokens: 0,
+            cacheCreationTokens: 0,
+            cacheReadTokens: 0,
+            modelTotals: ["claude-haiku-4-5": 10]
+        )
+
+        XCTAssertEqual(stats.tokens(for: .opus), 0)
+    }
+
     // MARK: - Assistant entry deduplication
 
     func testDeduplicatorCountsFirstOccurrence() {

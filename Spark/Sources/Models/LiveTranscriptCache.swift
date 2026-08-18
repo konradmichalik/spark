@@ -36,31 +36,24 @@ actor LiveTranscriptCache {
 
     private var store: TranscriptCacheStore?
 
-    // swiftlint:disable large_tuple
-    func aggregate(
-        claudeDirs: [URL],
-        cutoff: Date?
-    ) -> (sessionIds: Set<String>, input: Int, output: Int, cacheCreation: Int, cacheRead: Int) {
-        // swiftlint:enable large_tuple
+    func aggregate(claudeDirs: [URL], cutoff: Date?) -> TranscriptTotals {
         var current = store ?? TranscriptCachePersistence.load()
-
-        var sessionIds: Set<String> = []
-        var totalInput = 0
-        var totalOutput = 0
-        var totalCacheCreation = 0
-        var totalCacheRead = 0
+        var combined = TranscriptTotals()
 
         for claudeDir in claudeDirs {
             let result = TranscriptCache.aggregate(claudeDir: claudeDir, cutoff: cutoff, store: &current)
-            sessionIds.formUnion(result.sessionIds)
-            totalInput += result.input
-            totalOutput += result.output
-            totalCacheCreation += result.cacheCreation
-            totalCacheRead += result.cacheRead
+            combined.sessionIds.formUnion(result.sessionIds)
+            combined.input += result.input
+            combined.output += result.output
+            combined.cacheCreation += result.cacheCreation
+            combined.cacheRead += result.cacheRead
+            for (model, totals) in result.modelTotals {
+                combined.modelTotals[model, default: ModelTokenTotals()].merge(totals)
+            }
         }
 
         store = current
         TranscriptCachePersistence.save(current)
-        return (sessionIds, totalInput, totalOutput, totalCacheCreation, totalCacheRead)
+        return combined
     }
 }

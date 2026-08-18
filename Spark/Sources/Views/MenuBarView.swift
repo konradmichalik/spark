@@ -82,7 +82,8 @@ struct MenuBarView: View {
                         resetTime: sonnet.timeUntilReset,
                         resetDate: sonnet.resetsAtDate,
                         warningThreshold: state.warningThreshold,
-                        criticalThreshold: state.criticalThreshold
+                        criticalThreshold: state.criticalThreshold,
+                        localTokens: formattedLocalTokens(state.liveStats, family: .sonnet)
                     )
                 }
 
@@ -95,7 +96,8 @@ struct MenuBarView: View {
                         resetTime: opus.timeUntilReset,
                         resetDate: opus.resetsAtDate,
                         warningThreshold: state.warningThreshold,
-                        criticalThreshold: state.criticalThreshold
+                        criticalThreshold: state.criticalThreshold,
+                        localTokens: formattedLocalTokens(state.liveStats, family: .opus)
                     )
                 }
 
@@ -227,6 +229,14 @@ struct MenuBarView: View {
         .background(WindowResizer())
     }
 
+    /// Local token attribution for a model family, or `nil` when there's nothing to show —
+    /// omitted rather than rendered as "0" to avoid noise on every row that hasn't seen that
+    /// model in the currently selected Stats period.
+    private func formattedLocalTokens(_ liveStats: LiveStats?, family: ModelFamily) -> String? {
+        guard let tokens = liveStats?.tokens(for: family), tokens > 0 else { return nil }
+        return formatTokenCount(tokens)
+    }
+
     private func timeAgo(_ date: Date) -> String {
         let interval = Date().timeIntervalSince(date)
         if interval < 5 { return "just now" }
@@ -327,6 +337,9 @@ struct UsageRow: View {
     let warningThreshold: Double
     let criticalThreshold: Double
     var projection: ProjectionResult = .insufficientData
+    /// Local token attribution for this bucket's model family, shown alongside the label — see
+    /// `MenuBarView.formattedLocalTokens`. `nil` renders nothing, adding no vertical height.
+    var localTokens: String?
 
     private var iconName: String {
         if label.hasPrefix("Session") { return "bolt.fill" }
@@ -404,6 +417,12 @@ struct UsageRow: View {
                 Text(label)
                     .font(.caption)
                     .foregroundColor(.secondary)
+
+                if let localTokens {
+                    Text("· \(localTokens) local")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                }
 
                 if projectionTitle != nil {
                     Button(action: { showProjectionPopover.toggle() }, label: {
