@@ -302,10 +302,7 @@ enum TranscriptCache {
             guard !line.isEmpty,
                   let lineData = line.data(using: .utf8),
                   let entry = try? JSONDecoder().decode(SessionEntry.self, from: lineData),
-                  entry.message?.role == "assistant",
-                  let usage = entry.message?.usage,
-                  let resolvedSessionId = pathSessionId ?? entry.sessionId,
-                  dedup.shouldCount(messageId: entry.message?.id, requestId: entry.requestId) else {
+                  let resolvedSessionId = pathSessionId ?? entry.sessionId else {
                 continue
             }
 
@@ -316,7 +313,17 @@ enum TranscriptCache {
             let key = dayKey(for: entryDate)
 
             var bucket = buckets[key] ?? DayAggregate()
+            // Session-ID resolution must not be gated behind the same guard as token
+            // aggregation: a transcript with only a user record, or an assistant record
+            // without usage yet, is still a real session and must be counted.
             bucket.sessionIds.insert(resolvedSessionId)
+
+            guard entry.message?.role == "assistant",
+                  let usage = entry.message?.usage,
+                  dedup.shouldCount(messageId: entry.message?.id, requestId: entry.requestId) else {
+                buckets[key] = bucket
+                continue
+            }
             bucket.input += usage.inputTokens ?? 0
             bucket.output += usage.outputTokens ?? 0
             bucket.cacheCreation += usage.cacheCreationTokens ?? 0
@@ -342,55 +349,5 @@ enum TranscriptCache {
     static func dayKey(for date: Date, calendar: Calendar = .current) -> String {
         let components = calendar.dateComponents([.year, .month, .day], from: date)
         return String(format: "%04d-%02d-%02d", components.year ?? 0, components.month ?? 0, components.day ?? 0)
-    }
-}
-
-// MARK: - Persistence
-
-enum TranscriptCachePersistence {
-    static var defaultFileURL: URL {
-        // swiftlint:disable:next force_unwrapping
-        let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
-        let dir = appSupport.appendingPathComponent("Spark")
-        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-        return dir.appendingPathComponent("transcript-cache.json")
-    }
-
-    static func load(from url: URL = defaultFileURL) -> TranscriptCacheStore {
-        guard let data = try? Data(contentsOf: url),
-              let store = try? JSONDecoder().decode(TranscriptCacheStore.self, from: data),
-              store.schemaVersion == TranscriptCacheStore.currentSchemaVersion else {
-            return .empty
-        }
-        return store
-    }
-
-    static func save(_ store: TranscriptCacheStore, to url: URL = defaultFileURL) {
-        if let data = try? JSONEncoder().encode(store) {
-            try? data.write(to: url)
-        }
-    }
-}
-
-// MARK: - Concurrency-safe production entry point
-
-/// Serializes access to the shared in-memory + on-disk cache so overlapping stats refreshes
-/// (e.g. a rapid period switch while a broader-period scan is still running) can't race on it.
-actor LiveTranscriptCache {
-    static let shared = LiveTranscriptCache()
-
-    private var store: TranscriptCacheStore?
-
-    // swiftlint:disable large_tuple
-    func aggregate(
-        claudeDir: URL,
-        cutoff: Date?
-    ) -> (sessionIds: Set<String>, input: Int, output: Int, cacheCreation: Int, cacheRead: Int) {
-        // swiftlint:enable large_tuple
-        var current = store ?? TranscriptCachePersistence.load()
-        let result = TranscriptCache.aggregate(claudeDir: claudeDir, cutoff: cutoff, store: &current)
-        store = current
-        TranscriptCachePersistence.save(current)
-        return result
     }
 }
