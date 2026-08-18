@@ -45,13 +45,24 @@ struct DayAggregate: Codable, Equatable, Sendable {
 
 // MARK: - Per-file cache entry
 
-/// What's persisted for one transcript file: enough to detect whether it changed since the
-/// last scan, and where to resume parsing if it only grew (transcripts are append-only).
+/// Identifies one already-counted `(message.id, requestId)` pair, including across two separate
+/// incremental scans of the same file. A structured key rather than a colon-joined string, which
+/// risks two distinct pairs colliding if either component could itself contain the delimiter.
+struct DedupKey: Codable, Equatable, Hashable, Sendable {
+    let messageId: String
+    let requestId: String
+}
+
+/// What's persisted for one transcript file: enough to detect whether it changed since the last
+/// scan, where to resume parsing if it only grew (transcripts are append-only), and which
+/// `(message.id, requestId)` pairs are already counted so a later scan doesn't recount a
+/// duplicate written after this file was last parsed.
 struct FileParseCache: Codable, Equatable, Sendable {
     var mtime: Date
     var size: Int64
     var parsedByteOffset: Int64
     var dailyBuckets: [String: DayAggregate]
+    var seenDedupKeys: Set<DedupKey> = []
 }
 
 // MARK: - Aggregated totals
@@ -70,7 +81,7 @@ struct TranscriptTotals: Equatable, Sendable {
 // MARK: - Store
 
 struct TranscriptCacheStore: Codable, Equatable, Sendable {
-    static let currentSchemaVersion = 1
+    static let currentSchemaVersion = 2
     static let empty = TranscriptCacheStore(schemaVersion: currentSchemaVersion, files: [:])
 
     var schemaVersion: Int

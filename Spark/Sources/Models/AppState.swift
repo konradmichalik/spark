@@ -1,3 +1,4 @@
+import AppKit
 import Combine
 import os
 import SwiftUI
@@ -79,6 +80,10 @@ final class AppState: ObservableObject {
     private var consecutiveRateLimits: Int = 0
     private let maxHistoryEntries = 8640 // ~30 days at 5-min intervals
 
+    private var fileWatcher: TranscriptFileWatcher?
+    private var sleepObserver: NSObjectProtocol?
+    private var wakeObserver: NSObjectProtocol?
+
     // Notification tracking
     private var lastSessionLevel: UsageLevel = .ok
     private var lastWeeklyLevel: UsageLevel = .ok
@@ -97,6 +102,8 @@ final class AppState: ObservableObject {
         tryAutoLogin()
         startStatusPolling()
         startUpdateCheckPolling()
+        startFileWatching()
+        startSleepWakeObservers()
         if notificationsEnabled {
             requestNotificationPermission()
         }
@@ -383,6 +390,64 @@ final class AppState: ObservableObject {
         } else {
             currentRefreshInterval = refreshInterval
             startUsagePolling(interval: refreshInterval)
+        }
+    }
+
+    // MARK: - File Watching
+
+    /// Watches `~/.claude/projects` so Smart Refresh reacts to actual activity instead of only
+    /// inferring it from whether the last poll's utilization changed. Missing or unreadable
+    /// roots (e.g. no `.claude` directory yet, or a network volume that's unmounted) simply mean
+    /// no watcher starts — never a crash — and the app falls back to plain polling.
+    private func startFileWatching() {
+        let projectsDir = FileManager.default.homeDirectoryForCurrentUser
+            .appendingPathComponent(".claude")
+            .appendingPathComponent("projects")
+        guard FileManager.default.fileExists(atPath: projectsDir.path) else { return }
+
+        fileWatcher = TranscriptFileWatcher(paths: [projectsDir.path]) { [weak self] in
+            Task { @MainActor in
+                self?.handleTranscriptFileChange()
+            }
+        }
+    }
+
+    private func stopFileWatching() {
+        fileWatcher?.stop()
+        fileWatcher = nil
+    }
+
+    /// A transcript write means the user is active right now. Refreshes local stats immediately
+    /// — after the incremental transcript cache, this only reads the changed file's appended
+    /// byte range — and, if Smart Refresh had backed off to an idle tier, snaps the API poll back
+    /// to the active interval instead of waiting for the next scheduled poll to notice a changed
+    /// percentage. The existing 60-second debounce in `fetchUsage()` already bounds how often
+    /// filesystem activity can translate into API calls, so a burst of writes can't turn into
+    /// request spam.
+    private func handleTranscriptFileChange() {
+        refreshLiveStats()
+
+        guard refreshMode == "smart", currentRefreshInterval > 300 else { return }
+        idleTicks = 0
+        currentRefreshInterval = 300
+        startUsagePolling(interval: 300)
+    }
+
+    /// FSEvents streams don't survive a suspend/resume cycle cleanly, so the watcher is torn
+    /// down before sleep and a fresh one re-armed on wake — this also naturally re-resolves which
+    /// roots currently exist, picking up a root that appeared or dropping one that vanished while
+    /// asleep (e.g. a network volume).
+    private func startSleepWakeObservers() {
+        let center = NSWorkspace.shared.notificationCenter
+        sleepObserver = center.addObserver(forName: NSWorkspace.willSleepNotification, object: nil, queue: .main) { [weak self] _ in
+            Task { @MainActor in
+                self?.stopFileWatching()
+            }
+        }
+        wakeObserver = center.addObserver(forName: NSWorkspace.didWakeNotification, object: nil, queue: .main) { [weak self] _ in
+            Task { @MainActor in
+                self?.startFileWatching()
+            }
         }
     }
 

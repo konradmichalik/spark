@@ -95,10 +95,9 @@ enum LiveStatsParser {
 
     /// Production entry point. Goes through the shared, disk-persisted transcript cache.
     static func parseStats(period: StatsPeriod) async -> LiveStats? {
-        let claudeDir = FileManager.default.homeDirectoryForCurrentUser
-            .appendingPathComponent(".claude")
-        let transcripts = await LiveTranscriptCache.shared.aggregate(claudeDir: claudeDir, cutoff: period.startDate)
-        return makeLiveStats(period: period, claudeDir: claudeDir, transcripts: transcripts)
+        let roots = ClaudeConfigDirectory.resolveCurrent().roots
+        let transcripts = await LiveTranscriptCache.shared.aggregate(claudeDirs: roots, cutoff: period.startDate)
+        return makeLiveStats(period: period, claudeDirs: roots, transcripts: transcripts)
     }
 
     /// Test entry point with an explicit `claudeDir`, pointing at a fixture tree instead of the
@@ -110,18 +109,20 @@ enum LiveStatsParser {
     static func parseStats(period: StatsPeriod, claudeDir: URL) -> LiveStats? {
         var store = TranscriptCacheStore.empty
         let transcripts = TranscriptCache.aggregate(claudeDir: claudeDir, cutoff: period.startDate, store: &store)
-        return makeLiveStats(period: period, claudeDir: claudeDir, transcripts: transcripts)
+        return makeLiveStats(period: period, claudeDirs: [claudeDir], transcripts: transcripts)
     }
 
     private static func makeLiveStats(
         period: StatsPeriod,
-        claudeDir: URL,
+        claudeDirs: [URL],
         transcripts: TranscriptTotals
     ) -> LiveStats? {
         // history.jsonl only ever backs the user-message count — it records interactive
         // prompts, not the sessions or tokens Claude Code actually spent (see #46).
-        let historyURL = claudeDir.appendingPathComponent("history.jsonl")
-        let messageCount = parseMessageCount(url: historyURL, period: period)
+        let messageCount = claudeDirs.reduce(0) { total, claudeDir in
+            let historyURL = claudeDir.appendingPathComponent("history.jsonl")
+            return total + parseMessageCount(url: historyURL, period: period)
+        }
 
         guard messageCount > 0 || !transcripts.sessionIds.isEmpty else { return nil }
 
