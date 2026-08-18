@@ -3,6 +3,9 @@ import Foundation
 // MARK: - Helpers
 
 func formatTokenCount(_ count: Int) -> String {
+    if count >= 1_000_000_000 {
+        return String(format: "%.1fB", Double(count) / 1_000_000_000)
+    }
     if count >= 1_000_000 {
         return String(format: "%.1fM", Double(count) / 1_000_000)
     }
@@ -39,12 +42,27 @@ struct LiveStats: Sendable {
     let sessionCount: Int
     let inputTokens: Int
     let outputTokens: Int
+    let cacheCreationTokens: Int
+    let cacheReadTokens: Int
 
-    var totalTokens: Int { inputTokens + outputTokens }
+    var totalTokens: Int { inputTokens + outputTokens + cacheCreationTokens + cacheReadTokens }
 
     var formattedTokens: String {
         formatTokenCount(totalTokens)
     }
+
+    var tokenBreakdown: String {
+        "Input \(formatTokenCount(inputTokens)) · Output \(formatTokenCount(outputTokens)) · " +
+        "Cache write \(formatTokenCount(cacheCreationTokens)) · Cache read \(formatTokenCount(cacheReadTokens))"
+    }
+}
+
+/// Structured identifier pair used by `LiveStatsParser.TokenDeduplicator`. A concatenated string
+/// key (e.g. `"\(messageId):\(requestId)"`) can collide for distinct pairs whose fields themselves
+/// contain the separator, so the fields are hashed independently instead.
+private struct DedupKey: Hashable {
+    let messageId: String
+    let requestId: String
 }
 
 enum LiveStatsParser {
@@ -56,20 +74,41 @@ enum LiveStatsParser {
     private struct SessionEntry: Decodable {
         let message: SessionMessage?
         let timestamp: String?
+        let requestId: String?
     }
 
     private struct SessionMessage: Decodable {
+        let id: String?
         let role: String?
         let usage: TokenUsage?
+    }
+
+    /// Skips assistant entries that share a `(message.id, requestId)` pair already seen in this
+    /// scan. Claude Code writes duplicate usage-bearing entries for a single response (one per
+    /// streamed block, e.g. text + tool_use), each carrying the identical `usage` payload — left
+    /// unfiltered, a response streamed as N entries is counted N times.
+    struct TokenDeduplicator {
+        private var seenKeys: Set<DedupKey> = []
+
+        /// Entries missing either field are always counted, so an unexpected schema change
+        /// doesn't silently drop their tokens instead of merely failing to dedupe them.
+        mutating func shouldCount(messageId: String?, requestId: String?) -> Bool {
+            guard let messageId, let requestId else { return true }
+            return seenKeys.insert(DedupKey(messageId: messageId, requestId: requestId)).inserted
+        }
     }
 
     private struct TokenUsage: Decodable {
         let inputTokens: Int?
         let outputTokens: Int?
+        let cacheCreationTokens: Int?
+        let cacheReadTokens: Int?
         // swiftlint:disable:next nesting
         enum CodingKeys: String, CodingKey {
             case inputTokens = "input_tokens"
             case outputTokens = "output_tokens"
+            case cacheCreationTokens = "cache_creation_input_tokens"
+            case cacheReadTokens = "cache_read_input_tokens"
         }
     }
 
@@ -80,6 +119,8 @@ enum LiveStatsParser {
         var sessionIds: Set<String> = []
         var totalInput = 0
         var totalOutput = 0
+        var totalCacheCreation = 0
+        var totalCacheRead = 0
 
         for claudeDir in roots {
             let historyURL = claudeDir.appendingPathComponent("history.jsonl")
@@ -90,6 +131,8 @@ enum LiveStatsParser {
             let tokens = parseTokenCounts(claudeDir: claudeDir, sessionIds: history.sessionIds, cutoff: period.startDate)
             totalInput += tokens.input
             totalOutput += tokens.output
+            totalCacheCreation += tokens.cacheCreation
+            totalCacheRead += tokens.cacheRead
         }
 
         guard messageCount > 0 else { return nil }
@@ -99,7 +142,9 @@ enum LiveStatsParser {
             messageCount: messageCount,
             sessionCount: sessionIds.count,
             inputTokens: totalInput,
-            outputTokens: totalOutput
+            outputTokens: totalOutput,
+            cacheCreationTokens: totalCacheCreation,
+            cacheReadTokens: totalCacheRead
         )
     }
 
@@ -134,20 +179,25 @@ enum LiveStatsParser {
         return (messageCount, sessionIds.count, sessionIds)
     }
 
+    // swiftlint:disable large_tuple
     private static func parseTokenCounts(
         claudeDir: URL,
         sessionIds: Set<String>,
         cutoff: Date?
-    ) -> (input: Int, output: Int) {
+    ) -> (input: Int, output: Int, cacheCreation: Int, cacheRead: Int) {
+        // swiftlint:enable large_tuple
         let projectsDir = claudeDir.appendingPathComponent("projects")
         guard let projectDirs = try? FileManager.default.contentsOfDirectory(
             at: projectsDir, includingPropertiesForKeys: nil
         ) else {
-            return (0, 0)
+            return (0, 0, 0, 0)
         }
 
         var totalInput = 0
         var totalOutput = 0
+        var totalCacheCreation = 0
+        var totalCacheRead = 0
+        var dedup = TokenDeduplicator()
 
         for dir in projectDirs {
             for sessionId in sessionIds {
@@ -164,16 +214,19 @@ enum LiveStatsParser {
                           let entry = try? JSONDecoder().decode(SessionEntry.self, from: lineData),
                           entry.message?.role == "assistant",
                           let usage = entry.message?.usage,
-                          isOnOrAfter(cutoff: cutoff, timestamp: entry.timestamp) else {
+                          isOnOrAfter(cutoff: cutoff, timestamp: entry.timestamp),
+                          dedup.shouldCount(messageId: entry.message?.id, requestId: entry.requestId) else {
                         continue
                     }
                     totalInput += usage.inputTokens ?? 0
                     totalOutput += usage.outputTokens ?? 0
+                    totalCacheCreation += usage.cacheCreationTokens ?? 0
+                    totalCacheRead += usage.cacheReadTokens ?? 0
                 }
             }
         }
 
-        return (totalInput, totalOutput)
+        return (totalInput, totalOutput, totalCacheCreation, totalCacheRead)
     }
 
     /// Whether a session message falls on or after `cutoff`. Messages with no cutoff (`.all`
