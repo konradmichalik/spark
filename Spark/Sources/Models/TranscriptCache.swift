@@ -33,8 +33,13 @@ enum TranscriptCache {
     struct SessionMessage: Decodable {
         let id: String?
         let role: String?
+        let model: String?
         let usage: TokenUsage?
     }
+
+    /// Locally generated messages (e.g. API error notices) rather than billable inference —
+    /// must never appear as a model in the per-model breakdown.
+    static let syntheticModelMarker = "<synthetic>"
 
     struct TokenUsage: Decodable {
         let inputTokens: Int?
@@ -50,20 +55,24 @@ enum TranscriptCache {
         }
     }
 
-    /// Skips assistant entries that share a `(message.id, requestId)` pair already seen while
-    /// parsing one file. Claude Code writes duplicate usage-bearing entries for a single response
-    /// (one per streamed block, e.g. text + tool_use), each carrying the identical `usage`
-    /// payload. Scoped per file rather than across the whole scan (unlike a from-scratch parse):
-    /// every duplicate pair observed in practice shares a single transcript file, and per-file
-    /// scoping is what makes independent incremental re-parsing of one file possible.
+    /// Skips assistant entries that share a `(message.id, requestId)` pair already seen. Claude
+    /// Code writes duplicate usage-bearing entries for a single response (one per streamed block,
+    /// e.g. text + tool_use), each carrying the identical `usage` payload. Scoped per file, since
+    /// every duplicate pair observed in practice shares a single transcript file. Seeded from
+    /// `FileParseCache.seenDedupKeys` and read back via `seenKeys`, so a duplicate is still caught
+    /// even when its two halves are written on either side of an incremental scan boundary.
     struct TokenDeduplicator {
-        private var seenKeys: Set<String> = []
+        private(set) var seenKeys: Set<DedupKey>
+
+        init(seenKeys: Set<DedupKey> = []) {
+            self.seenKeys = seenKeys
+        }
 
         /// Entries missing either field are always counted, so an unexpected schema change
         /// doesn't silently drop their tokens instead of merely failing to dedupe them.
         mutating func shouldCount(messageId: String?, requestId: String?) -> Bool {
             guard let messageId, let requestId else { return true }
-            return seenKeys.insert("\(messageId):\(requestId)").inserted
+            return seenKeys.insert(DedupKey(messageId: messageId, requestId: requestId)).inserted
         }
     }
 
@@ -141,23 +150,30 @@ enum TranscriptCache {
             }
 
             for (day, bucket) in updated.dailyBuckets where isWithin(day: day, cutoffDayKey: cutoffDayKey) {
-                totals.sessionIds.formUnion(bucket.sessionIds)
-                totals.input += bucket.input
-                totals.output += bucket.output
-                totals.cacheCreation += bucket.cacheCreation
-                totals.cacheRead += bucket.cacheRead
-                if let project {
-                    totals.projectTotals[project, default: ProjectTokenTotals()].merge(ProjectTokenTotals(
-                        input: bucket.input,
-                        output: bucket.output,
-                        cacheCreation: bucket.cacheCreation,
-                        cacheRead: bucket.cacheRead
-                    ))
-                }
+                accumulate(bucket: bucket, project: project, into: &totals)
             }
         }
 
         return totals
+    }
+
+    private static func accumulate(bucket: DayAggregate, project: String?, into totals: inout TranscriptTotals) {
+        totals.sessionIds.formUnion(bucket.sessionIds)
+        totals.input += bucket.input
+        totals.output += bucket.output
+        totals.cacheCreation += bucket.cacheCreation
+        totals.cacheRead += bucket.cacheRead
+        for (model, modelTotals) in bucket.perModel {
+            totals.modelTotals[model, default: ModelTokenTotals()].merge(modelTotals)
+        }
+        if let project {
+            totals.projectTotals[project, default: ProjectTokenTotals()].merge(ProjectTokenTotals(
+                input: bucket.input,
+                output: bucket.output,
+                cacheCreation: bucket.cacheCreation,
+                cacheRead: bucket.cacheRead
+            ))
+        }
     }
 
     /// Fully resolves symlinks via `realpath(3)`, unlike `URL.resolvingSymlinksInPath()` which
@@ -182,7 +198,8 @@ enum TranscriptCache {
         size: Int64,
         pathSessionId: String?
     ) -> FileParseCache {
-        if let existing, existing.mtime == mtime, existing.size == size {
+        if let existing, existing.mtime == mtime, existing.size == size,
+           existing.parsedByteOffset == size {
             return existing
         }
 
@@ -190,7 +207,8 @@ enum TranscriptCache {
             let appended = parseByteRange(
                 fileURL: fileURL,
                 from: existing.parsedByteOffset,
-                pathSessionId: pathSessionId
+                pathSessionId: pathSessionId,
+                seenDedupKeys: existing.seenDedupKeys
             )
             var mergedBuckets = existing.dailyBuckets
             for (day, bucket) in appended.buckets {
@@ -201,34 +219,39 @@ enum TranscriptCache {
                 size: size,
                 parsedByteOffset: appended.offset,
                 dailyBuckets: mergedBuckets,
+                seenDedupKeys: appended.seenDedupKeys,
                 discoveredCwd: existing.discoveredCwd ?? appended.discoveredCwd
             )
         }
 
-        // No existing entry, or the file shrank (truncated/rewritten) — full reparse.
-        let full = parseByteRange(fileURL: fileURL, from: 0, pathSessionId: pathSessionId)
+        // No existing entry, or the file shrank (truncated/rewritten) — full reparse with a
+        // fresh dedup set, since prior seen keys aren't known to match this file's content.
+        let full = parseByteRange(fileURL: fileURL, from: 0, pathSessionId: pathSessionId, seenDedupKeys: [])
         return FileParseCache(
             mtime: mtime,
             size: size,
             parsedByteOffset: full.offset,
             dailyBuckets: full.buckets,
+            seenDedupKeys: full.seenDedupKeys,
             discoveredCwd: full.discoveredCwd
         )
     }
 
     // swiftlint:disable large_tuple
-    /// Parses every line from `byteOffset` to end of file. A line still being written when this
-    /// runs (rare — the writer hasn't flushed its closing newline yet) fails JSON decoding and is
-    /// silently skipped, same as any other malformed line — including on the next scan, since the
-    /// returned offset advances past every byte read here regardless of per-line decode success.
+    /// Parses only complete (newline-terminated) lines, leaving any unterminated trailing line
+    /// unread so a later scan can pick it back up once the writer finishes it. A complete line
+    /// that still fails JSON decoding is skipped as malformed. `seenDedupKeys` is seeded from the
+    /// caller's persisted `FileParseCache` and returned updated, so a duplicate straddling two
+    /// separate incremental scans is still caught.
     private static func parseByteRange(
         fileURL: URL,
         from byteOffset: Int64,
-        pathSessionId: String?
-    ) -> (buckets: [String: DayAggregate], offset: Int64, discoveredCwd: String?) {
+        pathSessionId: String?,
+        seenDedupKeys: Set<DedupKey>
+    ) -> (buckets: [String: DayAggregate], offset: Int64, seenDedupKeys: Set<DedupKey>, discoveredCwd: String?) {
         // swiftlint:enable large_tuple
         guard let handle = try? FileHandle(forReadingFrom: fileURL) else {
-            return ([:], byteOffset, nil)
+            return ([:], byteOffset, seenDedupKeys, nil)
         }
         defer { try? handle.close() }
 
@@ -237,54 +260,93 @@ enum TranscriptCache {
             try handle.seek(toOffset: UInt64(byteOffset))
             data = try handle.readToEnd()
         } catch {
-            return ([:], byteOffset, nil)
+            return ([:], byteOffset, seenDedupKeys, nil)
         }
 
-        guard let data, !data.isEmpty, let content = String(data: data, encoding: .utf8) else {
-            return ([:], byteOffset, nil)
+        guard let data, !data.isEmpty else { return ([:], byteOffset, seenDedupKeys, nil) }
+
+        // No complete line anywhere in this read — leave the offset untouched so the whole,
+        // still-unterminated chunk is retried next scan.
+        guard let lastNewline = data.lastIndex(of: UInt8(ascii: "\n")) else {
+            return ([:], byteOffset, seenDedupKeys, nil)
+        }
+
+        let complete = data[data.startIndex...lastNewline]
+        guard let content = String(data: complete, encoding: .utf8) else {
+            return ([:], byteOffset, seenDedupKeys, nil)
         }
 
         let lines = content.components(separatedBy: "\n")
-        var buckets: [String: DayAggregate] = [:]
-        var dedup = TokenDeduplicator()
-        var discoveredCwd: String?
+        var state = LineParseState(dedup: TokenDeduplicator(seenKeys: seenDedupKeys))
 
         for line in lines {
-            guard !line.isEmpty,
-                  let lineData = line.data(using: .utf8),
-                  let entry = try? JSONDecoder().decode(SessionEntry.self, from: lineData) else {
-                continue
-            }
-
-            // `cwd` can appear on any entry type, not only assistant messages — captured
-            // independently of the token-counting guard below.
-            if discoveredCwd == nil, let cwd = entry.cwd, !cwd.isEmpty {
-                discoveredCwd = cwd
-            }
-
-            guard entry.message?.role == "assistant",
-                  let usage = entry.message?.usage,
-                  let resolvedSessionId = pathSessionId ?? entry.sessionId,
-                  dedup.shouldCount(messageId: entry.message?.id, requestId: entry.requestId) else {
-                continue
-            }
-
-            // Entries with no parsable timestamp fall back to the file's own mtime's day rather
-            // than being dropped — matches the "don't silently lose tokens" stance elsewhere in
-            // this parser, adapted to a model that needs a concrete day to bucket into.
-            let entryDate = entry.timestamp.flatMap(parseISO8601) ?? mtimeFallback(for: fileURL)
-            let key = dayKey(for: entryDate)
-
-            var bucket = buckets[key] ?? DayAggregate()
-            bucket.sessionIds.insert(resolvedSessionId)
-            bucket.input += usage.inputTokens ?? 0
-            bucket.output += usage.outputTokens ?? 0
-            bucket.cacheCreation += usage.cacheCreationTokens ?? 0
-            bucket.cacheRead += usage.cacheReadTokens ?? 0
-            buckets[key] = bucket
+            processLine(line, fileURL: fileURL, pathSessionId: pathSessionId, state: &state)
         }
 
-        return (buckets, byteOffset + Int64(data.count), discoveredCwd)
+        return (state.buckets, byteOffset + Int64(complete.count), state.dedup.seenKeys, state.discoveredCwd)
+    }
+
+    /// Mutable state threaded through one file's line-by-line parse.
+    private struct LineParseState {
+        var buckets: [String: DayAggregate] = [:]
+        var dedup: TokenDeduplicator
+        var discoveredCwd: String?
+    }
+
+    /// Decodes one line and folds it into `state.buckets`. Session-ID resolution must not be
+    /// gated behind the same guard as token aggregation: a transcript with only a user record, or
+    /// an assistant record without usage yet, is still a real session and must be counted. `cwd`
+    /// can appear on any entry type, not only assistant messages, so it's captured independently.
+    private static func processLine(_ line: String, fileURL: URL, pathSessionId: String?, state: inout LineParseState) {
+        guard !line.isEmpty,
+              let lineData = line.data(using: .utf8),
+              let entry = try? JSONDecoder().decode(SessionEntry.self, from: lineData) else {
+            return
+        }
+
+        if state.discoveredCwd == nil, let cwd = entry.cwd, !cwd.isEmpty {
+            state.discoveredCwd = cwd
+        }
+
+        guard let resolvedSessionId = pathSessionId ?? entry.sessionId else {
+            return
+        }
+
+        // Entries with no parsable timestamp fall back to the file's own mtime's day rather
+        // than being dropped — matches the "don't silently lose tokens" stance elsewhere in
+        // this parser, adapted to a model that needs a concrete day to bucket into.
+        let entryDate = entry.timestamp.flatMap(parseISO8601) ?? mtimeFallback(for: fileURL)
+        let key = dayKey(for: entryDate)
+
+        var bucket = state.buckets[key] ?? DayAggregate()
+        bucket.sessionIds.insert(resolvedSessionId)
+
+        guard entry.message?.role == "assistant",
+              let usage = entry.message?.usage,
+              state.dedup.shouldCount(messageId: entry.message?.id, requestId: entry.requestId) else {
+            state.buckets[key] = bucket
+            return
+        }
+        bucket.input += usage.inputTokens ?? 0
+        bucket.output += usage.outputTokens ?? 0
+        bucket.cacheCreation += usage.cacheCreationTokens ?? 0
+        bucket.cacheRead += usage.cacheReadTokens ?? 0
+
+        applyModelAttribution(to: &bucket, entry: entry, usage: usage)
+
+        state.buckets[key] = bucket
+    }
+
+    /// Attributes `usage` to the entry's model in `bucket.perModel`, unless the entry came from
+    /// `syntheticModelMarker` (locally generated, not billable inference).
+    private static func applyModelAttribution(to bucket: inout DayAggregate, entry: SessionEntry, usage: TokenUsage) {
+        guard let model = entry.message?.model, model != syntheticModelMarker else { return }
+        bucket.perModel[model, default: ModelTokenTotals()].merge(ModelTokenTotals(
+            input: usage.inputTokens ?? 0,
+            output: usage.outputTokens ?? 0,
+            cacheCreation: usage.cacheCreationTokens ?? 0,
+            cacheRead: usage.cacheReadTokens ?? 0
+        ))
     }
 
     private static func mtimeFallback(for fileURL: URL) -> Date {
@@ -302,50 +364,5 @@ enum TranscriptCache {
     static func dayKey(for date: Date, calendar: Calendar = .current) -> String {
         let components = calendar.dateComponents([.year, .month, .day], from: date)
         return String(format: "%04d-%02d-%02d", components.year ?? 0, components.month ?? 0, components.day ?? 0)
-    }
-}
-
-// MARK: - Persistence
-
-enum TranscriptCachePersistence {
-    static var defaultFileURL: URL {
-        // swiftlint:disable:next force_unwrapping
-        let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
-        let dir = appSupport.appendingPathComponent("Spark")
-        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-        return dir.appendingPathComponent("transcript-cache.json")
-    }
-
-    static func load(from url: URL = defaultFileURL) -> TranscriptCacheStore {
-        guard let data = try? Data(contentsOf: url),
-              let store = try? JSONDecoder().decode(TranscriptCacheStore.self, from: data),
-              store.schemaVersion == TranscriptCacheStore.currentSchemaVersion else {
-            return .empty
-        }
-        return store
-    }
-
-    static func save(_ store: TranscriptCacheStore, to url: URL = defaultFileURL) {
-        if let data = try? JSONEncoder().encode(store) {
-            try? data.write(to: url)
-        }
-    }
-}
-
-// MARK: - Concurrency-safe production entry point
-
-/// Serializes access to the shared in-memory + on-disk cache so overlapping stats refreshes
-/// (e.g. a rapid period switch while a broader-period scan is still running) can't race on it.
-actor LiveTranscriptCache {
-    static let shared = LiveTranscriptCache()
-
-    private var store: TranscriptCacheStore?
-
-    func aggregate(claudeDir: URL, cutoff: Date?) -> TranscriptTotals {
-        var current = store ?? TranscriptCachePersistence.load()
-        let result = TranscriptCache.aggregate(claudeDir: claudeDir, cutoff: cutoff, store: &current)
-        store = current
-        TranscriptCachePersistence.save(current)
-        return result
     }
 }
