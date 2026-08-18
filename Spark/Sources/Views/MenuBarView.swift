@@ -5,6 +5,9 @@ import SwiftUI
 struct MenuBarView: View {
     @EnvironmentObject var state: AppState
 
+    private static let fiveHours: TimeInterval = 5 * 3600
+    private static let sevenDays: TimeInterval = 7 * 24 * 3600
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             // Header
@@ -57,7 +60,12 @@ struct MenuBarView: View {
                         resetDate: session.resetsAtDate,
                         warningThreshold: state.warningThreshold,
                         criticalThreshold: state.criticalThreshold,
-                        projection: sessionProjection
+                        projection: sessionProjection,
+                        pace: Pace.calculate(
+                            utilization: session.utilization,
+                            resetsAt: session.resetsAtDate,
+                            windowLength: Self.fiveHours
+                        )
                     )
                 }
 
@@ -69,7 +77,12 @@ struct MenuBarView: View {
                         resetTime: weekly.timeUntilReset,
                         resetDate: weekly.resetsAtDate,
                         warningThreshold: state.warningThreshold,
-                        criticalThreshold: state.criticalThreshold
+                        criticalThreshold: state.criticalThreshold,
+                        pace: Pace.calculate(
+                            utilization: weekly.utilization,
+                            resetsAt: weekly.resetsAtDate,
+                            windowLength: Self.sevenDays
+                        )
                     )
                 }
 
@@ -83,7 +96,12 @@ struct MenuBarView: View {
                         resetDate: sonnet.resetsAtDate,
                         warningThreshold: state.warningThreshold,
                         criticalThreshold: state.criticalThreshold,
-                        localTokens: formattedLocalTokens(state.liveStats, family: .sonnet)
+                        localTokens: formattedLocalTokens(state.liveStats, family: .sonnet),
+                        pace: Pace.calculate(
+                            utilization: sonnet.utilization,
+                            resetsAt: sonnet.resetsAtDate,
+                            windowLength: Self.sevenDays
+                        )
                     )
                 }
 
@@ -97,7 +115,12 @@ struct MenuBarView: View {
                         resetDate: opus.resetsAtDate,
                         warningThreshold: state.warningThreshold,
                         criticalThreshold: state.criticalThreshold,
-                        localTokens: formattedLocalTokens(state.liveStats, family: .opus)
+                        localTokens: formattedLocalTokens(state.liveStats, family: .opus),
+                        pace: Pace.calculate(
+                            utilization: opus.utilization,
+                            resetsAt: opus.resetsAtDate,
+                            windowLength: Self.sevenDays
+                        )
                     )
                 }
 
@@ -440,6 +463,15 @@ struct UsageRow: View {
     /// Local token attribution for this bucket's model family, shown alongside the label — see
     /// `MenuBarView.formattedLocalTokens`. `nil` renders nothing, adding no vertical height.
     var localTokens: String?
+    /// Pace for this bucket's window — see `Pace.calculate`. `nil` omits the marker entirely.
+    var pace: Pace.Result?
+
+    private var paceDescription: String? {
+        guard let pace else { return nil }
+        let percent = Int((pace.ratio * 100).rounded())
+        let phrase = pace.ratio > 1.05 ? "over budget" : (pace.ratio < 0.95 ? "under budget" : "on budget")
+        return "Pace: \(percent)% of the on-track rate (\(phrase)) — at this rate, quota exhausts \(pace.ratio > 1 ? "before" : "at or after") reset."
+    }
 
     private var iconName: String {
         if label.hasPrefix("Session") { return "bolt.fill" }
@@ -599,9 +631,11 @@ struct UsageRow: View {
                 ProjectedProgressBar(
                     utilization: utilization,
                     color: color,
-                    projection: projection
+                    projection: projection,
+                    paceElapsedFraction: pace?.elapsedFraction
                 )
                 .frame(height: 6)
+                .help(paceDescription ?? "")
 
                 Text("\(Int(utilization))%")
                     .font(.system(.body, design: .monospaced))
@@ -619,6 +653,11 @@ struct ProjectedProgressBar: View {
     let utilization: Double
     let color: Color
     let projection: ProjectionResult
+    /// Elapsed fraction of the bucket's window, `0...1` — drawn as a marker on the bar. Fill left
+    /// of the marker reads as under budget, fill right of it as over, with no number or label
+    /// needed. `nil` when pace can't be computed (see `Pace.calculate`), which simply omits the
+    /// marker rather than drawing a misleading one.
+    var paceElapsedFraction: Double?
 
     private var projectedWidth: Double {
         switch projection {
@@ -664,6 +703,14 @@ struct ProjectedProgressBar: View {
                 RoundedRectangle(cornerRadius: 3)
                     .fill(color)
                     .frame(width: geometry.size.width * min(utilization, 100) / 100)
+
+                // Pace marker: where "on budget" would sit right now.
+                if let paceElapsedFraction {
+                    Rectangle()
+                        .fill(Color.primary.opacity(0.5))
+                        .frame(width: 1)
+                        .offset(x: geometry.size.width * min(max(paceElapsedFraction, 0), 1))
+                }
             }
         }
     }
