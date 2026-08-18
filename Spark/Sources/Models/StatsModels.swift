@@ -57,6 +57,14 @@ struct LiveStats: Sendable {
     }
 }
 
+/// Structured identifier pair used by `LiveStatsParser.TokenDeduplicator`. A concatenated string
+/// key (e.g. `"\(messageId):\(requestId)"`) can collide for distinct pairs whose fields themselves
+/// contain the separator, so the fields are hashed independently instead.
+private struct DedupKey: Hashable {
+    let messageId: String
+    let requestId: String
+}
+
 enum LiveStatsParser {
     private struct HistoryEntry: Decodable {
         let timestamp: Double
@@ -66,11 +74,28 @@ enum LiveStatsParser {
     private struct SessionEntry: Decodable {
         let message: SessionMessage?
         let timestamp: String?
+        let requestId: String?
     }
 
     private struct SessionMessage: Decodable {
+        let id: String?
         let role: String?
         let usage: TokenUsage?
+    }
+
+    /// Skips assistant entries that share a `(message.id, requestId)` pair already seen in this
+    /// scan. Claude Code writes duplicate usage-bearing entries for a single response (one per
+    /// streamed block, e.g. text + tool_use), each carrying the identical `usage` payload — left
+    /// unfiltered, a response streamed as N entries is counted N times.
+    struct TokenDeduplicator {
+        private var seenKeys: Set<DedupKey> = []
+
+        /// Entries missing either field are always counted, so an unexpected schema change
+        /// doesn't silently drop their tokens instead of merely failing to dedupe them.
+        mutating func shouldCount(messageId: String?, requestId: String?) -> Bool {
+            guard let messageId, let requestId else { return true }
+            return seenKeys.insert(DedupKey(messageId: messageId, requestId: requestId)).inserted
+        }
     }
 
     private struct TokenUsage: Decodable {
@@ -164,6 +189,7 @@ enum LiveStatsParser {
         var totalOutput = 0
         var totalCacheCreation = 0
         var totalCacheRead = 0
+        var dedup = TokenDeduplicator()
 
         for dir in projectDirs {
             for sessionId in sessionIds {
@@ -180,7 +206,8 @@ enum LiveStatsParser {
                           let entry = try? JSONDecoder().decode(SessionEntry.self, from: lineData),
                           entry.message?.role == "assistant",
                           let usage = entry.message?.usage,
-                          isOnOrAfter(cutoff: cutoff, timestamp: entry.timestamp) else {
+                          isOnOrAfter(cutoff: cutoff, timestamp: entry.timestamp),
+                          dedup.shouldCount(messageId: entry.message?.id, requestId: entry.requestId) else {
                         continue
                     }
                     totalInput += usage.inputTokens ?? 0
