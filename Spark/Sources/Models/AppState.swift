@@ -85,6 +85,9 @@ final class AppState: ObservableObject {
     private var fileWatcher: TranscriptFileWatcher?
     private var sleepObserver: NSObjectProtocol?
     private var wakeObserver: NSObjectProtocol?
+    private var lastLiveStatsRefresh: Date = .distantPast
+    private var pendingLiveStatsRefreshTimer: Timer?
+    private static let liveStatsMinInterval: TimeInterval = 12
 
     // Notification tracking
     private var lastSessionLevel: UsageLevel = .ok
@@ -419,15 +422,14 @@ final class AppState: ObservableObject {
         fileWatcher = nil
     }
 
-    /// A transcript write means the user is active right now. Refreshes local stats immediately
-    /// — after the incremental transcript cache, this only reads the changed file's appended
-    /// byte range — and, if Smart Refresh had backed off to an idle tier, snaps the API poll back
-    /// to the active interval instead of waiting for the next scheduled poll to notice a changed
-    /// percentage. The existing 60-second debounce in `fetchUsage()` already bounds how often
-    /// filesystem activity can translate into API calls, so a burst of writes can't turn into
-    /// request spam.
+    /// A transcript write means the user is active right now. Throttles the local stats refresh
+    /// (see `throttledRefreshLiveStats`) and, if Smart Refresh had backed off to an idle tier,
+    /// snaps the API poll back to the active interval instead of waiting for the next scheduled
+    /// poll to notice a changed percentage. The existing 60-second debounce in `fetchUsage()`
+    /// already bounds how often filesystem activity can translate into API calls, so a burst of
+    /// writes can't turn into request spam.
     private func handleTranscriptFileChange() {
-        refreshLiveStats()
+        throttledRefreshLiveStats()
 
         guard refreshMode == "smart", currentRefreshInterval > 300 else { return }
         idleTicks = 0
@@ -781,6 +783,34 @@ final class AppState: ObservableObject {
         guard period != statsPeriod else { return }
         statsPeriod = period
         refreshLiveStats()
+    }
+
+    /// Coalesces bursts of filesystem activity so the Stats card updates at most once every
+    /// `liveStatsMinInterval` seconds, instead of on every single transcript write — Claude Code
+    /// can write several times a second while actively streaming, and `refreshLiveStats` dimming
+    /// the Stats card on every one of those reads as flicker rather than as data changing. A
+    /// trigger that arrives mid-cooldown still lands: it schedules exactly one trailing refresh
+    /// for when the cooldown ends, rather than being dropped.
+    private func throttledRefreshLiveStats() {
+        let elapsed = Date().timeIntervalSince(lastLiveStatsRefresh)
+        guard elapsed < Self.liveStatsMinInterval else {
+            lastLiveStatsRefresh = Date()
+            refreshLiveStats()
+            return
+        }
+
+        guard pendingLiveStatsRefreshTimer == nil else { return }
+        pendingLiveStatsRefreshTimer = Timer.scheduledTimer(
+            withTimeInterval: Self.liveStatsMinInterval - elapsed,
+            repeats: false
+        ) { [weak self] _ in
+            Task { @MainActor in
+                guard let self else { return }
+                self.pendingLiveStatsRefreshTimer = nil
+                self.lastLiveStatsRefresh = Date()
+                self.refreshLiveStats()
+            }
+        }
     }
 
     func refreshLiveStats() {
