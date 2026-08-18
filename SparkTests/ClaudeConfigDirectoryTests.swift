@@ -87,5 +87,7 @@ final class ClaudeConfigDirectoryTests: XCTestCase {
         )
 
         XCTAssertEqual(resolution.roots.count, 1)
+        XCTAssertEqual(resolution.roots.first?.path, realDir.resolvingSymlinksInPath().path)
+        XCTAssertNotEqual(resolution.roots.first?.path, symlinkDir.path)
     }
 }

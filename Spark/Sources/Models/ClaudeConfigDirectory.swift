@@ -41,9 +41,9 @@ enum ClaudeConfigDirectory {
         var seenResolvedPaths: Set<String> = []
         var roots: [URL] = []
         for candidate in candidates where directoryExists(candidate) {
-            let resolvedPath = candidate.resolvingSymlinksInPath().path
-            guard seenResolvedPaths.insert(resolvedPath).inserted else { continue }
-            roots.append(candidate)
+            let resolvedURL = candidate.resolvingSymlinksInPath()
+            guard seenResolvedPaths.insert(resolvedURL.path).inserted else { continue }
+            roots.append(resolvedURL)
         }
         return Resolution(roots: roots)
     }
