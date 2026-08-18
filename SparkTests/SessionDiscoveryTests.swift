@@ -70,11 +70,11 @@ final class SessionDiscoveryTests: XCTestCase {
     func testSubagentTranscriptTokensAreIncludedAndAttributedToParentSession() throws {
         let sessionId = "11111111-1111-1111-1111-111111111111"
         try write(
-            assistantLine(sessionId: sessionId, input: 100, output: 50),
+            assistantLine(sessionId: sessionId, input: 100, output: 50) + "\n",
             to: "projects/-Users-me-app/\(sessionId).jsonl"
         )
         try write(
-            assistantLine(sessionId: sessionId, input: 10, output: 5),
+            assistantLine(sessionId: sessionId, input: 10, output: 5) + "\n",
             to: "projects/-Users-me-app/\(sessionId)/subagents/agent-abc123.jsonl"
         )
 
@@ -89,7 +89,7 @@ final class SessionDiscoveryTests: XCTestCase {
         let sessionId = "22222222-2222-2222-2222-222222222222"
         try write("", to: "history.jsonl")
         try write(
-            assistantLine(sessionId: sessionId, input: 42, output: 7),
+            assistantLine(sessionId: sessionId, input: 42, output: 7) + "\n",
             to: "projects/-Users-me-app/\(sessionId).jsonl"
         )
 
@@ -102,7 +102,7 @@ final class SessionDiscoveryTests: XCTestCase {
     func testStatsAreProducedWhenHistoryFileIsAbsent() throws {
         let sessionId = "33333333-3333-3333-3333-333333333333"
         try write(
-            assistantLine(sessionId: sessionId, input: 10, output: 1),
+            assistantLine(sessionId: sessionId, input: 10, output: 1) + "\n",
             to: "projects/-Users-me-app/\(sessionId).jsonl"
         )
         // No history.jsonl written at all.
@@ -131,7 +131,7 @@ final class SessionDiscoveryTests: XCTestCase {
             """
             {"message":{"role":"assistant","usage":{"input_tokens":9,"output_tokens":1}},\
             "timestamp":"2026-01-01T00:00:00Z"}
-            """,
+            """ + "\n",
             to: "projects/-Users-me-app/\(sessionId).jsonl"
         )
 
@@ -146,7 +146,7 @@ final class SessionDiscoveryTests: XCTestCase {
         // no project directory). The scan must still count it using the entry's own `sessionId`.
         let sessionId = "44444444-4444-4444-4444-444444444444"
         try write(
-            assistantLine(sessionId: sessionId, input: 5, output: 5),
+            assistantLine(sessionId: sessionId, input: 5, output: 5) + "\n",
             to: "projects/orphan.jsonl"
         )
 

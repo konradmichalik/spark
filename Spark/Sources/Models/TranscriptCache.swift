@@ -209,7 +209,8 @@ enum TranscriptCache {
         size: Int64,
         pathSessionId: String?
     ) -> FileParseCache {
-        if let existing, existing.mtime == mtime, existing.size == size {
+        if let existing, existing.mtime == mtime, existing.size == size,
+           existing.parsedByteOffset == size {
             return existing
         }
 
@@ -236,18 +237,15 @@ enum TranscriptCache {
         return FileParseCache(mtime: mtime, size: size, parsedByteOffset: full.offset, dailyBuckets: full.buckets)
     }
 
-    /// Parses every line from `byteOffset` to end of file. A line still being written when this
-    /// runs (rare — the writer hasn't flushed its closing newline yet) fails JSON decoding and is
-    /// silently skipped, same as any other malformed line — including on the next scan, since the
-    /// returned offset advances past every byte read here regardless of per-line decode success.
+    /// Parses only complete (newline-terminated) lines, leaving any unterminated trailing line
+    /// unread so a later scan can pick it back up once the writer finishes it. A complete line
+    /// that still fails JSON decoding is skipped as malformed, same as any other malformed line.
     private static func parseByteRange(
         fileURL: URL,
         from byteOffset: Int64,
         pathSessionId: String?
     ) -> (buckets: [String: DayAggregate], offset: Int64) {
-        guard let handle = try? FileHandle(forReadingFrom: fileURL) else {
-            return ([:], byteOffset)
-        }
+        guard let handle = try? FileHandle(forReadingFrom: fileURL) else { return ([:], byteOffset) }
         defer { try? handle.close() }
 
         let data: Data?
@@ -258,9 +256,14 @@ enum TranscriptCache {
             return ([:], byteOffset)
         }
 
-        guard let data, !data.isEmpty, let content = String(data: data, encoding: .utf8) else {
-            return ([:], byteOffset)
-        }
+        guard let data, !data.isEmpty else { return ([:], byteOffset) }
+
+        // No complete line anywhere in this read — leave the offset untouched so the whole,
+        // still-unterminated chunk is retried next scan.
+        guard let lastNewline = data.lastIndex(of: UInt8(ascii: "\n")) else { return ([:], byteOffset) }
+
+        let complete = data[data.startIndex...lastNewline]
+        guard let content = String(data: complete, encoding: .utf8) else { return ([:], byteOffset) }
 
         let lines = content.components(separatedBy: "\n")
         var buckets: [String: DayAggregate] = [:]
@@ -292,7 +295,7 @@ enum TranscriptCache {
             buckets[key] = bucket
         }
 
-        return (buckets, byteOffset + Int64(data.count))
+        return (buckets, byteOffset + Int64(complete.count))
     }
 
     private static func mtimeFallback(for fileURL: URL) -> Date {

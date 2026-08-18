@@ -44,7 +44,7 @@ final class TranscriptCacheTests: XCTestCase {
     // MARK: - Unchanged file
 
     func testUnchangedFileIsNeverReopened() throws {
-        try writeAndCaptureAttributes(line(input: 100, output: 50, isoDate: isoString(daysAgo: 0), messageId: "a"))
+        try writeAndCaptureAttributes(line(input: 100, output: 50, isoDate: isoString(daysAgo: 0), messageId: "a") + "\n")
         var store = TranscriptCacheStore.empty
         let first = TranscriptCache.aggregate(claudeDir: tempDir, cutoff: nil, store: &store)
         XCTAssertEqual(first.input, 100)
@@ -102,6 +102,49 @@ final class TranscriptCacheTests: XCTestCase {
 
         let second = TranscriptCache.aggregate(claudeDir: tempDir, cutoff: nil, store: &store)
         XCTAssertEqual(second.input, 5, "a shrunk file must be fully reparsed, not merged with stale cached totals")
+    }
+
+    // MARK: - Unterminated trailing line
+
+    func testUnterminatedTrailingLineIsNotCountedUntilComplete() throws {
+        let completeLine = line(input: 100, output: 50, isoDate: isoString(daysAgo: 0), messageId: "a") + "\n"
+        let incompleteLine = line(input: 20, output: 10, isoDate: isoString(daysAgo: 0), messageId: "b")
+        // No trailing newline on the second line — simulates the writer being mid-flush on it.
+        try writeAndCaptureAttributes(completeLine + incompleteLine)
+
+        var store = TranscriptCacheStore.empty
+        let first = TranscriptCache.aggregate(claudeDir: tempDir, cutoff: nil, store: &store)
+        XCTAssertEqual(first.input, 100, "an unterminated trailing line must not be counted yet")
+
+        // The writer finishes flushing the line by appending the trailing newline.
+        try (completeLine + incompleteLine + "\n").write(to: fileURL, atomically: false, encoding: .utf8)
+
+        let second = TranscriptCache.aggregate(claudeDir: tempDir, cutoff: nil, store: &store)
+        XCTAssertEqual(second.input, 120, "the now-complete line must be picked up on the next scan")
+    }
+
+    // MARK: - Lagging parsedByteOffset
+
+    func testLaggingParsedByteOffsetIsRetriedDespiteMatchingMtimeAndSize() throws {
+        try writeAndCaptureAttributes(
+            line(input: 100, output: 50, isoDate: isoString(daysAgo: 0), messageId: "a") + "\n"
+        )
+        var store = TranscriptCacheStore.empty
+        let first = TranscriptCache.aggregate(claudeDir: tempDir, cutoff: nil, store: &store)
+        XCTAssertEqual(first.input, 100)
+
+        let path = try XCTUnwrap(store.files.keys.first)
+        let cached = try XCTUnwrap(store.files[path])
+        XCTAssertEqual(cached.parsedByteOffset, cached.size, "a full, up-to-date parse must record the offset at EOF")
+
+        // Simulate a previous scan that recorded the file's current mtime/size but was
+        // interrupted before it finished parsing (or before any buckets were merged in) —
+        // parsedByteOffset is left short of size even though mtime/size already look "current".
+        store.files[path] = FileParseCache(mtime: cached.mtime, size: cached.size, parsedByteOffset: 0, dailyBuckets: [:])
+
+        let second = TranscriptCache.aggregate(claudeDir: tempDir, cutoff: nil, store: &store)
+        XCTAssertEqual(second.input, 100, "a lagging parsedByteOffset must be retried, not fast-pathed as already parsed")
+        XCTAssertEqual(store.files[path]?.parsedByteOffset, store.files[path]?.size)
     }
 
     // MARK: - Period filtering from cache
