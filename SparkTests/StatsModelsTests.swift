@@ -68,6 +68,14 @@ final class StatsModelsTests: XCTestCase {
         XCTAssertTrue(dedup.shouldCount(messageId: "msg_1", requestId: "req_2"))
     }
 
+    func testDeduplicatorDoesNotCollideAcrossFieldBoundaries() {
+        // "a:b" + "c" and "a" + "b:c" would both concatenate to the same "a:b:c" string key,
+        // so a naive string-based key would misreport the second pair as a duplicate.
+        var dedup = LiveStatsParser.TokenDeduplicator()
+        XCTAssertTrue(dedup.shouldCount(messageId: "a:b", requestId: "c"))
+        XCTAssertTrue(dedup.shouldCount(messageId: "a", requestId: "b:c"))
+    }
+
     func testDeduplicatorAlwaysCountsEntriesMissingEitherField() {
         var dedup = LiveStatsParser.TokenDeduplicator()
         XCTAssertTrue(dedup.shouldCount(messageId: nil, requestId: "req_1"))

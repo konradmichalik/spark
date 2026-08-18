@@ -47,6 +47,14 @@ struct LiveStats: Sendable {
     }
 }
 
+/// Structured identifier pair used by `LiveStatsParser.TokenDeduplicator`. A concatenated string
+/// key (e.g. `"\(messageId):\(requestId)"`) can collide for distinct pairs whose fields themselves
+/// contain the separator, so the fields are hashed independently instead.
+private struct DedupKey: Hashable {
+    let messageId: String
+    let requestId: String
+}
+
 enum LiveStatsParser {
     private struct HistoryEntry: Decodable {
         let timestamp: Double
@@ -70,13 +78,13 @@ enum LiveStatsParser {
     /// streamed block, e.g. text + tool_use), each carrying the identical `usage` payload — left
     /// unfiltered, a response streamed as N entries is counted N times.
     struct TokenDeduplicator {
-        private var seenKeys: Set<String> = []
+        private var seenKeys: Set<DedupKey> = []
 
         /// Entries missing either field are always counted, so an unexpected schema change
         /// doesn't silently drop their tokens instead of merely failing to dedupe them.
         mutating func shouldCount(messageId: String?, requestId: String?) -> Bool {
             guard let messageId, let requestId else { return true }
-            return seenKeys.insert("\(messageId):\(requestId)").inserted
+            return seenKeys.insert(DedupKey(messageId: messageId, requestId: requestId)).inserted
         }
     }
 
