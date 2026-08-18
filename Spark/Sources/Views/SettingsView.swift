@@ -1072,6 +1072,13 @@ struct AboutTab: View {
                 .font(.callout)
                 .foregroundColor(.secondary)
 
+            if let configDir = ClaudeConfigDirectory.resolveCurrent().primary {
+                Text("Config directory: \(configDir.path)")
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+                    .textSelection(.enabled)
+            }
+
             HStack(spacing: 8) {
                 Button {
                     if let url = URL(string: "https://konradmichalik.github.io/spark/") {

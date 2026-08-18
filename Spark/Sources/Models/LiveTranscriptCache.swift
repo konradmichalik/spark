@@ -36,19 +36,38 @@ actor LiveTranscriptCache {
 
     private var store: TranscriptCacheStore?
 
-    func aggregate(claudeDir: URL, cutoff: Date?) -> TranscriptTotals {
+    func aggregate(claudeDirs: [URL], cutoff: Date?) -> TranscriptTotals {
         var current = store ?? TranscriptCachePersistence.load()
-        let result = TranscriptCache.aggregate(claudeDir: claudeDir, cutoff: cutoff, store: &current)
+        var combined = TranscriptTotals()
+
+        for claudeDir in claudeDirs {
+            let result = TranscriptCache.aggregate(claudeDir: claudeDir, cutoff: cutoff, store: &current)
+            combined.sessionIds.formUnion(result.sessionIds)
+            combined.input += result.input
+            combined.output += result.output
+            combined.cacheCreation += result.cacheCreation
+            combined.cacheRead += result.cacheRead
+            for (model, totals) in result.modelTotals {
+                combined.modelTotals[model, default: ModelTokenTotals()].merge(totals)
+            }
+            for (project, totals) in result.projectTotals {
+                combined.projectTotals[project, default: ProjectTokenTotals()].merge(totals)
+            }
+            for (project, cwd) in result.projectDisplayNames where combined.projectDisplayNames[project] == nil {
+                combined.projectDisplayNames[project] = cwd
+            }
+        }
+
         store = current
         TranscriptCachePersistence.save(current)
-        return result
+        return combined
     }
 
     /// Every calendar day strictly before today, merged across every cached file's day buckets —
     /// the source data for permanent rollups. Reads whatever the cache currently holds (loading
     /// from disk if this is the first call this launch) without triggering a fresh scan; call
     /// `aggregate` first if the cache might be stale.
-    func closedDayRollups(claudeDir: URL) -> [String: DayAggregate] {
+    func closedDayRollups() -> [String: DayAggregate] {
         let current = store ?? TranscriptCachePersistence.load()
         let today = TranscriptCache.dayKey(for: Date())
 
