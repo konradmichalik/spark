@@ -22,19 +22,30 @@ struct DayAggregate: Codable, Equatable, Sendable {
 
 // MARK: - Per-file cache entry
 
-/// What's persisted for one transcript file: enough to detect whether it changed since the
-/// last scan, and where to resume parsing if it only grew (transcripts are append-only).
+/// Identifies one already-counted `(message.id, requestId)` pair, including across two separate
+/// incremental scans of the same file. A structured key rather than a colon-joined string, which
+/// risks two distinct pairs colliding if either component could itself contain the delimiter.
+struct DedupKey: Codable, Equatable, Hashable, Sendable {
+    let messageId: String
+    let requestId: String
+}
+
+/// What's persisted for one transcript file: enough to detect whether it changed since the last
+/// scan, where to resume parsing if it only grew (transcripts are append-only), and which
+/// `(message.id, requestId)` pairs are already counted so a later scan doesn't recount a
+/// duplicate written after this file was last parsed.
 struct FileParseCache: Codable, Equatable, Sendable {
     var mtime: Date
     var size: Int64
     var parsedByteOffset: Int64
     var dailyBuckets: [String: DayAggregate]
+    var seenDedupKeys: Set<DedupKey> = []
 }
 
 // MARK: - Store
 
 struct TranscriptCacheStore: Codable, Equatable, Sendable {
-    static let currentSchemaVersion = 1
+    static let currentSchemaVersion = 2
     static let empty = TranscriptCacheStore(schemaVersion: currentSchemaVersion, files: [:])
 
     var schemaVersion: Int
@@ -90,20 +101,24 @@ enum TranscriptCache {
         }
     }
 
-    /// Skips assistant entries that share a `(message.id, requestId)` pair already seen while
-    /// parsing one file. Claude Code writes duplicate usage-bearing entries for a single response
-    /// (one per streamed block, e.g. text + tool_use), each carrying the identical `usage`
-    /// payload. Scoped per file rather than across the whole scan (unlike a from-scratch parse):
-    /// every duplicate pair observed in practice shares a single transcript file, and per-file
-    /// scoping is what makes independent incremental re-parsing of one file possible.
+    /// Skips assistant entries that share a `(message.id, requestId)` pair already seen. Claude
+    /// Code writes duplicate usage-bearing entries for a single response (one per streamed block,
+    /// e.g. text + tool_use), each carrying the identical `usage` payload. Scoped per file, since
+    /// every duplicate pair observed in practice shares a single transcript file. Seeded from
+    /// `FileParseCache.seenDedupKeys` and read back via `seenKeys`, so a duplicate is still caught
+    /// even when its two halves are written on either side of an incremental scan boundary.
     struct TokenDeduplicator {
-        private var seenKeys: Set<String> = []
+        private(set) var seenKeys: Set<DedupKey>
+
+        init(seenKeys: Set<DedupKey> = []) {
+            self.seenKeys = seenKeys
+        }
 
         /// Entries missing either field are always counted, so an unexpected schema change
         /// doesn't silently drop their tokens instead of merely failing to dedupe them.
         mutating func shouldCount(messageId: String?, requestId: String?) -> Bool {
             guard let messageId, let requestId else { return true }
-            return seenKeys.insert("\(messageId):\(requestId)").inserted
+            return seenKeys.insert(DedupKey(messageId: messageId, requestId: requestId)).inserted
         }
     }
 
@@ -218,7 +233,8 @@ enum TranscriptCache {
             let appended = parseByteRange(
                 fileURL: fileURL,
                 from: existing.parsedByteOffset,
-                pathSessionId: pathSessionId
+                pathSessionId: pathSessionId,
+                seenDedupKeys: existing.seenDedupKeys
             )
             var mergedBuckets = existing.dailyBuckets
             for (day, bucket) in appended.buckets {
@@ -228,24 +244,37 @@ enum TranscriptCache {
                 mtime: mtime,
                 size: size,
                 parsedByteOffset: appended.offset,
-                dailyBuckets: mergedBuckets
+                dailyBuckets: mergedBuckets,
+                seenDedupKeys: appended.seenDedupKeys
             )
         }
 
-        // No existing entry, or the file shrank (truncated/rewritten) — full reparse.
-        let full = parseByteRange(fileURL: fileURL, from: 0, pathSessionId: pathSessionId)
-        return FileParseCache(mtime: mtime, size: size, parsedByteOffset: full.offset, dailyBuckets: full.buckets)
+        // No existing entry, or the file shrank (truncated/rewritten) — full reparse with a
+        // fresh dedup set, since prior seen keys aren't known to match this file's content.
+        let full = parseByteRange(fileURL: fileURL, from: 0, pathSessionId: pathSessionId, seenDedupKeys: [])
+        return FileParseCache(
+            mtime: mtime,
+            size: size,
+            parsedByteOffset: full.offset,
+            dailyBuckets: full.buckets,
+            seenDedupKeys: full.seenDedupKeys
+        )
     }
 
+    // swiftlint:disable large_tuple
     /// Parses only complete (newline-terminated) lines, leaving any unterminated trailing line
     /// unread so a later scan can pick it back up once the writer finishes it. A complete line
-    /// that still fails JSON decoding is skipped as malformed, same as any other malformed line.
+    /// that still fails JSON decoding is skipped as malformed. `seenDedupKeys` is seeded from the
+    /// caller's persisted `FileParseCache` and returned updated, so a duplicate straddling two
+    /// separate incremental scans is still caught.
     private static func parseByteRange(
         fileURL: URL,
         from byteOffset: Int64,
-        pathSessionId: String?
-    ) -> (buckets: [String: DayAggregate], offset: Int64) {
-        guard let handle = try? FileHandle(forReadingFrom: fileURL) else { return ([:], byteOffset) }
+        pathSessionId: String?,
+        seenDedupKeys: Set<DedupKey>
+    ) -> (buckets: [String: DayAggregate], offset: Int64, seenDedupKeys: Set<DedupKey>) {
+        // swiftlint:enable large_tuple
+        guard let handle = try? FileHandle(forReadingFrom: fileURL) else { return ([:], byteOffset, seenDedupKeys) }
         defer { try? handle.close() }
 
         let data: Data?
@@ -253,21 +282,21 @@ enum TranscriptCache {
             try handle.seek(toOffset: UInt64(byteOffset))
             data = try handle.readToEnd()
         } catch {
-            return ([:], byteOffset)
+            return ([:], byteOffset, seenDedupKeys)
         }
 
-        guard let data, !data.isEmpty else { return ([:], byteOffset) }
+        guard let data, !data.isEmpty else { return ([:], byteOffset, seenDedupKeys) }
 
         // No complete line anywhere in this read — leave the offset untouched so the whole,
         // still-unterminated chunk is retried next scan.
-        guard let lastNewline = data.lastIndex(of: UInt8(ascii: "\n")) else { return ([:], byteOffset) }
+        guard let lastNewline = data.lastIndex(of: UInt8(ascii: "\n")) else { return ([:], byteOffset, seenDedupKeys) }
 
         let complete = data[data.startIndex...lastNewline]
-        guard let content = String(data: complete, encoding: .utf8) else { return ([:], byteOffset) }
+        guard let content = String(data: complete, encoding: .utf8) else { return ([:], byteOffset, seenDedupKeys) }
 
         let lines = content.components(separatedBy: "\n")
         var buckets: [String: DayAggregate] = [:]
-        var dedup = TokenDeduplicator()
+        var dedup = TokenDeduplicator(seenKeys: seenDedupKeys)
 
         for line in lines {
             guard !line.isEmpty,
@@ -295,7 +324,7 @@ enum TranscriptCache {
             buckets[key] = bucket
         }
 
-        return (buckets, byteOffset + Int64(complete.count))
+        return (buckets, byteOffset + Int64(complete.count), dedup.seenKeys)
     }
 
     private static func mtimeFallback(for fileURL: URL) -> Date {

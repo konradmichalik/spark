@@ -104,6 +104,29 @@ final class TranscriptCacheTests: XCTestCase {
         XCTAssertEqual(second.input, 5, "a shrunk file must be fully reparsed, not merged with stale cached totals")
     }
 
+    // MARK: - Dedup state persisted across incremental scans
+
+    func testDuplicateMessageRequestIdPairStraddlingIncrementalScansIsCountedOnce() throws {
+        try writeAndCaptureAttributes(
+            line(input: 100, output: 50, isoDate: isoString(daysAgo: 0), messageId: "a") + "\n"
+        )
+        var store = TranscriptCacheStore.empty
+        let first = TranscriptCache.aggregate(claudeDir: tempDir, cutoff: nil, store: &store)
+        XCTAssertEqual(first.input, 100)
+
+        // Append a second usage-bearing entry sharing the same message id (and, per the fixture
+        // helper, the same requestId) — the real duplicate-entry pattern Claude Code writes for
+        // one streamed response. This second entry is parsed in a separate, later
+        // `parseByteRange` call than the first, so it's only deduped correctly if dedup state
+        // persists across incremental scans rather than resetting every call.
+        let currentContent = try String(contentsOf: fileURL, encoding: .utf8)
+        try (currentContent + line(input: 100, output: 50, isoDate: isoString(daysAgo: 0), messageId: "a") + "\n")
+            .write(to: fileURL, atomically: false, encoding: .utf8)
+
+        let second = TranscriptCache.aggregate(claudeDir: tempDir, cutoff: nil, store: &store)
+        XCTAssertEqual(second.input, 100, "a duplicate (messageId, requestId) pair must be counted once across scans")
+    }
+
     // MARK: - Unterminated trailing line
 
     func testUnterminatedTrailingLineIsNotCountedUntilComplete() throws {
