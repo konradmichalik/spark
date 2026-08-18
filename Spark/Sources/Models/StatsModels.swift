@@ -3,6 +3,9 @@ import Foundation
 // MARK: - Helpers
 
 func formatTokenCount(_ count: Int) -> String {
+    if count >= 1_000_000_000 {
+        return String(format: "%.1fB", Double(count) / 1_000_000_000)
+    }
     if count >= 1_000_000 {
         return String(format: "%.1fM", Double(count) / 1_000_000)
     }
@@ -39,11 +42,18 @@ struct LiveStats: Sendable {
     let sessionCount: Int
     let inputTokens: Int
     let outputTokens: Int
+    let cacheCreationTokens: Int
+    let cacheReadTokens: Int
 
-    var totalTokens: Int { inputTokens + outputTokens }
+    var totalTokens: Int { inputTokens + outputTokens + cacheCreationTokens + cacheReadTokens }
 
     var formattedTokens: String {
         formatTokenCount(totalTokens)
+    }
+
+    var tokenBreakdown: String {
+        "Input \(formatTokenCount(inputTokens)) · Output \(formatTokenCount(outputTokens)) · " +
+        "Cache write \(formatTokenCount(cacheCreationTokens)) · Cache read \(formatTokenCount(cacheReadTokens))"
     }
 }
 
@@ -91,10 +101,14 @@ enum LiveStatsParser {
     private struct TokenUsage: Decodable {
         let inputTokens: Int?
         let outputTokens: Int?
+        let cacheCreationTokens: Int?
+        let cacheReadTokens: Int?
         // swiftlint:disable:next nesting
         enum CodingKeys: String, CodingKey {
             case inputTokens = "input_tokens"
             case outputTokens = "output_tokens"
+            case cacheCreationTokens = "cache_creation_input_tokens"
+            case cacheReadTokens = "cache_read_input_tokens"
         }
     }
 
@@ -107,7 +121,7 @@ enum LiveStatsParser {
         let (messageCount, sessionCount, sessionIds) = parseHistoryCounts(url: historyURL, period: period)
 
         // 2. Parse project JSONLs for token counts
-        let (inputTokens, outputTokens) = parseTokenCounts(
+        let tokens = parseTokenCounts(
             claudeDir: claudeDir,
             sessionIds: sessionIds,
             cutoff: period.startDate
@@ -119,8 +133,10 @@ enum LiveStatsParser {
             period: period,
             messageCount: messageCount,
             sessionCount: sessionCount,
-            inputTokens: inputTokens,
-            outputTokens: outputTokens
+            inputTokens: tokens.input,
+            outputTokens: tokens.output,
+            cacheCreationTokens: tokens.cacheCreation,
+            cacheReadTokens: tokens.cacheRead
         )
     }
 
@@ -155,20 +171,24 @@ enum LiveStatsParser {
         return (messageCount, sessionIds.count, sessionIds)
     }
 
+    // swiftlint:disable large_tuple
     private static func parseTokenCounts(
         claudeDir: URL,
         sessionIds: Set<String>,
         cutoff: Date?
-    ) -> (input: Int, output: Int) {
+    ) -> (input: Int, output: Int, cacheCreation: Int, cacheRead: Int) {
+        // swiftlint:enable large_tuple
         let projectsDir = claudeDir.appendingPathComponent("projects")
         guard let projectDirs = try? FileManager.default.contentsOfDirectory(
             at: projectsDir, includingPropertiesForKeys: nil
         ) else {
-            return (0, 0)
+            return (0, 0, 0, 0)
         }
 
         var totalInput = 0
         var totalOutput = 0
+        var totalCacheCreation = 0
+        var totalCacheRead = 0
         var dedup = TokenDeduplicator()
 
         for dir in projectDirs {
@@ -192,11 +212,13 @@ enum LiveStatsParser {
                     }
                     totalInput += usage.inputTokens ?? 0
                     totalOutput += usage.outputTokens ?? 0
+                    totalCacheCreation += usage.cacheCreationTokens ?? 0
+                    totalCacheRead += usage.cacheReadTokens ?? 0
                 }
             }
         }
 
-        return (totalInput, totalOutput)
+        return (totalInput, totalOutput, totalCacheCreation, totalCacheRead)
     }
 
     /// Whether a session message falls on or after `cutoff`. Messages with no cutoff (`.all`

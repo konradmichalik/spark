@@ -252,7 +252,7 @@ struct StatsRow: View {
                 if let live = liveStats {
                     StatsLine(label: "Messages", value: "\(live.messageCount)")
                     StatsLine(label: "Sessions", value: "\(live.sessionCount)")
-                    StatsLine(label: "Tokens", value: live.formattedTokens)
+                    StatsLine(label: "Tokens", value: live.formattedTokens, tooltip: live.tokenBreakdown)
                 }
             }
             .opacity(isLoading ? 0.5 : 1)
@@ -299,6 +299,7 @@ struct StatsRow: View {
 private struct StatsLine: View {
     let label: String
     let value: String
+    var tooltip: String?
 
     var body: some View {
         HStack {
@@ -310,6 +311,7 @@ private struct StatsLine: View {
                 .font(.system(.caption, design: .monospaced))
                 .fontWeight(.medium)
         }
+        .help(tooltip ?? "")
     }
 }
 
