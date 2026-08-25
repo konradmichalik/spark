@@ -328,6 +328,7 @@ final class AppState: ObservableObject {
             weekly: response.sevenDay,
             weeklySonnet: response.sevenDaySonnet,
             weeklyOpus: response.sevenDayOpus,
+            weeklyFable: response.sevenDayFable,
             extraUsage: response.extraUsage,
             lastUpdated: Date()
         )
