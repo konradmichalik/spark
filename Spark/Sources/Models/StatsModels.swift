@@ -134,9 +134,15 @@ enum LiveStatsParser {
     /// `cutoffOverride` lets a caller align the scan to a window other than `period`'s own
     /// fixed cutoff — e.g. the Weekly Report aligning this scan to the same calendar days its
     /// rollup-based totals sum over, rather than `.week`'s rolling "7*24h ago" cutoff.
-    static func parseStats(period: StatsPeriod, cutoffOverride: Date? = nil) async -> LiveStats? {
+    /// `upperCutoff` additionally bounds the scan's far end — e.g. a past week the Weekly Report
+    /// is navigated back to, which must not pick up any later week's activity.
+    static func parseStats(period: StatsPeriod, cutoffOverride: Date? = nil, upperCutoff: Date? = nil) async -> LiveStats? {
         let roots = ClaudeConfigDirectory.resolveCurrent().roots
-        let transcripts = await LiveTranscriptCache.shared.aggregate(claudeDirs: roots, cutoff: cutoffOverride ?? period.startDate)
+        let transcripts = await LiveTranscriptCache.shared.aggregate(
+            claudeDirs: roots,
+            cutoff: cutoffOverride ?? period.startDate,
+            upperCutoff: upperCutoff
+        )
         return makeLiveStats(period: period, claudeDirs: roots, transcripts: transcripts)
     }
 

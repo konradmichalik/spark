@@ -36,12 +36,12 @@ actor LiveTranscriptCache {
 
     private var store: TranscriptCacheStore?
 
-    func aggregate(claudeDirs: [URL], cutoff: Date?) -> TranscriptTotals {
+    func aggregate(claudeDirs: [URL], cutoff: Date?, upperCutoff: Date? = nil) -> TranscriptTotals {
         var current = store ?? TranscriptCachePersistence.load()
         var combined = TranscriptTotals()
 
         for claudeDir in claudeDirs {
-            let result = TranscriptCache.aggregate(claudeDir: claudeDir, cutoff: cutoff, store: &current)
+            let result = TranscriptCache.aggregate(claudeDir: claudeDir, cutoff: cutoff, upperCutoff: upperCutoff, store: &current)
             combined.sessionIds.formUnion(result.sessionIds)
             combined.input += result.input
             combined.output += result.output
