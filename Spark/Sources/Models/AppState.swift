@@ -65,8 +65,8 @@ final class AppState: ObservableObject {
     @Published var liveStats: LiveStats?
     @AppStorage("statsPeriod") private(set) var statsPeriod: StatsPeriod = .today
     @Published var isLoadingStats: Bool = false
-    @Published var weeklyReport: PeriodReport?
-    @Published var isLoadingWeeklyReport: Bool = false
+    @Published private(set) var weeklyReport: PeriodReport?
+    @Published private(set) var isLoadingWeeklyReport: Bool = false
     @Published private(set) var reportPeriod: ReportPeriod = .week
     /// 0 = the current period; 1 = one period back, etc. `WeeklyReportView` resets this to 0 on
     /// every appearance (via `loadWeeklyReport(offset: 0)`), so reopening the window never
