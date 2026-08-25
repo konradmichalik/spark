@@ -33,7 +33,7 @@ xcodebuild -scheme Spark -configuration Debug test
 
 **Views:** `MenuBarExtra` scene → `MenuBarView` (main popover) → child views (`UsageGraphView`, `SettingsView`, `ClaudeLogoShape` for the ring icon)
 
-**Local stats:** Parses `~/.claude/history.jsonl` and per-project JSONL files for daily message/token counts.
+**Local stats:** Parses `~/.claude/history.jsonl` and per-project JSONL files for daily message/token counts. Active sessions (`ActiveSessionResolver`) are derived from the same cached file metadata — no extra parsing — as sessions with a transcript write in the last 5 minutes.
 
 ## Key Conventions
 
