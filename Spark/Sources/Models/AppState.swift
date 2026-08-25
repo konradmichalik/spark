@@ -51,6 +51,7 @@ final class AppState: ObservableObject {
     @AppStorage("notifyOnStatusChange") var notifyOnStatusChange: Bool = true
     @AppStorage("notifyOnNewVersion") var notifyOnNewVersion: Bool = true
     @AppStorage("notifyOnCLIUpdate") var notifyOnCLIUpdate: Bool = true
+    @AppStorage("updateCheckInterval") var updateCheckInterval: Double = 21600
     @AppStorage("showStats") var showStats: Bool = true
     @AppStorage("showProjectBreakdown") var showProjectBreakdown: Bool = true
     @AppStorage("coloredIcon") var coloredIcon: Bool = true
@@ -531,8 +532,7 @@ final class AppState: ObservableObject {
             await checkForNewVersion()
             await checkForCLIUpdate()
         }
-        // Check every 6 hours
-        updateCheckCancellable = Timer.publish(every: 21600, on: .main, in: .common)
+        updateCheckCancellable = Timer.publish(every: updateCheckInterval, on: .main, in: .common)
             .autoconnect()
             .sink { [weak self] _ in
                 guard let self else { return }
@@ -541,6 +541,11 @@ final class AppState: ObservableObject {
                     await self.checkForCLIUpdate()
                 }
             }
+    }
+
+    func restartUpdateCheckPolling() {
+        updateCheckCancellable?.cancel()
+        startUpdateCheckPolling()
     }
 
     private func checkForNewVersion() async {
