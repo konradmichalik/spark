@@ -18,6 +18,11 @@ struct DailyRollup: Codable, Equatable, Sendable {
 
     var totalTokens: Int { input + output + cacheCreation + cacheRead }
 
+    /// Excludes cache reads — reused context, not fresh consumption. Mirrors
+    /// `ModelTokenTotals.real`/`LiveStats.realTokens`, the figure shown as the headline number
+    /// everywhere else in the app.
+    var real: Int { input + output + cacheCreation }
+
     /// Builds a rollup dictionary by adding any day in `closedDays` not already present in
     /// `existing`. Closed days are immutable, so an already-recorded day is never touched —
     /// this is what lets rollups survive both `history.json`'s snapshot cap and Claude Code's

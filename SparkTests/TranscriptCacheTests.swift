@@ -195,6 +195,44 @@ final class TranscriptCacheTests: XCTestCase {
         XCTAssertEqual(today.input, 7, "only today's cached bucket should be summed, purely from the existing cache")
     }
 
+    func testUpperCutoffExcludesDayBucketsAfterIt() throws {
+        try writeAndCaptureAttributes(
+            line(input: 100, output: 0, isoDate: isoString(daysAgo: 10), messageId: "old") + "\n" +
+            line(input: 20, output: 0, isoDate: isoString(daysAgo: 5), messageId: "middle") + "\n" +
+            line(input: 7, output: 0, isoDate: isoString(daysAgo: 0), messageId: "new") + "\n"
+        )
+        var store = TranscriptCacheStore.empty
+
+        let upToFiveDaysAgo = TranscriptCache.aggregate(
+            claudeDir: tempDir,
+            cutoff: nil,
+            upperCutoff: Calendar.current.startOfDay(for: Date().addingTimeInterval(-5 * 24 * 3600)),
+            store: &store
+        )
+
+        XCTAssertEqual(upToFiveDaysAgo.input, 120, "today's bucket is after the upper cutoff and must be excluded")
+    }
+
+    /// The combination production actually uses for a past week's live scan: both a lower and an
+    /// upper bound at once, isolating a single middle bucket between two others.
+    func testCutoffAndUpperCutoffTogetherIsolateOnlyTheMiddleBucket() throws {
+        try writeAndCaptureAttributes(
+            line(input: 100, output: 0, isoDate: isoString(daysAgo: 10), messageId: "old") + "\n" +
+            line(input: 20, output: 0, isoDate: isoString(daysAgo: 5), messageId: "middle") + "\n" +
+            line(input: 7, output: 0, isoDate: isoString(daysAgo: 0), messageId: "new") + "\n"
+        )
+        var store = TranscriptCacheStore.empty
+
+        let onlyFiveDaysAgo = TranscriptCache.aggregate(
+            claudeDir: tempDir,
+            cutoff: Calendar.current.startOfDay(for: Date().addingTimeInterval(-6 * 24 * 3600)),
+            upperCutoff: Calendar.current.startOfDay(for: Date().addingTimeInterval(-4 * 24 * 3600)),
+            store: &store
+        )
+
+        XCTAssertEqual(onlyFiveDaysAgo.input, 20, "only the middle bucket falls within both bounds")
+    }
+
     // MARK: - Persistence / schema version
 
     func testVersionMismatchDiscardsThePersistedStore() throws {

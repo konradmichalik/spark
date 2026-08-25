@@ -65,6 +65,13 @@ final class AppState: ObservableObject {
     @Published var liveStats: LiveStats?
     @AppStorage("statsPeriod") private(set) var statsPeriod: StatsPeriod = .today
     @Published var isLoadingStats: Bool = false
+    @Published private(set) var weeklyReport: PeriodReport?
+    @Published private(set) var isLoadingWeeklyReport: Bool = false
+    @Published private(set) var reportPeriod: ReportPeriod = .week
+    /// 0 = the current period; 1 = one period back, etc. `WeeklyReportView` resets this to 0 on
+    /// every appearance (via `loadWeeklyReport(offset: 0)`), so reopening the window never
+    /// strands the user on a past period they navigated to earlier.
+    @Published private(set) var reportOffset = 0
 
     // MARK: - OAuth Token (Keychain)
 
@@ -832,6 +839,68 @@ final class AppState: ObservableObject {
             // never triggers its own scan.
             await self.updateRollups()
         }
+    }
+
+    /// Loaded lazily when the Weekly Report window opens, not on every launch. Pass `period`
+    /// and/or `offset` to navigate; omitting both reloads whatever's currently shown, e.g. after
+    /// a rollup update. Switching `period` always resets to offset 0 — a week offset carried
+    /// over into month mode (or vice versa) would land on an unrelated, confusing window.
+    func loadWeeklyReport(period: ReportPeriod? = nil, offset: Int? = nil) {
+        guard !isLoadingWeeklyReport else { return }
+        if let period, period != reportPeriod {
+            reportPeriod = period
+            reportOffset = 0
+        }
+        if let offset { reportOffset = max(0, offset) }
+        isLoadingWeeklyReport = true
+        let now = Date()
+        let shownPeriod = reportPeriod
+        let shownOffset = reportOffset
+        // Computed from `rollups` before `updateRollups()` below can add to it. Safe: the only
+        // way that call changes `windowStart`/`windowEnd` is by adding today's rollup, and
+        // `updateRollups` only ever adds *closed* days (never today) — so this snapshot and the
+        // one `build` reads after the update always agree on which day the window ends.
+        let cutoff = PeriodReport.windowStart(period: shownPeriod, periodOffset: shownOffset, rollups: rollups, now: now)
+        let upperCutoff = PeriodReport.windowEnd(period: shownPeriod, periodOffset: shownOffset, rollups: rollups, now: now)
+        let statsPeriodLabel: StatsPeriod = shownPeriod == .month ? .month : .week
+        Task.detached {
+            let stats = await LiveStatsParser.parseStats(period: statsPeriodLabel, cutoffOverride: cutoff, upperCutoff: upperCutoff)
+            let topProjects = stats?.topProjects(limit: 5) ?? []
+            let modelTotals = stats?.modelTotals ?? [:]
+            // Warms the rollup store with any newly-closed day the scan above just discovered,
+            // the same way `refreshLiveStats` does — otherwise a report built right after launch
+            // (or right after midnight) can be missing yesterday's rollup.
+            await self.updateRollups()
+            await MainActor.run {
+                self.weeklyReport = PeriodReport.build(
+                    rollups: self.rollups,
+                    modelTotals: modelTotals,
+                    topProjects: topProjects,
+                    period: shownPeriod,
+                    periodOffset: shownOffset,
+                    now: now
+                )
+                self.isLoadingWeeklyReport = false
+            }
+        }
+    }
+
+    var canGoToEarlierPeriod: Bool {
+        PeriodReport.hasEarlierPeriod(period: reportPeriod, periodOffset: reportOffset, rollups: rollups)
+    }
+
+    var canGoToLaterPeriod: Bool {
+        reportOffset > 0
+    }
+
+    func goToEarlierPeriod() {
+        guard canGoToEarlierPeriod else { return }
+        loadWeeklyReport(offset: reportOffset + 1)
+    }
+
+    func goToLaterPeriod() {
+        guard canGoToLaterPeriod else { return }
+        loadWeeklyReport(offset: reportOffset - 1)
     }
 
     // MARK: - CLI Helpers

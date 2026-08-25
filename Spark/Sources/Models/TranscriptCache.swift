@@ -101,11 +101,15 @@ enum TranscriptCache {
     }
 
     /// Scans every transcript under `claudeDir/projects`, updating `store` in place, and returns
-    /// totals filtered to `cutoff` (`nil` = all-time). Files whose cache entry already matches
-    /// their on-disk mtime/size are never opened.
+    /// totals filtered to `cutoff...upperCutoff` (either `nil` leaves that side unbounded). Files
+    /// whose cache entry already matches their on-disk mtime/size are never opened — every file is
+    /// always parsed in full into per-day buckets regardless of the bound, so a bounded scan (e.g.
+    /// a past week) costs no extra I/O over an unbounded one; the bound is applied only when
+    /// summing the already-cached buckets below.
     static func aggregate(
         claudeDir: URL,
         cutoff: Date?,
+        upperCutoff: Date? = nil,
         store: inout TranscriptCacheStore
     ) -> TranscriptTotals {
         // `FileManager.enumerator` fully resolves symlinks in the paths it yields (e.g. macOS's
@@ -123,6 +127,7 @@ enum TranscriptCache {
         }
 
         let cutoffDayKey = cutoff.map { dayKey(for: $0) }
+        let upperCutoffDayKey = upperCutoff.map { dayKey(for: $0) }
         var totals = TranscriptTotals()
 
         for case let fileURL as URL in enumerator where fileURL.pathExtension == "jsonl" {
@@ -149,7 +154,8 @@ enum TranscriptCache {
                 totals.projectDisplayNames[project] = cwd
             }
 
-            for (day, bucket) in updated.dailyBuckets where isWithin(day: day, cutoffDayKey: cutoffDayKey) {
+            for (day, bucket) in updated.dailyBuckets
+            where isWithin(day: day, cutoffDayKey: cutoffDayKey, upperCutoffDayKey: upperCutoffDayKey) {
                 accumulate(bucket: bucket, project: project, into: &totals)
             }
         }
@@ -186,9 +192,10 @@ enum TranscriptCache {
         return URL(fileURLWithPath: String(cString: buffer))
     }
 
-    private static func isWithin(day: String, cutoffDayKey: String?) -> Bool {
-        guard let cutoffDayKey else { return true }
-        return day >= cutoffDayKey
+    private static func isWithin(day: String, cutoffDayKey: String?, upperCutoffDayKey: String? = nil) -> Bool {
+        if let cutoffDayKey, day < cutoffDayKey { return false }
+        if let upperCutoffDayKey, day > upperCutoffDayKey { return false }
+        return true
     }
 
     private static func updatedCache(
