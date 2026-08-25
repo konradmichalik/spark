@@ -135,6 +135,28 @@ struct MenuBarView: View {
                     }
                 }
 
+                // Fable Usage
+                if state.showFableUsage {
+                    if let fable = state.usageData.weeklyFable {
+                        UsageRow(
+                            label: "Fable (Weekly)",
+                            utilization: fable.utilization,
+                            resetTime: fable.timeUntilReset,
+                            resetDate: fable.resetsAtDate,
+                            warningThreshold: state.warningThreshold,
+                            criticalThreshold: state.criticalThreshold,
+                            localTokens: formattedLocalTokens(state.liveStats, family: .fable),
+                            pace: Pace.calculate(
+                                utilization: fable.utilization,
+                                resetsAt: fable.resetsAtDate,
+                                windowLength: Self.sevenDays
+                            )
+                        )
+                    } else if let localTokens = formattedLocalTokens(state.liveStats, family: .fable) {
+                        LocalOnlyUsageRow(label: "Fable", localTokens: localTokens)
+                    }
+                }
+
                 if state.usageData.session == nil && state.lastError == nil && !state.isLoading {
                     Text("No data available")
                         .foregroundColor(.secondary)
@@ -154,8 +176,10 @@ struct MenuBarView: View {
                     weekly: state.usageData.weekly,
                     sonnet: state.usageData.weeklySonnet,
                     opus: state.usageData.weeklyOpus,
+                    fable: state.usageData.weeklyFable,
                     showSonnet: state.showSonnetUsage,
                     showOpus: state.showOpusUsage,
+                    showFable: state.showFableUsage,
                     showProjection: state.showProjection,
                     warningThreshold: state.warningThreshold,
                     criticalThreshold: state.criticalThreshold,

@@ -13,6 +13,10 @@ final class ModelFamilyTests: XCTestCase {
         XCTAssertEqual(ModelFamily.family(forRawModelId: "claude-opus-4-6"), .opus)
     }
 
+    func testFableModelGroupsAsFable() {
+        XCTAssertEqual(ModelFamily.family(forRawModelId: "claude-fable-5"), .fable)
+    }
+
     func testHaikuModelGroupsAsOther() {
         XCTAssertEqual(ModelFamily.family(forRawModelId: "claude-haiku-4-5"), .other)
     }

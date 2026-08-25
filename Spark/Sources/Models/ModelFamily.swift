@@ -1,16 +1,18 @@
 import Foundation
 
 /// Groups a raw Claude model ID into the family the API's usage buckets report on: Sonnet, Opus,
-/// or everything else (aggregated into the seven-day all-models figure rather than its own row).
+/// Fable, or everything else (aggregated into the seven-day all-models figure rather than its own row).
 enum ModelFamily: Sendable, Equatable {
     case sonnet
     case opus
+    case fable
     case other
 
     static func family(forRawModelId rawId: String) -> ModelFamily {
         let lower = rawId.lowercased()
         if lower.contains("sonnet") { return .sonnet }
         if lower.contains("opus") { return .opus }
+        if lower.contains("fable") { return .fable }
         return .other
     }
 

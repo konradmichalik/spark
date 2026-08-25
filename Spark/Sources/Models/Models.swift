@@ -7,6 +7,7 @@ struct UsageAPIResponse: Codable, Sendable {
     let sevenDay: UsageBucket?
     let sevenDaySonnet: UsageBucket?
     let sevenDayOpus: UsageBucket?
+    let sevenDayFable: UsageBucket?
     let extraUsage: ExtraUsage?
 
     enum CodingKeys: String, CodingKey {
@@ -14,6 +15,7 @@ struct UsageAPIResponse: Codable, Sendable {
         case sevenDay = "seven_day"
         case sevenDaySonnet = "seven_day_sonnet"
         case sevenDayOpus = "seven_day_opus"
+        case sevenDayFable = "seven_day_fable"
         case extraUsage = "extra_usage"
     }
 }
@@ -152,6 +154,7 @@ struct UsageData: Sendable {
     var weekly: UsageBucket?
     var weeklySonnet: UsageBucket?
     var weeklyOpus: UsageBucket?
+    var weeklyFable: UsageBucket?
     var extraUsage: ExtraUsage?
     var lastUpdated: Date = Date()
 
@@ -181,6 +184,7 @@ struct UsageSnapshot: Codable, Identifiable, Equatable, Sendable {
     /// Optional so snapshots written before these fields existed still decode.
     let sonnetUtilization: Double?
     let opusUtilization: Double?
+    let fableUtilization: Double?
     let extraUsageSpend: Double?
 
     init(
@@ -189,6 +193,7 @@ struct UsageSnapshot: Codable, Identifiable, Equatable, Sendable {
         weeklyUtilization: Double,
         sonnetUtilization: Double? = nil,
         opusUtilization: Double? = nil,
+        fableUtilization: Double? = nil,
         extraUsageSpend: Double? = nil
     ) {
         self.id = UUID()
@@ -197,6 +202,7 @@ struct UsageSnapshot: Codable, Identifiable, Equatable, Sendable {
         self.weeklyUtilization = weeklyUtilization
         self.sonnetUtilization = sonnetUtilization
         self.opusUtilization = opusUtilization
+        self.fableUtilization = fableUtilization
         self.extraUsageSpend = extraUsageSpend
     }
 }

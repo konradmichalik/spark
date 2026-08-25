@@ -303,8 +303,10 @@ struct UsageRingsView: View {
     let weekly: UsageBucket?
     let sonnet: UsageBucket?
     let opus: UsageBucket?
+    let fable: UsageBucket?
     let showSonnet: Bool
     let showOpus: Bool
+    let showFable: Bool
     let showProjection: Bool
     let warningThreshold: Double
     let criticalThreshold: Double
@@ -315,56 +317,29 @@ struct UsageRingsView: View {
         var result: [RingData] = []
         var index = 0
 
-        if let session {
+        func append(label: String, bucket: UsageBucket?, projection: ProjectionResult = .insufficientData) {
+            guard let bucket else { return }
             result.append(RingData(
-                label: "Session (5h)",
-                utilization: session.utilization,
-                resetTime: session.timeUntilReset,
-                resetDate: session.resetsAtDate,
-                projection: sessionProjection,
+                label: label,
+                utilization: bucket.utilization,
+                resetTime: bucket.timeUntilReset,
+                resetDate: bucket.resetsAtDate,
+                projection: projection,
                 ringIndex: index
             ))
             index += 1
         }
 
-        if let weekly {
-            result.append(RingData(
-                label: "Weekly (7 days)",
-                utilization: weekly.utilization,
-                resetTime: weekly.timeUntilReset,
-                resetDate: weekly.resetsAtDate,
-                projection: .insufficientData,
-                ringIndex: index
-            ))
-            index += 1
-        }
+        append(label: "Session (5h)", bucket: session, projection: sessionProjection)
+        append(label: "Weekly (7 days)", bucket: weekly)
 
-        // Unlike `session`/`weekly` above, `sonnet`/`opus` are only appended `if let` — falling
-        // back to a zeroed bucket here would draw a ring that always reads as 0% for any
-        // account whose plan doesn't report a Sonnet/Opus-specific weekly quota at all, which
+        // Unlike `session`/`weekly` above, `sonnet`/`opus`/`fable` are only appended when their
+        // toggle is on — falling back to a zeroed bucket here would draw a ring that always reads
+        // as 0% for any account whose plan doesn't report that model's weekly quota at all, which
         // looks like real usage data rather than the absence of a quota to measure against.
-        if showSonnet, let sonnet {
-            result.append(RingData(
-                label: "Sonnet (Weekly)",
-                utilization: sonnet.utilization,
-                resetTime: sonnet.timeUntilReset,
-                resetDate: sonnet.resetsAtDate,
-                projection: .insufficientData,
-                ringIndex: index
-            ))
-            index += 1
-        }
-
-        if showOpus, let opus {
-            result.append(RingData(
-                label: "Opus (Weekly)",
-                utilization: opus.utilization,
-                resetTime: opus.timeUntilReset,
-                resetDate: opus.resetsAtDate,
-                projection: .insufficientData,
-                ringIndex: index
-            ))
-        }
+        if showSonnet { append(label: "Sonnet (Weekly)", bucket: sonnet) }
+        if showOpus { append(label: "Opus (Weekly)", bucket: opus) }
+        if showFable { append(label: "Fable (Weekly)", bucket: fable) }
 
         return result
     }
