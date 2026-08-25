@@ -22,7 +22,7 @@ struct ModelRow: Identifiable {
     }
 
     static func rows(from modelTotals: [String: Int]) -> [ModelRow] {
-        let families: [(ModelFamily, String)] = [(.sonnet, "Sonnet"), (.opus, "Opus"), (.fable, "Fable")]
+        let families: [(ModelFamily, String)] = [(.sonnet, "Sonnet"), (.opus, "Opus"), (.fable, "Fable"), (.other, "Other")]
         var rows: [ModelRow] = []
         for (family, label) in families {
             var tokens = 0
