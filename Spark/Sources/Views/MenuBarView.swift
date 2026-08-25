@@ -4,6 +4,7 @@ import SwiftUI
 
 struct MenuBarView: View {
     @EnvironmentObject var state: AppState
+    @Environment(\.openWindow) private var openWindow
 
     private static let fiveHours: TimeInterval = 5 * 3600
     private static let sevenDays: TimeInterval = 7 * 24 * 3600
@@ -26,6 +27,17 @@ struct MenuBarView: View {
                     .clipShape(Capsule())
 
                 Spacer()
+                Button {
+                    openWindow(id: WeeklyReportView.windowID)
+                    NSApp.activate(ignoringOtherApps: true)
+                } label: {
+                    Image(systemName: "calendar")
+                        .font(.system(size: 12))
+                }
+                .buttonStyle(.borderless)
+                .help("Weekly Report")
+                .accessibilityLabel("Weekly Report")
+
                 SettingsLink {
                     Image(systemName: "gearshape")
                         .font(.system(size: 12))

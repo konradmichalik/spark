@@ -65,6 +65,8 @@ final class AppState: ObservableObject {
     @Published var liveStats: LiveStats?
     @AppStorage("statsPeriod") private(set) var statsPeriod: StatsPeriod = .today
     @Published var isLoadingStats: Bool = false
+    @Published var weeklyReport: WeeklyReport?
+    @Published var isLoadingWeeklyReport: Bool = false
 
     // MARK: - OAuth Token (Keychain)
 
@@ -831,6 +833,32 @@ final class AppState: ObservableObject {
             // Runs after parseStats has warmed the transcript cache for this launch, so this
             // never triggers its own scan.
             await self.updateRollups()
+        }
+    }
+
+    /// Loaded lazily when the Weekly Report window opens, not on every launch.
+    func loadWeeklyReport() {
+        guard !isLoadingWeeklyReport else { return }
+        isLoadingWeeklyReport = true
+        let now = Date()
+        let cutoff = WeeklyReport.windowStart(rollups: rollups, now: now)
+        Task.detached {
+            let stats = await LiveStatsParser.parseStats(period: .week, cutoffOverride: cutoff)
+            let topProjects = stats?.topProjects(limit: 5) ?? []
+            let modelTotals = stats?.modelTotals ?? [:]
+            // Warms the rollup store with any newly-closed day the scan above just discovered,
+            // the same way `refreshLiveStats` does — otherwise a report built right after launch
+            // (or right after midnight) can be missing yesterday's rollup.
+            await self.updateRollups()
+            await MainActor.run {
+                self.weeklyReport = WeeklyReport.build(
+                    rollups: self.rollups,
+                    modelTotals: modelTotals,
+                    topProjects: topProjects,
+                    now: now
+                )
+                self.isLoadingWeeklyReport = false
+            }
         }
     }
 

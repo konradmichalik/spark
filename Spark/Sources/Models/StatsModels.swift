@@ -130,9 +130,13 @@ enum LiveStatsParser {
     }
 
     /// Production entry point. Goes through the shared, disk-persisted transcript cache.
-    static func parseStats(period: StatsPeriod) async -> LiveStats? {
+    ///
+    /// `cutoffOverride` lets a caller align the scan to a window other than `period`'s own
+    /// fixed cutoff — e.g. the Weekly Report aligning this scan to the same calendar days its
+    /// rollup-based totals sum over, rather than `.week`'s rolling "7*24h ago" cutoff.
+    static func parseStats(period: StatsPeriod, cutoffOverride: Date? = nil) async -> LiveStats? {
         let roots = ClaudeConfigDirectory.resolveCurrent().roots
-        let transcripts = await LiveTranscriptCache.shared.aggregate(claudeDirs: roots, cutoff: period.startDate)
+        let transcripts = await LiveTranscriptCache.shared.aggregate(claudeDirs: roots, cutoff: cutoffOverride ?? period.startDate)
         return makeLiveStats(period: period, claudeDirs: roots, transcripts: transcripts)
     }
 

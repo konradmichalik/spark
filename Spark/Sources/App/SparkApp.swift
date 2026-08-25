@@ -92,6 +92,12 @@ struct SparkApp: App {
             SettingsView()
                 .environmentObject(state)
         }
+
+        Window("Weekly Report", id: WeeklyReportView.windowID) {
+            WeeklyReportView()
+                .environmentObject(state)
+        }
+        .windowResizability(.contentSize)
     }
 }
 
