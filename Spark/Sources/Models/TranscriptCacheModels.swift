@@ -13,6 +13,10 @@ struct ModelTokenTotals: Codable, Equatable, Sendable {
 
     var total: Int { input + output + cacheCreation + cacheRead }
 
+    /// Excludes cache reads — reused context, not fresh consumption — so this reflects what was
+    /// actually newly processed rather than the full (mostly cached) API throughput.
+    var real: Int { input + output + cacheCreation }
+
     mutating func merge(_ other: ModelTokenTotals) {
         input += other.input
         output += other.output
@@ -31,6 +35,9 @@ struct ProjectTokenTotals: Codable, Equatable, Sendable {
     var cacheRead = 0
 
     var total: Int { input + output + cacheCreation + cacheRead }
+
+    /// Excludes cache reads — see `ModelTokenTotals.real`.
+    var real: Int { input + output + cacheCreation }
 
     mutating func merge(_ other: ProjectTokenTotals) {
         input += other.input

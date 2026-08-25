@@ -65,8 +65,22 @@ final class StatsModelsTests: XCTestCase {
     }
 
     func testFormattedTokensUsesBillionsNotation() {
+        let stats = LiveStats(
+            period: .today,
+            messageCount: 1,
+            sessionCount: 1,
+            inputTokens: 200_000_000,
+            outputTokens: 900_000_000,
+            cacheCreationTokens: 200_000_000,
+            cacheReadTokens: 0
+        )
+        XCTAssertEqual(stats.formattedTokens, "1.3B")
+    }
+
+    func testFormattedTokensExcludesCacheReads() {
         // Reflects the normal shape of real Claude Code usage: cache reads dominate
-        // input/output by two orders of magnitude once prompt caching kicks in.
+        // input/output by two orders of magnitude once prompt caching kicks in, but they're
+        // reused context, not fresh consumption, so the headline number leaves them out.
         let stats = LiveStats(
             period: .today,
             messageCount: 1,
@@ -77,7 +91,8 @@ final class StatsModelsTests: XCTestCase {
             cacheReadTokens: 4_997_419_883
         )
         XCTAssertEqual(stats.totalTokens, 5_068_246_411)
-        XCTAssertEqual(stats.formattedTokens, "5.1B")
+        XCTAssertEqual(stats.realTokens, 70_826_528)
+        XCTAssertEqual(stats.formattedTokens, "70.8M")
     }
 
     // MARK: - Per-model token attribution

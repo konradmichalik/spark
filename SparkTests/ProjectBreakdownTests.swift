@@ -113,4 +113,20 @@ final class ProjectBreakdownTests: XCTestCase {
         XCTAssertEqual(second.projectDisplayNames["-Users-me-app"], "/Users/konrad/dev/typo3-routing")
         XCTAssertEqual(second.projectTotals["-Users-me-app"]?.total, 15)
     }
+
+    func testProjectRealExcludesCacheReadsButTotalIncludesThem() throws {
+        let fileURL = projectDir.appendingPathComponent("11111111-1111-1111-1111-111111111111.jsonl")
+        let content = """
+        {"message":{"id":"a","role":"assistant",\
+        "usage":{"input_tokens":10,"output_tokens":5,"cache_creation_input_tokens":2,"cache_read_input_tokens":1000}},\
+        "timestamp":"\(ISO8601DateFormatter().string(from: Date()))","requestId":"req_a"}\n
+        """
+        try content.write(to: fileURL, atomically: false, encoding: .utf8)
+
+        var store = TranscriptCacheStore.empty
+        let result = TranscriptCache.aggregate(claudeDir: tempDir, cutoff: nil, store: &store)
+
+        XCTAssertEqual(result.projectTotals["-Users-me-app"]?.real, 17)
+        XCTAssertEqual(result.projectTotals["-Users-me-app"]?.total, 1_017)
+    }
 }
