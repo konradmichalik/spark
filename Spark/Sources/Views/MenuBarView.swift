@@ -251,6 +251,11 @@ struct MenuBarView: View {
 
             Divider()
 
+            // Active Sessions
+            if state.showActiveSessions {
+                ActiveSessionsView(sessions: state.activeSessions)
+            }
+
             // Stats
             if state.showStats {
                 StatsRow(
@@ -298,6 +303,8 @@ struct MenuBarView: View {
             }
         }
         .background(WindowResizer())
+        .onAppear { state.startActiveSessionTicker() }
+        .onDisappear { state.stopActiveSessionTicker() }
     }
 
     /// Local token attribution for a model family, or `nil` when there's nothing to show —

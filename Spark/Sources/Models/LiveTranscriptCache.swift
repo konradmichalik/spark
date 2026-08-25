@@ -63,6 +63,19 @@ actor LiveTranscriptCache {
         return combined
     }
 
+    /// Currently active sessions, derived purely from the cached per-file metadata (`mtime`,
+    /// `discoveredCwd`) — no file I/O, no scan. Like `closedDayRollups`, reads whatever the cache
+    /// currently holds (loading from disk if this is the first call this launch); call
+    /// `aggregate` first if the cache might be stale. Freshness for *new* activity therefore comes
+    /// from whatever last called `aggregate` (the FSEvents-triggered live-stats refresh), while
+    /// this method's own `now` lets a session's activity *expire* purely from the passage of time,
+    /// with no rescan needed.
+    func activeSessions(claudeDirs: [URL], now: Date = Date(), window: TimeInterval = ActiveSessionResolver.defaultWindow) -> [ActiveSession] {
+        let current = store ?? TranscriptCachePersistence.load()
+        let projectsDirs = claudeDirs.map { TranscriptCache.resolvedPath($0.appendingPathComponent("projects")) }
+        return ActiveSessionResolver.resolve(files: current.files, projectsDirs: projectsDirs, now: now, window: window)
+    }
+
     /// Every calendar day strictly before today, merged across every cached file's day buckets —
     /// the source data for permanent rollups. Reads whatever the cache currently holds (loading
     /// from disk if this is the first call this launch) without triggering a fresh scan; call

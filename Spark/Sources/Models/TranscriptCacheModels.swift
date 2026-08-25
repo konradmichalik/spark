@@ -97,6 +97,12 @@ struct FileParseCache: Codable, Equatable, Sendable {
     /// project's readable name. Persisted per file (not re-derived every scan) since it never
     /// changes once found, and an unchanged file is never reopened to look for it again.
     var discoveredCwd: String?
+    /// The most recent assistant turn's `input + cache_creation + cache_read` tokens — an
+    /// approximation of the conversation's current context-window size, since Claude Code resends
+    /// the full context on every turn. Unlike `discoveredCwd` this is a "last seen wins" value,
+    /// not "first seen wins": it's overwritten by every newer usage-bearing line, carrying
+    /// forward unchanged across an incremental scan that finds no new one.
+    var lastContextTokens: Int?
 }
 
 // MARK: - Aggregated totals

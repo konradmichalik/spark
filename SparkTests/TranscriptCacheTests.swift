@@ -170,6 +170,68 @@ final class TranscriptCacheTests: XCTestCase {
         XCTAssertEqual(store.files[path]?.parsedByteOffset, store.files[path]?.size)
     }
 
+    // MARK: - Last context tokens (current context-window approximation)
+
+    func testLastContextTokensCapturesTheMostRecentAssistantTurn() throws {
+        try writeAndCaptureAttributes(
+            line(input: 100, output: 50, isoDate: isoString(daysAgo: 0), messageId: "a") + "\n"
+        )
+        var store = TranscriptCacheStore.empty
+        _ = TranscriptCache.aggregate(claudeDir: tempDir, cutoff: nil, store: &store)
+
+        let path = try XCTUnwrap(store.files.keys.first)
+        XCTAssertEqual(store.files[path]?.lastContextTokens, 100)
+    }
+
+    func testLastContextTokensUpdatesToTheLatestTurnOnIncrementalAppend() throws {
+        try writeAndCaptureAttributes(
+            line(input: 100, output: 50, isoDate: isoString(daysAgo: 0), messageId: "a") + "\n"
+        )
+        var store = TranscriptCacheStore.empty
+        _ = TranscriptCache.aggregate(claudeDir: tempDir, cutoff: nil, store: &store)
+
+        let currentContent = try String(contentsOf: fileURL, encoding: .utf8)
+        try (currentContent + line(input: 250, output: 10, isoDate: isoString(daysAgo: 0), messageId: "b") + "\n")
+            .write(to: fileURL, atomically: false, encoding: .utf8)
+        _ = TranscriptCache.aggregate(claudeDir: tempDir, cutoff: nil, store: &store)
+
+        let path = try XCTUnwrap(store.files.keys.first)
+        XCTAssertEqual(store.files[path]?.lastContextTokens, 250, "must reflect the newest turn, not the first")
+    }
+
+    func testLastContextTokensPersistsAcrossAnIncrementalScanWithNoNewUsage() throws {
+        try writeAndCaptureAttributes(
+            line(input: 100, output: 50, isoDate: isoString(daysAgo: 0), messageId: "a") + "\n"
+        )
+        var store = TranscriptCacheStore.empty
+        _ = TranscriptCache.aggregate(claudeDir: tempDir, cutoff: nil, store: &store)
+
+        // Append a user-only line (no `usage` field) — must not clear the last known value.
+        let currentContent = try String(contentsOf: fileURL, encoding: .utf8)
+        try (currentContent + """
+        {"message":{"role":"user"},"timestamp":"\(isoString(daysAgo: 0))"}
+        """ + "\n").write(to: fileURL, atomically: false, encoding: .utf8)
+        _ = TranscriptCache.aggregate(claudeDir: tempDir, cutoff: nil, store: &store)
+
+        let path = try XCTUnwrap(store.files.keys.first)
+        XCTAssertEqual(store.files[path]?.lastContextTokens, 100)
+    }
+
+    func testLastContextTokensIncludesCacheTokensNotJustInput() throws {
+        let content = """
+        {"message":{"id":"a","role":"assistant",\
+        "usage":{"input_tokens":10,"output_tokens":5,"cache_creation_input_tokens":2,"cache_read_input_tokens":1000}},\
+        "timestamp":"\(isoString(daysAgo: 0))","requestId":"req_a"}\n
+        """
+        try content.write(to: fileURL, atomically: false, encoding: .utf8)
+
+        var store = TranscriptCacheStore.empty
+        _ = TranscriptCache.aggregate(claudeDir: tempDir, cutoff: nil, store: &store)
+
+        let path = try XCTUnwrap(store.files.keys.first)
+        XCTAssertEqual(store.files[path]?.lastContextTokens, 1_012, "context size is the full resent context, cache reads included")
+    }
+
     // MARK: - Period filtering from cache
 
     func testCutoffFiltersCachedDayBucketsWithoutReopeningTheFile() throws {

@@ -186,7 +186,11 @@ enum TranscriptCache {
     /// intentionally preserves BSD alias roots (`/var`, `/tmp`, `/etc`). Falls back to the
     /// original URL if the path doesn't exist yet (e.g. no `projects/` directory at all) — the
     /// enumerator guard right after this call handles that case.
-    private static func resolvedPath(_ url: URL) -> URL {
+    ///
+    /// Internal (not private): `ActiveSessionResolver` must resolve each `claudeDir/projects`
+    /// root identically to how `aggregate` indexed `store.files`, since session-ID derivation is
+    /// depth-based and silently returns `nil` if the two disagree.
+    static func resolvedPath(_ url: URL) -> URL {
         var buffer = [Int8](repeating: 0, count: Int(PATH_MAX))
         guard realpath(url.path, &buffer) != nil else { return url }
         return URL(fileURLWithPath: String(cString: buffer))
@@ -215,7 +219,8 @@ enum TranscriptCache {
                 fileURL: fileURL,
                 from: existing.parsedByteOffset,
                 pathSessionId: pathSessionId,
-                seenDedupKeys: existing.seenDedupKeys
+                seenDedupKeys: existing.seenDedupKeys,
+                lastContextTokens: existing.lastContextTokens
             )
             var mergedBuckets = existing.dailyBuckets
             for (day, bucket) in appended.buckets {
@@ -227,39 +232,49 @@ enum TranscriptCache {
                 parsedByteOffset: appended.offset,
                 dailyBuckets: mergedBuckets,
                 seenDedupKeys: appended.seenDedupKeys,
-                discoveredCwd: existing.discoveredCwd ?? appended.discoveredCwd
+                discoveredCwd: existing.discoveredCwd ?? appended.discoveredCwd,
+                lastContextTokens: appended.lastContextTokens
             )
         }
 
         // No existing entry, or the file shrank (truncated/rewritten) — full reparse with a
         // fresh dedup set, since prior seen keys aren't known to match this file's content.
-        let full = parseByteRange(fileURL: fileURL, from: 0, pathSessionId: pathSessionId, seenDedupKeys: [])
+        let full = parseByteRange(fileURL: fileURL, from: 0, pathSessionId: pathSessionId, seenDedupKeys: [], lastContextTokens: nil)
         return FileParseCache(
             mtime: mtime,
             size: size,
             parsedByteOffset: full.offset,
             dailyBuckets: full.buckets,
             seenDedupKeys: full.seenDedupKeys,
-            discoveredCwd: full.discoveredCwd
+            discoveredCwd: full.discoveredCwd,
+            lastContextTokens: full.lastContextTokens
         )
     }
 
-    // swiftlint:disable large_tuple
+    /// One incremental parse's result — a struct, not a tuple, once a fifth member arrived.
+    private struct ParseResult {
+        var buckets: [String: DayAggregate] = [:]
+        var offset: Int64
+        var seenDedupKeys: Set<DedupKey>
+        var discoveredCwd: String?
+        var lastContextTokens: Int?
+    }
+
     /// Parses only complete (newline-terminated) lines, leaving any unterminated trailing line
     /// unread so a later scan can pick it back up once the writer finishes it. A complete line
-    /// that still fails JSON decoding is skipped as malformed. `seenDedupKeys` is seeded from the
-    /// caller's persisted `FileParseCache` and returned updated, so a duplicate straddling two
-    /// separate incremental scans is still caught.
+    /// that still fails JSON decoding is skipped as malformed. `seenDedupKeys` and
+    /// `lastContextTokens` are seeded from the caller's `FileParseCache` and carried through
+    /// `empty` on every early return, so both survive across separate incremental scans.
     private static func parseByteRange(
         fileURL: URL,
         from byteOffset: Int64,
         pathSessionId: String?,
-        seenDedupKeys: Set<DedupKey>
-    ) -> (buckets: [String: DayAggregate], offset: Int64, seenDedupKeys: Set<DedupKey>, discoveredCwd: String?) {
-        // swiftlint:enable large_tuple
-        guard let handle = try? FileHandle(forReadingFrom: fileURL) else {
-            return ([:], byteOffset, seenDedupKeys, nil)
-        }
+        seenDedupKeys: Set<DedupKey>,
+        lastContextTokens: Int?
+    ) -> ParseResult {
+        let empty = ParseResult(offset: byteOffset, seenDedupKeys: seenDedupKeys, lastContextTokens: lastContextTokens)
+
+        guard let handle = try? FileHandle(forReadingFrom: fileURL) else { return empty }
         defer { try? handle.close() }
 
         let data: Data?
@@ -267,30 +282,32 @@ enum TranscriptCache {
             try handle.seek(toOffset: UInt64(byteOffset))
             data = try handle.readToEnd()
         } catch {
-            return ([:], byteOffset, seenDedupKeys, nil)
+            return empty
         }
 
-        guard let data, !data.isEmpty else { return ([:], byteOffset, seenDedupKeys, nil) }
+        guard let data, !data.isEmpty else { return empty }
 
         // No complete line anywhere in this read — leave the offset untouched so the whole,
         // still-unterminated chunk is retried next scan.
-        guard let lastNewline = data.lastIndex(of: UInt8(ascii: "\n")) else {
-            return ([:], byteOffset, seenDedupKeys, nil)
-        }
+        guard let lastNewline = data.lastIndex(of: UInt8(ascii: "\n")) else { return empty }
 
         let complete = data[data.startIndex...lastNewline]
-        guard let content = String(data: complete, encoding: .utf8) else {
-            return ([:], byteOffset, seenDedupKeys, nil)
-        }
+        guard let content = String(data: complete, encoding: .utf8) else { return empty }
 
         let lines = content.components(separatedBy: "\n")
-        var state = LineParseState(dedup: TokenDeduplicator(seenKeys: seenDedupKeys))
+        var state = LineParseState(dedup: TokenDeduplicator(seenKeys: seenDedupKeys), lastContextTokens: lastContextTokens)
 
         for line in lines {
             processLine(line, fileURL: fileURL, pathSessionId: pathSessionId, state: &state)
         }
 
-        return (state.buckets, byteOffset + Int64(complete.count), state.dedup.seenKeys, state.discoveredCwd)
+        return ParseResult(
+            buckets: state.buckets,
+            offset: byteOffset + Int64(complete.count),
+            seenDedupKeys: state.dedup.seenKeys,
+            discoveredCwd: state.discoveredCwd,
+            lastContextTokens: state.lastContextTokens
+        )
     }
 
     /// Mutable state threaded through one file's line-by-line parse.
@@ -298,6 +315,7 @@ enum TranscriptCache {
         var buckets: [String: DayAggregate] = [:]
         var dedup: TokenDeduplicator
         var discoveredCwd: String?
+        var lastContextTokens: Int?
     }
 
     /// Decodes one line and folds it into `state.buckets`. Session-ID resolution must not be
@@ -328,9 +346,16 @@ enum TranscriptCache {
         var bucket = state.buckets[key] ?? DayAggregate()
         bucket.sessionIds.insert(resolvedSessionId)
 
-        guard entry.message?.role == "assistant",
-              let usage = entry.message?.usage,
-              state.dedup.shouldCount(messageId: entry.message?.id, requestId: entry.requestId) else {
+        guard entry.message?.role == "assistant", let usage = entry.message?.usage else {
+            state.buckets[key] = bucket
+            return
+        }
+
+        // Outside the dedup gate below: a duplicate streamed chunk carries the same `usage`, so
+        // setting this again is harmless, and it must stay correct even for a dedup-skipped turn.
+        state.lastContextTokens = (usage.inputTokens ?? 0) + (usage.cacheCreationTokens ?? 0) + (usage.cacheReadTokens ?? 0)
+
+        guard state.dedup.shouldCount(messageId: entry.message?.id, requestId: entry.requestId) else {
             state.buckets[key] = bucket
             return
         }
