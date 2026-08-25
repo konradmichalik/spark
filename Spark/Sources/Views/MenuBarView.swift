@@ -522,6 +522,27 @@ private struct ProjectLine: View {
     }
 
     var body: some View {
+        // Only a context menu, no left-click action: unlike Active Sessions, these rows have no
+        // primary click behavior to begin with, so adding one is purely additive.
+        if let cwd = project.cwd {
+            content.contextMenu {
+                Button("Reveal in Finder") {
+                    NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: cwd)])
+                }
+                Button("Open in Terminal") {
+                    openInTerminal(cwd)
+                }
+                Button("Copy Path") {
+                    NSPasteboard.general.clearContents()
+                    NSPasteboard.general.setString(cwd, forType: .string)
+                }
+            }
+        } else {
+            content
+        }
+    }
+
+    private var content: some View {
         VStack(alignment: .leading, spacing: 2) {
             HStack {
                 Text(project.displayName)
@@ -546,6 +567,17 @@ private struct ProjectLine: View {
             .frame(height: 3)
         }
     }
+}
+
+/// Launches Terminal.app at `path` via `/usr/bin/open`, rather than shelling out through `zsh -c`
+/// (see `CLIVersionClient.readLocalVersion`) — arguments passed as an array need no shell
+/// quoting, so a project path containing spaces can't break this. Fire-and-forget: nothing here
+/// needs the launched process's exit status.
+private func openInTerminal(_ path: String) {
+    let process = Process()
+    process.executableURL = URL(fileURLWithPath: "/usr/bin/open")
+    process.arguments = ["-a", "Terminal", path]
+    try? process.run()
 }
 
 // MARK: - Local-Only Usage Row
