@@ -868,6 +868,20 @@ struct NotificationsTab: View {
                         Text("Notify on new Claude Code version")
                             .font(.callout)
                     }
+
+                    SettingRow(title: "Check Interval") {
+                        Picker("", selection: $state.updateCheckInterval) {
+                            Text("1h").tag(3600.0)
+                            Text("3h").tag(10800.0)
+                            Text("6h").tag(21600.0)
+                            Text("12h").tag(43200.0)
+                            Text("24h").tag(86400.0)
+                        }
+                        .pickerStyle(.segmented)
+                        .onChange(of: state.updateCheckInterval) {
+                            state.restartUpdateCheckPolling()
+                        }
+                    }
                 }
                 .opacity(state.notificationsEnabled ? 1 : 0.5)
                 .disabled(!state.notificationsEnabled)
