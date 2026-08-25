@@ -100,4 +100,12 @@ final class VolumeDaySeriesTests: XCTestCase {
 
         XCTAssertEqual(days.last?.tokens, 15)
     }
+
+    func testPresentRollupWithZeroTokensIsNotEmpty() {
+        let userOnlySession = DailyRollup(sessionCount: 1)
+        let days = build(["2026-08-20": userOnlySession])
+
+        XCTAssertEqual(days.last?.tokens, 0)
+        XCTAssertEqual(days.last?.isEmpty, false)
+    }
 }

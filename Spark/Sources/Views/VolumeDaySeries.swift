@@ -1,12 +1,14 @@
 import Foundation
 
 /// One lane of the Volume chart: a calendar day inside the visible window, with its token total.
-/// `tokens == 0` means the day is inside the window but has no rollup at all.
+/// `hasRollup` distinguishes a closed day with genuinely zero tokens (e.g. a session with only
+/// user messages, no assistant reply) from a day with no rollup at all: only the latter is idle.
 struct VolumeDay: Identifiable {
     let day: String
     let tokens: Int
+    let hasRollup: Bool
 
-    var isEmpty: Bool { tokens == 0 }
+    var isEmpty: Bool { !hasRollup }
     var id: String { day }
 }
 
@@ -34,7 +36,8 @@ enum VolumeDaySeries {
         return (0..<dayCount).reversed().compactMap { offset in
             guard let date = calendar.date(byAdding: .day, value: -offset, to: lastDay) else { return nil }
             let key = TranscriptCache.dayKey(for: date, calendar: calendar)
-            return VolumeDay(day: key, tokens: rollups[key]?.totalTokens ?? 0)
+            let rollup = rollups[key]
+            return VolumeDay(day: key, tokens: rollup?.totalTokens ?? 0, hasRollup: rollup != nil)
         }
     }
 }
