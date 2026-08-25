@@ -11,6 +11,36 @@ enum Pace {
         let ratio: Double
         /// How much of the window has elapsed, in `0...1`.
         let elapsedFraction: Double
+
+        /// Six-tier classification of `ratio`, from comfortably under budget to badly overspending.
+        var tier: Tier {
+            switch ratio {
+            case ..<0.5: .comfortable
+            case ..<0.75: .onTrack
+            case ..<0.9: .warming
+            case ..<1.0: .pressing
+            case ..<1.2: .critical
+            default: .runaway
+            }
+        }
+    }
+
+    /// Where `ratio` falls, from comfortably under budget (`comfortable`) to badly overspending
+    /// (`runaway`). Boundaries mirror projected end-of-window utilization: a `ratio` of 1.2 means
+    /// the quota would be exhausted at 120% if the current rate held steady to reset.
+    enum Tier: Sendable {
+        case comfortable, onTrack, warming, pressing, critical, runaway
+
+        var label: String {
+            switch self {
+            case .comfortable: "Comfortable"
+            case .onTrack: "On Track"
+            case .warming: "Warming"
+            case .pressing: "Pressing"
+            case .critical: "Critical"
+            case .runaway: "Runaway"
+            }
+        }
     }
 
     /// The API returns only `resetsAt`, not a window start, so `windowLength` (the bucket's full

@@ -33,10 +33,10 @@
 
 - **Usage ring** in the menu bar that fills based on current usage — ring color shifts green → orange → red as you approach your limit
 - **Account tier badge** showing your plan (Pro, Max, Team, etc.) directly in the popover header
-- **Session, Weekly, Sonnet & Opus usage** with progress bars, countdown timers to the next reset, a pace marker showing whether you're tracking ahead of or behind an even-pace budget, and a pay-as-you-go extra-usage line when you exceed plan limits
+- **Session, Weekly, Sonnet, Opus & Fable usage** with progress bars, countdown timers to the next reset, a six-tier color-coded pace marker (Comfortable → Runaway) showing whether you're tracking ahead of or behind an even-pace budget, and a pay-as-you-go extra-usage line when you exceed plan limits
 - **Session projection** that estimates whether you'll hit the limit before the reset window closes
 - **Usage history graph** with two modes — **Limits** (time-proportional utilization line chart, selectable 1h–30d) and **Volume** (daily token bar chart from permanent history, 7d/30d) — both with hover tooltips
-- **Stats for any period** (Today / 7d / 30d / All) — message count, session count, token totals, local per-model (Sonnet/Opus) attribution, and a collapsible **Top Projects** breakdown by token volume
+- **Stats for any period** (Today / 7d / 30d / All) — message count, session count, token totals, local per-model (Sonnet/Opus/Fable) attribution, and a collapsible **Top Projects** breakdown by token volume
 - **Claude service status** pulled from `status.anthropic.com` — only surfaces when there's an active incident
 - **Native notifications** for warning thresholds, critical levels, limit resets, and service incidents
 - **Smart refresh** that reacts to your actual Claude Code activity — watches your transcripts directly and snaps back to active polling the moment you start working, instead of waiting for the next scheduled check

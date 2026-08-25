@@ -39,6 +39,7 @@ final class AppState: ObservableObject {
     @AppStorage("menuBarValue") var menuBarValue: String = "max"
     @AppStorage("showSonnetUsage") var showSonnetUsage: Bool = true
     @AppStorage("showOpusUsage") var showOpusUsage: Bool = true
+    @AppStorage("showFableUsage") var showFableUsage: Bool = true
     @AppStorage("showGraph") var showGraph: Bool = true
     @AppStorage("showProjection") var showProjection: Bool = true
     @AppStorage("refreshMode") var refreshMode: String = "smart"
@@ -257,6 +258,7 @@ final class AppState: ObservableObject {
                 weekly: response.sevenDay,
                 weeklySonnet: response.sevenDaySonnet,
                 weeklyOpus: response.sevenDayOpus,
+                weeklyFable: response.sevenDayFable,
                 extraUsage: response.extraUsage,
                 lastUpdated: Date()
             )
@@ -326,6 +328,7 @@ final class AppState: ObservableObject {
             weekly: response.sevenDay,
             weeklySonnet: response.sevenDaySonnet,
             weeklyOpus: response.sevenDayOpus,
+            weeklyFable: response.sevenDayFable,
             extraUsage: response.extraUsage,
             lastUpdated: Date()
         )
@@ -722,6 +725,7 @@ final class AppState: ObservableObject {
             weeklyUtilization: usageData.weeklyUtilization,
             sonnetUtilization: usageData.weeklySonnet?.utilization,
             opusUtilization: usageData.weeklyOpus?.utilization,
+            fableUtilization: usageData.weeklyFable?.utilization,
             extraUsageSpend: usageData.extraUsage?.spendAmount
         )
         history.append(snapshot)

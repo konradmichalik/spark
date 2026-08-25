@@ -372,6 +372,13 @@ struct GeneralTab: View {
                         )
                     }
 
+                    Toggle(isOn: $state.showFableUsage) {
+                        SettingLabel(
+                            title: "Fable Usage",
+                            subtitle: "Show weekly Fable usage."
+                        )
+                    }
+
                     Toggle(isOn: $state.showGraph) {
                         SettingLabel(
                             title: "Usage Graph",

@@ -234,6 +234,7 @@ struct UsageGraphView: View {
                 tooltipValue(snapshot.weeklyUtilization, color: Theme.graphWeekly)
                 tooltipValue(snapshot.sonnetUtilization, color: Theme.graphSonnet)
                 tooltipValue(snapshot.opusUtilization, color: Theme.graphOpus)
+                tooltipValue(snapshot.fableUtilization, color: Theme.graphFable)
             }
             .modifier(TooltipStyle(reduceTransparency: reduceTransparency))
         case .gap(let band):
@@ -263,6 +264,9 @@ struct UsageGraphView: View {
                 }
                 if samples.contains(where: { $0.opusUtilization != nil }) {
                     legendItem("Opus", color: Theme.graphOpus)
+                }
+                if samples.contains(where: { $0.fableUtilization != nil }) {
+                    legendItem("Fable", color: Theme.graphFable)
                 }
             }
             .font(.caption2)

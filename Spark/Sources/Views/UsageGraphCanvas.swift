@@ -32,6 +32,7 @@ struct UsageGraphCanvas: View {
             drawLine(context: context, size: size, color: Theme.graphSession) { $0.sessionUtilization }
             drawLine(context: context, size: size, color: Theme.graphSonnet) { $0.sonnetUtilization }
             drawLine(context: context, size: size, color: Theme.graphOpus) { $0.opusUtilization }
+            drawLine(context: context, size: size, color: Theme.graphFable) { $0.fableUtilization }
             drawHoverIndicator(context: context, size: size)
         }
         .onContinuousHover { phase in
@@ -138,7 +139,8 @@ struct UsageGraphCanvas: View {
             (snapshot.sessionUtilization, Theme.graphSession),
             (snapshot.weeklyUtilization, Theme.graphWeekly),
             (snapshot.sonnetUtilization, Theme.graphSonnet),
-            (snapshot.opusUtilization, Theme.graphOpus)
+            (snapshot.opusUtilization, Theme.graphOpus),
+            (snapshot.fableUtilization, Theme.graphFable)
         ]
         for (value, color) in points {
             guard let value else { continue }

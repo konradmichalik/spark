@@ -11,7 +11,8 @@ final class ModelsTests: XCTestCase {
             "five_hour": { "utilization": 42.5, "resets_at": "2026-03-30T18:00:00Z" },
             "seven_day": { "utilization": 65.0, "resets_at": "2026-04-05T00:00:00Z" },
             "seven_day_sonnet": { "utilization": 30.0, "resets_at": "2026-04-05T00:00:00Z" },
-            "seven_day_opus": { "utilization": 12.0, "resets_at": "2026-04-05T00:00:00Z" }
+            "seven_day_opus": { "utilization": 12.0, "resets_at": "2026-04-05T00:00:00Z" },
+            "seven_day_fable": { "utilization": 8.0, "resets_at": "2026-04-05T00:00:00Z" }
         }
         """.data(using: .utf8)!
 
@@ -20,7 +21,21 @@ final class ModelsTests: XCTestCase {
         XCTAssertEqual(response.sevenDay?.utilization, 65.0)
         XCTAssertEqual(response.sevenDaySonnet?.utilization, 30.0)
         XCTAssertEqual(response.sevenDayOpus?.utilization, 12.0)
+        XCTAssertEqual(response.sevenDayFable?.utilization, 8.0)
         XCTAssertNotNil(response.fiveHour?.resetsAt)
+    }
+
+    /// The live API may not report a Fable-specific bucket at all yet — decoding must tolerate
+    /// its absence exactly like it already does for a missing Opus bucket.
+    func testDecodeUsageAPIResponseWithoutFableBucket() throws {
+        let json = """
+        {
+            "five_hour": { "utilization": 10.0 }
+        }
+        """.data(using: .utf8)!
+
+        let response = try JSONDecoder().decode(UsageAPIResponse.self, from: json)
+        XCTAssertNil(response.sevenDayFable)
     }
 
     /// The live API includes many extra null buckets (codenames) and an extra_usage
@@ -288,6 +303,7 @@ final class ModelsTests: XCTestCase {
             weeklyUtilization: 65.0,
             sonnetUtilization: 10.0,
             opusUtilization: 20.0,
+            fableUtilization: 5.0,
             extraUsageSpend: 1.5
         )
         let data = try JSONEncoder().encode(snapshot)
@@ -297,6 +313,7 @@ final class ModelsTests: XCTestCase {
         XCTAssertEqual(decoded.weeklyUtilization, 65.0)
         XCTAssertEqual(decoded.sonnetUtilization, 10.0)
         XCTAssertEqual(decoded.opusUtilization, 20.0)
+        XCTAssertEqual(decoded.fableUtilization, 5.0)
         XCTAssertEqual(decoded.extraUsageSpend, 1.5)
         XCTAssertEqual(decoded.id, snapshot.id)
     }
@@ -311,6 +328,7 @@ final class ModelsTests: XCTestCase {
         XCTAssertEqual(decoded.sessionUtilization, 42.0)
         XCTAssertNil(decoded.sonnetUtilization)
         XCTAssertNil(decoded.opusUtilization)
+        XCTAssertNil(decoded.fableUtilization)
         XCTAssertNil(decoded.extraUsageSpend)
     }
 

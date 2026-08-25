@@ -135,6 +135,28 @@ struct MenuBarView: View {
                     }
                 }
 
+                // Fable Usage
+                if state.showFableUsage {
+                    if let fable = state.usageData.weeklyFable {
+                        UsageRow(
+                            label: "Fable (Weekly)",
+                            utilization: fable.utilization,
+                            resetTime: fable.timeUntilReset,
+                            resetDate: fable.resetsAtDate,
+                            warningThreshold: state.warningThreshold,
+                            criticalThreshold: state.criticalThreshold,
+                            localTokens: formattedLocalTokens(state.liveStats, family: .fable),
+                            pace: Pace.calculate(
+                                utilization: fable.utilization,
+                                resetsAt: fable.resetsAtDate,
+                                windowLength: Self.sevenDays
+                            )
+                        )
+                    } else if let localTokens = formattedLocalTokens(state.liveStats, family: .fable) {
+                        LocalOnlyUsageRow(label: "Fable", localTokens: localTokens)
+                    }
+                }
+
                 if state.usageData.session == nil && state.lastError == nil && !state.isLoading {
                     Text("No data available")
                         .foregroundColor(.secondary)
@@ -154,8 +176,10 @@ struct MenuBarView: View {
                     weekly: state.usageData.weekly,
                     sonnet: state.usageData.weeklySonnet,
                     opus: state.usageData.weeklyOpus,
+                    fable: state.usageData.weeklyFable,
                     showSonnet: state.showSonnetUsage,
                     showOpus: state.showOpusUsage,
+                    showFable: state.showFableUsage,
                     showProjection: state.showProjection,
                     warningThreshold: state.warningThreshold,
                     criticalThreshold: state.criticalThreshold,
@@ -555,8 +579,8 @@ struct UsageRow: View {
     private var paceDescription: String? {
         guard let pace else { return nil }
         let percent = Int((pace.ratio * 100).rounded())
-        let phrase = pace.ratio > 1.05 ? "over budget" : (pace.ratio < 0.95 ? "under budget" : "on budget")
-        return "Pace: \(percent)% of the on-track rate (\(phrase)) — at this rate, quota exhausts \(pace.ratio > 1 ? "before" : "at or after") reset."
+        let exhausts = pace.ratio > 1 ? "before" : "at or after"
+        return "Pace: \(pace.tier.label) — \(percent)% of the on-track rate. At this rate, quota exhausts \(exhausts) reset."
     }
 
     private var iconName: String {
@@ -718,7 +742,7 @@ struct UsageRow: View {
                     utilization: utilization,
                     color: color,
                     projection: projection,
-                    paceElapsedFraction: pace?.elapsedFraction
+                    pace: pace
                 )
                 .frame(height: 6)
                 .help(paceDescription ?? "")
@@ -739,11 +763,12 @@ struct ProjectedProgressBar: View {
     let utilization: Double
     let color: Color
     let projection: ProjectionResult
-    /// Elapsed fraction of the bucket's window, `0...1` — drawn as a marker on the bar. Fill left
-    /// of the marker reads as under budget, fill right of it as over, with no number or label
-    /// needed. `nil` when pace can't be computed (see `Pace.calculate`), which simply omits the
-    /// marker rather than drawing a misleading one.
-    var paceElapsedFraction: Double?
+    /// Pace for this bucket's window, drawn as a colored marker on the bar. Fill left of the
+    /// marker reads as under budget, fill right of it as over; the marker's color reflects
+    /// `Pace.Tier`, from comfortably under budget to badly overspending. `nil` when pace can't be
+    /// computed (see `Pace.calculate`), which simply omits the marker rather than drawing a
+    /// misleading one.
+    var pace: Pace.Result?
 
     private var projectedWidth: Double {
         switch projection {
@@ -790,12 +815,12 @@ struct ProjectedProgressBar: View {
                     .fill(color)
                     .frame(width: geometry.size.width * min(utilization, 100) / 100)
 
-                // Pace marker: where "on budget" would sit right now.
-                if let paceElapsedFraction {
+                // Pace marker: where "on budget" would sit right now, colored by Pace.Tier.
+                if let pace {
                     Rectangle()
-                        .fill(Color.primary.opacity(0.5))
+                        .fill(Theme.paceColor(for: pace.tier))
                         .frame(width: 1)
-                        .offset(x: geometry.size.width * min(max(paceElapsedFraction, 0), 1))
+                        .offset(x: geometry.size.width * min(max(pace.elapsedFraction, 0), 1))
                 }
             }
         }

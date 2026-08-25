@@ -83,4 +83,54 @@ final class PaceTests: XCTestCase {
 
         XCTAssertEqual(pace.elapsedFraction, 0.25, accuracy: 0.01)
     }
+
+    // MARK: - Tier
+
+    func testTierIsComfortableWellBelowHalf() {
+        XCTAssertEqual(Pace.Result(ratio: 0.2, elapsedFraction: 0.5).tier, .comfortable)
+    }
+
+    func testTierIsComfortableJustBelowHalf() {
+        XCTAssertEqual(Pace.Result(ratio: 0.49, elapsedFraction: 0.5).tier, .comfortable)
+    }
+
+    func testTierIsOnTrackAtLowerBoundary() {
+        XCTAssertEqual(Pace.Result(ratio: 0.5, elapsedFraction: 0.5).tier, .onTrack)
+    }
+
+    func testTierIsOnTrackJustBelowUpperBoundary() {
+        XCTAssertEqual(Pace.Result(ratio: 0.74, elapsedFraction: 0.5).tier, .onTrack)
+    }
+
+    func testTierIsWarmingAtLowerBoundary() {
+        XCTAssertEqual(Pace.Result(ratio: 0.75, elapsedFraction: 0.5).tier, .warming)
+    }
+
+    func testTierIsWarmingJustBelowUpperBoundary() {
+        XCTAssertEqual(Pace.Result(ratio: 0.89, elapsedFraction: 0.5).tier, .warming)
+    }
+
+    func testTierIsPressingAtLowerBoundary() {
+        XCTAssertEqual(Pace.Result(ratio: 0.9, elapsedFraction: 0.5).tier, .pressing)
+    }
+
+    func testTierIsPressingJustBelowUpperBoundary() {
+        XCTAssertEqual(Pace.Result(ratio: 0.99, elapsedFraction: 0.5).tier, .pressing)
+    }
+
+    func testTierIsCriticalAtLowerBoundary() {
+        XCTAssertEqual(Pace.Result(ratio: 1.0, elapsedFraction: 0.5).tier, .critical)
+    }
+
+    func testTierIsCriticalJustBelowUpperBoundary() {
+        XCTAssertEqual(Pace.Result(ratio: 1.19, elapsedFraction: 0.5).tier, .critical)
+    }
+
+    func testTierIsRunawayAtLowerBoundary() {
+        XCTAssertEqual(Pace.Result(ratio: 1.2, elapsedFraction: 0.5).tier, .runaway)
+    }
+
+    func testTierIsRunawayWellAboveBoundary() {
+        XCTAssertEqual(Pace.Result(ratio: 3.0, elapsedFraction: 0.5).tier, .runaway)
+    }
 }
