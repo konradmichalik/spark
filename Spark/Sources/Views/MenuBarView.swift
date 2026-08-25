@@ -35,8 +35,8 @@ struct MenuBarView: View {
                         .font(.system(size: 12))
                 }
                 .buttonStyle(.borderless)
-                .help("Weekly Report")
-                .accessibilityLabel("Weekly Report")
+                .help("Usage Report")
+                .accessibilityLabel("Usage Report")
 
                 SettingsLink {
                     Image(systemName: "gearshape")

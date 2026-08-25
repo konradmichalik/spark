@@ -93,11 +93,11 @@ struct SparkApp: App {
                 .environmentObject(state)
         }
 
-        Window("Weekly Report", id: WeeklyReportView.windowID) {
+        Window("Usage Report", id: WeeklyReportView.windowID) {
             WeeklyReportView()
                 .environmentObject(state)
         }
-        .windowResizability(.contentSize)
+        .windowResizability(.contentMinSize)
     }
 }
 
