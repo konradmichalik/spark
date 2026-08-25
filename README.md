@@ -37,7 +37,7 @@
 - **Session projection** that estimates whether you'll hit the limit before the reset window closes
 - **Usage history graph** with two modes — **Limits** (time-proportional utilization line chart, selectable 1h–30d) and **Volume** (daily token bar chart from permanent history, 7d/30d) — both with hover tooltips
 - **Stats for any period** (Today / 7d / 30d / All) — message count, session count, token totals, local per-model (Sonnet/Opus/Fable) attribution, and a collapsible **Top Projects** breakdown by token volume
-- **Weekly Report** window — current-week token total with trend vs. last week, a Sonnet/Opus/Fable model split, and top projects for the week
+- **Usage Report** window, switchable between week and calendar-month view and navigable back one period at a time — token total with trend vs. the period before, a Sonnet/Opus/Fable donut chart, prompt cache hit rate, a Session/Weekly pace graph with day ticks and hover detail, and top projects for the period
 - **Claude service status** pulled from `status.anthropic.com` — only surfaces when there's an active incident
 - **Native notifications** for warning thresholds, critical levels, limit resets, and service incidents
 - **Smart refresh** that reacts to your actual Claude Code activity — watches your transcripts directly and snaps back to active polling the moment you start working, instead of waiting for the next scheduled check
