@@ -79,8 +79,13 @@ struct LiveStats: Sendable {
 
     var totalTokens: Int { inputTokens + outputTokens + cacheCreationTokens + cacheReadTokens }
 
+    /// Excludes cache reads — reused context, not fresh consumption. This is what's shown as the
+    /// headline number; the full `totalTokens` (including cache reads) is only surfaced via
+    /// `tokenBreakdown`, e.g. in a hover tooltip.
+    var realTokens: Int { inputTokens + outputTokens + cacheCreationTokens }
+
     var formattedTokens: String {
-        formatTokenCount(totalTokens)
+        formatTokenCount(realTokens)
     }
 
     var tokenBreakdown: String {
@@ -165,8 +170,8 @@ enum LiveStatsParser {
             outputTokens: transcripts.output,
             cacheCreationTokens: transcripts.cacheCreation,
             cacheReadTokens: transcripts.cacheRead,
-            modelTotals: transcripts.modelTotals.mapValues { $0.total },
-            projectTotals: transcripts.projectTotals.mapValues { $0.total },
+            modelTotals: transcripts.modelTotals.mapValues { $0.real },
+            projectTotals: transcripts.projectTotals.mapValues { $0.real },
             projectDisplayNames: transcripts.projectDisplayNames
         )
     }

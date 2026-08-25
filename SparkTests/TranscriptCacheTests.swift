@@ -264,4 +264,19 @@ final class TranscriptCacheTests: XCTestCase {
         XCTAssertTrue(result.modelTotals.isEmpty)
         XCTAssertEqual(result.input, 100, "the entry still counts toward overall totals — only the model breakdown excludes it")
     }
+
+    func testPerModelRealExcludesCacheReadsButTotalIncludesThem() throws {
+        let content = """
+        {"message":{"id":"a","role":"assistant","model":"claude-opus-5",\
+        "usage":{"input_tokens":10,"output_tokens":5,"cache_creation_input_tokens":2,"cache_read_input_tokens":1000}},\
+        "timestamp":"\(isoString(daysAgo: 0))","requestId":"req_a"}\n
+        """
+        try content.write(to: fileURL, atomically: false, encoding: .utf8)
+
+        var store = TranscriptCacheStore.empty
+        let result = TranscriptCache.aggregate(claudeDir: tempDir, cutoff: nil, store: &store)
+
+        XCTAssertEqual(result.modelTotals["claude-opus-5"]?.real, 17)
+        XCTAssertEqual(result.modelTotals["claude-opus-5"]?.total, 1_017)
+    }
 }
