@@ -11,16 +11,13 @@ import Foundation
 ///   buckets, with no file I/O — the cache always covers full history regardless of which
 ///   period the UI currently shows.
 ///
-/// Deliberate deviation from a period-based mtime prefilter: skipping files whose mtime predates
-/// the *currently selected* period would leave the cache incomplete for broader periods,
-/// violating the "switching periods performs no file I/O" requirement the first time a broader
-/// period is selected after a narrower one. Instead every file is always cache-checked (which
-/// itself costs no I/O when unchanged), and the period cutoff is applied only when summing
-/// already-cached daily buckets.
+/// Deliberate deviation from a period-based mtime prefilter: skipping files by the *currently
+/// selected* period's cutoff would break the "switching periods costs no file I/O" guarantee the
+/// first time a broader period is picked. Every file is always cache-checked instead (free when
+/// unchanged); the cutoff filters only the already-cached day buckets.
 ///
-/// Day-bucket granularity means the `7d`/`30d` boundary rounds down to the start of the cutoff's
-/// calendar day rather than the exact hour — a disclosed precision tradeoff (widening the window
-/// slightly, never narrowing it) in exchange for O(1) period switching.
+/// Day-bucket granularity means the `7d`/`30d` boundary rounds down to the cutoff's calendar day
+/// rather than the exact hour — widens the window slightly, never narrows it, for O(1) switching.
 enum TranscriptCache {
     struct SessionEntry: Decodable {
         let message: SessionMessage?
@@ -41,6 +38,11 @@ enum TranscriptCache {
     /// must never appear as a model in the per-model breakdown.
     static let syntheticModelMarker = "<synthetic>"
 
+    /// Tolerance for the "is this file unchanged" mtime comparison in `updatedCache` — microsecond
+    /// scale, wide enough to absorb `Date`-to-`timespec` rounding noise, far too narrow for two
+    /// genuinely separate writes to ever fall inside it.
+    private static let mtimeTolerance: TimeInterval = 0.000_001
+
     struct TokenUsage: Decodable {
         let inputTokens: Int?
         let outputTokens: Int?
@@ -55,12 +57,10 @@ enum TranscriptCache {
         }
     }
 
-    /// Skips assistant entries that share a `(message.id, requestId)` pair already seen. Claude
-    /// Code writes duplicate usage-bearing entries for a single response (one per streamed block,
-    /// e.g. text + tool_use), each carrying the identical `usage` payload. Scoped per file, since
-    /// every duplicate pair observed in practice shares a single transcript file. Seeded from
-    /// `FileParseCache.seenDedupKeys` and read back via `seenKeys`, so a duplicate is still caught
-    /// even when its two halves are written on either side of an incremental scan boundary.
+    /// Skips assistant entries sharing a `(message.id, requestId)` pair already seen — Claude Code
+    /// writes duplicate usage-bearing entries per response (one per streamed block, e.g. text +
+    /// tool_use), each carrying identical `usage`. Seeded from `FileParseCache.seenDedupKeys`, so
+    /// a duplicate is caught even when its two halves straddle an incremental scan boundary.
     struct TokenDeduplicator {
         private(set) var seenKeys: Set<DedupKey>
 
@@ -77,10 +77,10 @@ enum TranscriptCache {
     }
 
     /// Derives the session a transcript file belongs to, from its path relative to `projects/`.
-    /// A session file's stem IS the session ID (`<project>/<uuid>.jsonl`). A subagent file's
-    /// stem is an agent identifier, not a session (`<project>/<uuid>/subagents/agent-*.jsonl`) —
-    /// its session is the directory two levels up. Returns `nil` for any other shape, so callers
-    /// can fall back to the entry's own `sessionId` field.
+    /// A session file's stem IS the session ID (`<project>/<uuid>.jsonl`). A subagent file's stem
+    /// is an agent identifier, not a session (`<project>/<uuid>/subagents/agent-*.jsonl`) — its
+    /// session is the directory two levels up. `nil` for any other shape lets callers fall back
+    /// to the entry's own `sessionId` field.
     static func sessionId(forTranscriptAt url: URL, projectsDir: URL) -> String? {
         let relative = Array(url.pathComponents.dropFirst(projectsDir.pathComponents.count))
         switch relative.count {
@@ -102,10 +102,9 @@ enum TranscriptCache {
 
     /// Scans every transcript under `claudeDir/projects`, updating `store` in place, and returns
     /// totals filtered to `cutoff...upperCutoff` (either `nil` leaves that side unbounded). Files
-    /// whose cache entry already matches their on-disk mtime/size are never opened — every file is
-    /// always parsed in full into per-day buckets regardless of the bound, so a bounded scan (e.g.
-    /// a past week) costs no extra I/O over an unbounded one; the bound is applied only when
-    /// summing the already-cached buckets below.
+    /// whose cache entry already matches their on-disk mtime/size are never opened — a bounded
+    /// scan (e.g. a past week) therefore costs no extra I/O over an unbounded one; the bound is
+    /// applied only when summing the already-cached buckets below.
     static func aggregate(
         claudeDir: URL,
         cutoff: Date?,
@@ -209,12 +208,14 @@ enum TranscriptCache {
         size: Int64,
         pathSessionId: String?
     ) -> FileParseCache {
-        if let existing, existing.mtime == mtime, existing.size == size,
+        // A tolerance, not exact `Date` equality — see `mtimeTolerance`.
+        if let existing, abs(existing.mtime.timeIntervalSince(mtime)) < mtimeTolerance, existing.size == size,
            existing.parsedByteOffset == size {
             return existing
         }
 
-        if let existing, size >= existing.size {
+        // Strictly larger only — a same-size rewrite must fully reparse, not resume from EOF.
+        if let existing, size > existing.size {
             let appended = parseByteRange(
                 fileURL: fileURL,
                 from: existing.parsedByteOffset,
@@ -237,8 +238,7 @@ enum TranscriptCache {
             )
         }
 
-        // No existing entry, or the file shrank (truncated/rewritten) — full reparse with a
-        // fresh dedup set, since prior seen keys aren't known to match this file's content.
+        // No existing entry, or the file shrank/rewrote — full reparse, fresh dedup set.
         let full = parseByteRange(fileURL: fileURL, from: 0, pathSessionId: pathSessionId, seenDedupKeys: [], lastContextTokens: nil)
         return FileParseCache(
             mtime: mtime,
@@ -263,8 +263,8 @@ enum TranscriptCache {
     /// Parses only complete (newline-terminated) lines, leaving any unterminated trailing line
     /// unread so a later scan can pick it back up once the writer finishes it. A complete line
     /// that still fails JSON decoding is skipped as malformed. `seenDedupKeys` and
-    /// `lastContextTokens` are seeded from the caller's `FileParseCache` and carried through
-    /// `empty` on every early return, so both survive across separate incremental scans.
+    /// `lastContextTokens` are seeded from the caller and carried through `empty` on every early
+    /// return, surviving across separate incremental scans.
     private static func parseByteRange(
         fileURL: URL,
         from byteOffset: Int64,
