@@ -122,6 +122,22 @@ final class ActiveSessionsTests: XCTestCase {
         XCTAssertNil(sessions.first?.contextTokens)
     }
 
+    /// A subagent's context size must never stand in for the main conversation's, even when the
+    /// root file happens to have no usage of its own yet (e.g. its only line so far is a user
+    /// message) — the subagent runs a separate, smaller conversation.
+    func testSubagentContextTokensNeverFillInForARootFileWithNoUsageYet() {
+        let sessionId = "15151515-1515-1515-1515-151515151515"
+        let files = [
+            path(project: "-Users-me-app", sessionId: sessionId): cache(mtime: now.addingTimeInterval(-10)),
+            subagentPath(project: "-Users-me-app", sessionId: sessionId, agent: "abc"):
+                cache(mtime: now.addingTimeInterval(-5), contextTokens: 5_000)
+        ]
+
+        let sessions = ActiveSessionResolver.resolve(files: files, projectsDirs: [projectsDir], now: now)
+
+        XCTAssertNil(sessions.first?.contextTokens, "a subagent's context size must never leak in as the parent's")
+    }
+
     // MARK: - Disambiguation
 
     func testTwoSessionsInTheSameProjectGetDisambiguatingSuffix() {

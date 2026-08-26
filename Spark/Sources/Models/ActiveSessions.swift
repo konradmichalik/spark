@@ -77,13 +77,17 @@ enum ActiveSessionResolver {
     /// than "active forever" — see `resolve`'s window check.
     private static let clockSkewTolerance: TimeInterval = 60
 
+    /// A root session file's path depth relative to `projectsDir` (`<project>/<uuid>.jsonl`) — a
+    /// subagent file (`<project>/<uuid>/subagents/agent-*.jsonl`) is depth 4. See
+    /// `TranscriptCache.sessionId(forTranscriptAt:projectsDir:)`, which this mirrors.
+    private static let rootFileDepth = 2
+
     private struct SessionAccumulator {
         var lastActivity: Date
         var projectKey: String
         var cwd: String?
         var cwdDepth: Int
         var contextTokens: Int?
-        var contextTokensDepth: Int
     }
 
     static func resolve(
@@ -122,20 +126,20 @@ enum ActiveSessionResolver {
             lastActivity: fileCache.mtime,
             projectKey: projectKey,
             cwd: nil,
-            cwdDepth: Int.max,
-            contextTokens: nil,
-            contextTokensDepth: Int.max
+            cwdDepth: Int.max
         )
         entry.lastActivity = max(entry.lastActivity, fileCache.mtime)
-        // A root session file (depth 2) always wins over a subagent file (depth 4) for both the
-        // display name and the context size, since the root transcript is the main conversation.
+        // A root session file (depth 2) wins over a subagent file (depth 4) for the display name,
+        // falling back to a subagent's cwd only when the root hasn't revealed one yet.
         if let discoveredCwd = fileCache.discoveredCwd, depth < entry.cwdDepth {
             entry.cwd = discoveredCwd
             entry.cwdDepth = depth
         }
-        if let lastContextTokens = fileCache.lastContextTokens, depth < entry.contextTokensDepth {
+        // Context size, unlike cwd, has no such fallback: a subagent's is a separate, smaller
+        // conversation, so showing it in place of a not-yet-available root value would misrepresent
+        // the main conversation rather than merely approximate it. Only the root file may set this.
+        if depth == Self.rootFileDepth, let lastContextTokens = fileCache.lastContextTokens {
             entry.contextTokens = lastContextTokens
-            entry.contextTokensDepth = depth
         }
         bySession[sessionId] = entry
     }
