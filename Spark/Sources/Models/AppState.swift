@@ -54,6 +54,7 @@ final class AppState: ObservableObject {
     @AppStorage("updateCheckInterval") var updateCheckInterval: Double = 21600
     @AppStorage("showStats") var showStats: Bool = true
     @AppStorage("showProjectBreakdown") var showProjectBreakdown: Bool = true
+    @AppStorage("showActiveSessions") var showActiveSessions: Bool = true
     @AppStorage("coloredIcon") var coloredIcon: Bool = true
     @AppStorage("usageDisplayStyle") var usageDisplayStyle: String = "bars"
     @AppStorage("reduceTransparency") var reduceTransparency: Bool = false
@@ -66,6 +67,7 @@ final class AppState: ObservableObject {
     @Published var liveStats: LiveStats?
     @AppStorage("statsPeriod") private(set) var statsPeriod: StatsPeriod = .today
     @Published var isLoadingStats: Bool = false
+    @Published private(set) var activeSessions: [ActiveSession] = []
     @Published private(set) var weeklyReport: PeriodReport?
     @Published private(set) var isLoadingWeeklyReport: Bool = false
     @Published private(set) var reportPeriod: ReportPeriod = .week
@@ -97,6 +99,8 @@ final class AppState: ObservableObject {
     private var lastLiveStatsRefresh: Date = .distantPast
     private var pendingLiveStatsRefreshTimer: Timer?
     private static let liveStatsMinInterval: TimeInterval = 12
+    private var activeSessionsTicker: Timer?
+    private static let activeSessionsTickInterval: TimeInterval = 30
 
     // Notification tracking
     private var lastSessionLevel: UsageLevel = .ok
@@ -411,17 +415,19 @@ final class AppState: ObservableObject {
 
     // MARK: - File Watching
 
-    /// Watches `~/.claude/projects` so Smart Refresh reacts to actual activity instead of only
-    /// inferring it from whether the last poll's utilization changed. Missing or unreadable
-    /// roots (e.g. no `.claude` directory yet, or a network volume that's unmounted) simply mean
-    /// no watcher starts — never a crash — and the app falls back to plain polling.
+    /// Watches every resolved Claude config root's `projects` directory (not just `~/.claude`, so
+    /// a `CLAUDE_CONFIG_DIR` override or `~/.config/claude` also gets live updates) so Smart
+    /// Refresh and the active-sessions list react to actual activity instead of only inferring it
+    /// from whether the last poll's utilization changed. Missing or unreadable roots (e.g. no
+    /// `.claude` directory yet, or a network volume that's unmounted) simply mean that root isn't
+    /// watched — never a crash — and the app falls back to plain polling for it.
     private func startFileWatching() {
-        let projectsDir = FileManager.default.homeDirectoryForCurrentUser
-            .appendingPathComponent(".claude")
-            .appendingPathComponent("projects")
-        guard FileManager.default.fileExists(atPath: projectsDir.path) else { return }
+        let projectsDirs = ClaudeConfigDirectory.resolveCurrent().roots
+            .map { $0.appendingPathComponent("projects") }
+            .filter { FileManager.default.fileExists(atPath: $0.path) }
+        guard !projectsDirs.isEmpty else { return }
 
-        fileWatcher = TranscriptFileWatcher(paths: [projectsDir.path]) { [weak self] in
+        fileWatcher = TranscriptFileWatcher(paths: projectsDirs.map(\.path)) { [weak self] in
             Task { @MainActor in
                 self?.handleTranscriptFileChange()
             }
@@ -843,7 +849,36 @@ final class AppState: ObservableObject {
             // Runs after parseStats has warmed the transcript cache for this launch, so this
             // never triggers its own scan.
             await self.updateRollups()
+            await self.refreshActiveSessions()
         }
+    }
+
+    /// Derives the active-sessions list from whatever the transcript cache currently holds — no
+    /// scan of its own, so this is cheap enough to also call from `activeSessionsTicker` purely to
+    /// let a session's activity expire with the passage of time.
+    func refreshActiveSessions() async {
+        let roots = ClaudeConfigDirectory.resolveCurrent().roots
+        let sessions = await LiveTranscriptCache.shared.activeSessions(claudeDirs: roots)
+        await MainActor.run {
+            self.activeSessions = sessions
+        }
+    }
+
+    /// Started while the popover is open (`MenuBarView.onAppear`) and stopped on close — expiring
+    /// a stale session needs no filesystem scan, but it does need *something* to notice the clock
+    /// moved on, since nothing else re-evaluates the active window once the popover is showing.
+    func startActiveSessionTicker() {
+        guard showActiveSessions, activeSessionsTicker == nil else { return }
+        activeSessionsTicker = Timer.scheduledTimer(withTimeInterval: Self.activeSessionsTickInterval, repeats: true) { [weak self] _ in
+            Task { @MainActor in
+                await self?.refreshActiveSessions()
+            }
+        }
+    }
+
+    func stopActiveSessionTicker() {
+        activeSessionsTicker?.invalidate()
+        activeSessionsTicker = nil
     }
 
     /// Loaded lazily when the Weekly Report window opens, not on every launch. Pass `period`

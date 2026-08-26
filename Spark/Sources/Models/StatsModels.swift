@@ -110,7 +110,8 @@ struct LiveStats: Sendable {
                 ProjectUsage(
                     key: key,
                     displayName: ProjectFamily.displayName(forKey: key, cwd: projectDisplayNames[key]),
-                    tokens: tokens
+                    tokens: tokens,
+                    cwd: projectDisplayNames[key]
                 )
             }
     }
@@ -120,6 +121,17 @@ struct ProjectUsage: Identifiable, Sendable {
     let key: String
     let displayName: String
     let tokens: Int
+    /// The project's working directory, when a transcript line has revealed one — `nil` falls
+    /// back to `displayName`'s lossy derivation from the encoded project key, in which case
+    /// there's no real path to reveal in Finder or copy.
+    let cwd: String?
+
+    init(key: String, displayName: String, tokens: Int, cwd: String? = nil) {
+        self.key = key
+        self.displayName = displayName
+        self.tokens = tokens
+        self.cwd = cwd
+    }
 
     var id: String { key }
 }

@@ -393,6 +393,13 @@ struct GeneralTab: View {
                         )
                     }
 
+                    Toggle(isOn: $state.showActiveSessions) {
+                        SettingLabel(
+                            title: "Active Sessions",
+                            subtitle: "Show sessions with activity in the last 5 minutes."
+                        )
+                    }
+
                     Toggle(isOn: $state.showStats) {
                         SettingLabel(
                             title: "Today's Stats",

@@ -104,6 +104,32 @@ final class TranscriptCacheTests: XCTestCase {
         XCTAssertEqual(second.input, 5, "a shrunk file must be fully reparsed, not merged with stale cached totals")
     }
 
+    /// A rewrite that happens to land on the exact same byte length as before is not an append —
+    /// the old `size >= existing.size` check let it slip through the append branch, which starts
+    /// reading from the previously-recorded EOF offset and finds nothing new, silently keeping the
+    /// stale cached totals under the new file's mtime.
+    func testSameSizeRewriteTriggersFullReparseRatherThanASilentNoOpAppend() throws {
+        let sameLengthDate = isoString(daysAgo: 0)
+        try writeAndCaptureAttributes(
+            line(input: 100, output: 50, isoDate: sameLengthDate, messageId: "a") + "\n"
+        )
+        var store = TranscriptCacheStore.empty
+        let first = TranscriptCache.aggregate(claudeDir: tempDir, cutoff: nil, store: &store)
+        XCTAssertEqual(first.input, 100)
+
+        // Same byte length as the original line, different content and mtime — a same-size
+        // rewrite, not a genuine append.
+        try (line(input: 999, output: 50, isoDate: sameLengthDate, messageId: "z") + "\n")
+            .write(to: fileURL, atomically: false, encoding: .utf8)
+        let path = try XCTUnwrap(store.files.keys.first)
+        let rewrittenSize = try XCTUnwrap(try fileURL.resourceValues(forKeys: [.fileSizeKey]).fileSize)
+        let originalSize = try XCTUnwrap(store.files[path]?.size)
+        XCTAssertEqual(rewrittenSize, Int(originalSize), "the fixture must actually exercise the same-size case")
+
+        let second = TranscriptCache.aggregate(claudeDir: tempDir, cutoff: nil, store: &store)
+        XCTAssertEqual(second.input, 999, "a same-size rewrite must be fully reparsed, not treated as a no-op append")
+    }
+
     // MARK: - Dedup state persisted across incremental scans
 
     func testDuplicateMessageRequestIdPairStraddlingIncrementalScansIsCountedOnce() throws {
@@ -168,6 +194,68 @@ final class TranscriptCacheTests: XCTestCase {
         let second = TranscriptCache.aggregate(claudeDir: tempDir, cutoff: nil, store: &store)
         XCTAssertEqual(second.input, 100, "a lagging parsedByteOffset must be retried, not fast-pathed as already parsed")
         XCTAssertEqual(store.files[path]?.parsedByteOffset, store.files[path]?.size)
+    }
+
+    // MARK: - Last context tokens (current context-window approximation)
+
+    func testLastContextTokensCapturesTheMostRecentAssistantTurn() throws {
+        try writeAndCaptureAttributes(
+            line(input: 100, output: 50, isoDate: isoString(daysAgo: 0), messageId: "a") + "\n"
+        )
+        var store = TranscriptCacheStore.empty
+        _ = TranscriptCache.aggregate(claudeDir: tempDir, cutoff: nil, store: &store)
+
+        let path = try XCTUnwrap(store.files.keys.first)
+        XCTAssertEqual(store.files[path]?.lastContextTokens, 100)
+    }
+
+    func testLastContextTokensUpdatesToTheLatestTurnOnIncrementalAppend() throws {
+        try writeAndCaptureAttributes(
+            line(input: 100, output: 50, isoDate: isoString(daysAgo: 0), messageId: "a") + "\n"
+        )
+        var store = TranscriptCacheStore.empty
+        _ = TranscriptCache.aggregate(claudeDir: tempDir, cutoff: nil, store: &store)
+
+        let currentContent = try String(contentsOf: fileURL, encoding: .utf8)
+        try (currentContent + line(input: 250, output: 10, isoDate: isoString(daysAgo: 0), messageId: "b") + "\n")
+            .write(to: fileURL, atomically: false, encoding: .utf8)
+        _ = TranscriptCache.aggregate(claudeDir: tempDir, cutoff: nil, store: &store)
+
+        let path = try XCTUnwrap(store.files.keys.first)
+        XCTAssertEqual(store.files[path]?.lastContextTokens, 250, "must reflect the newest turn, not the first")
+    }
+
+    func testLastContextTokensPersistsAcrossAnIncrementalScanWithNoNewUsage() throws {
+        try writeAndCaptureAttributes(
+            line(input: 100, output: 50, isoDate: isoString(daysAgo: 0), messageId: "a") + "\n"
+        )
+        var store = TranscriptCacheStore.empty
+        _ = TranscriptCache.aggregate(claudeDir: tempDir, cutoff: nil, store: &store)
+
+        // Append a user-only line (no `usage` field) — must not clear the last known value.
+        let currentContent = try String(contentsOf: fileURL, encoding: .utf8)
+        try (currentContent + """
+        {"message":{"role":"user"},"timestamp":"\(isoString(daysAgo: 0))"}
+        """ + "\n").write(to: fileURL, atomically: false, encoding: .utf8)
+        _ = TranscriptCache.aggregate(claudeDir: tempDir, cutoff: nil, store: &store)
+
+        let path = try XCTUnwrap(store.files.keys.first)
+        XCTAssertEqual(store.files[path]?.lastContextTokens, 100)
+    }
+
+    func testLastContextTokensIncludesCacheTokensNotJustInput() throws {
+        let content = """
+        {"message":{"id":"a","role":"assistant",\
+        "usage":{"input_tokens":10,"output_tokens":5,"cache_creation_input_tokens":2,"cache_read_input_tokens":1000}},\
+        "timestamp":"\(isoString(daysAgo: 0))","requestId":"req_a"}\n
+        """
+        try content.write(to: fileURL, atomically: false, encoding: .utf8)
+
+        var store = TranscriptCacheStore.empty
+        _ = TranscriptCache.aggregate(claudeDir: tempDir, cutoff: nil, store: &store)
+
+        let path = try XCTUnwrap(store.files.keys.first)
+        XCTAssertEqual(store.files[path]?.lastContextTokens, 1_012, "context size is the full resent context, cache reads included")
     }
 
     // MARK: - Period filtering from cache

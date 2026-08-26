@@ -579,6 +579,7 @@ a:hover { color: var(--accent-hover); }
 .icon-stats { background: rgba(208,135,112,0.1); color: #d08770; }
 .icon-pace { background: rgba(191,97,106,0.1); color: #bf616a; }
 .icon-folder { background: rgba(94,129,172,0.1); color: #5e81ac; }
+.icon-terminal { background: rgba(143,188,187,0.1); color: #8fbcbb; }
 
 /* ─── Install ─── */
 .install {

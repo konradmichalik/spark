@@ -236,4 +236,36 @@ final class StatsModelsTests: XCTestCase {
 
         XCTAssertEqual(stats.topProjects(limit: 1).first?.displayName, "typo3-routing")
     }
+
+    func testTopProjectsExposesTheResolvedCwd() {
+        let stats = LiveStats(
+            period: .today,
+            messageCount: 1,
+            sessionCount: 1,
+            inputTokens: 0,
+            outputTokens: 0,
+            cacheCreationTokens: 0,
+            cacheReadTokens: 0,
+            projectTotals: ["-Users-konrad-dev-typo3-routing": 10],
+            projectDisplayNames: ["-Users-konrad-dev-typo3-routing": "/Users/konrad/dev/typo3-routing"]
+        )
+
+        XCTAssertEqual(stats.topProjects(limit: 1).first?.cwd, "/Users/konrad/dev/typo3-routing")
+    }
+
+    func testTopProjectsCwdIsNilWhenNoneWasResolved() {
+        let stats = LiveStats(
+            period: .today,
+            messageCount: 1,
+            sessionCount: 1,
+            inputTokens: 0,
+            outputTokens: 0,
+            cacheCreationTokens: 0,
+            cacheReadTokens: 0,
+            projectTotals: ["-Users-a": 10],
+            projectDisplayNames: [:]
+        )
+
+        XCTAssertNil(stats.topProjects(limit: 1).first?.cwd)
+    }
 }
