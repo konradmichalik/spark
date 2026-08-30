@@ -65,8 +65,7 @@ struct WeeklyReportView: View {
     private var header: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 6) {
-                Image(systemName: "calendar")
-                    .foregroundColor(Theme.sparkOrange)
+                TablerIconView(.calendarMonth, color: Theme.sparkOrange)
                 Text("Usage Report")
                     .font(.custom("InstrumentSerif-Regular", size: 15))
                 Spacer()
@@ -101,8 +100,7 @@ struct WeeklyReportView: View {
             Button {
                 state.goToEarlierPeriod()
             } label: {
-                Image(systemName: "chevron.left")
-                    .font(.system(size: 11, weight: .medium))
+                TablerIconView(.chevronLeft, size: 11)
                     .padding(6)
                     .contentShape(Rectangle())
             }
@@ -121,8 +119,7 @@ struct WeeklyReportView: View {
             Button {
                 state.goToLaterPeriod()
             } label: {
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 11, weight: .medium))
+                TablerIconView(.chevronRight, size: 11)
                     .padding(6)
                     .contentShape(Rectangle())
             }

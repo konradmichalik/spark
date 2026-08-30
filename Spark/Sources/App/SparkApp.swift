@@ -233,9 +233,12 @@ struct MenuBarLabel: View {
 
     @ViewBuilder
     private var disconnectIcon: some View {
-        Image(systemName: "exclamationmark.triangle.fill")
-            .symbolRenderingMode(.monochrome)
-            .foregroundColor(.orange)
+        // `TablerIconView` marks itself `.accessibilityHidden(true)` (it's decorative wherever
+        // adjacent text already carries the label), which would swallow this label since here the
+        // icon stands alone with no adjacent text. `.accessibilityElement(children: .ignore)`
+        // gives this icon its own element instead of inheriting the hidden child's exclusion.
+        TablerIconView(.alertTriangle, size: 13, color: .orange)
+            .accessibilityElement(children: .ignore)
             .accessibilityLabel("Spark disconnected — tap to reconnect")
     }
 

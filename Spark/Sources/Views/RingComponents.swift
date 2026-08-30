@@ -123,9 +123,7 @@ struct RingLegendRow: View {
                     showResetPopover.toggle()
                 } label: {
                     HStack(spacing: 4) {
-                        Image(systemName: "clock.arrow.circlepath")
-                            .font(.system(size: 9))
-                            .foregroundColor(.secondary)
+                        TablerIconView(.history, size: 11)
                             .frame(width: 18, height: 18)
                             .background(Color.secondary.opacity(0.12))
                             .clipShape(Circle())
@@ -138,8 +136,7 @@ struct RingLegendRow: View {
                 .popover(isPresented: $showResetPopover, arrowEdge: .bottom) {
                     VStack(spacing: 6) {
                         HStack(spacing: 4) {
-                            Image(systemName: "clock.arrow.circlepath")
-                                .foregroundColor(.secondary)
+                            TablerIconView(.history, size: 11)
                             Text("Reset in \(resetTime)")
                                 .fontWeight(.medium)
                         }

@@ -12,8 +12,7 @@ struct NotConnectedView: View {
                     .font(.custom("InstrumentSerif-Regular", size: 15))
                 Spacer()
                 SettingsLink {
-                    Image(systemName: "gearshape")
-                        .font(.system(size: 12))
+                    TablerIconView(.settings, size: 12)
                 }
                 .buttonStyle(.borderless)
                 .help("Settings")
@@ -23,9 +22,7 @@ struct NotConnectedView: View {
 
             // Connection status card
             VStack(spacing: 10) {
-                Image(systemName: "link.badge.plus")
-                    .font(.system(size: 24))
-                    .foregroundColor(Theme.sparkOrange)
+                TablerIconView(.linkPlus, size: 24, color: Theme.sparkOrange)
 
                 Text("Not connected")
                     .font(.caption)
@@ -33,8 +30,7 @@ struct NotConnectedView: View {
 
                 SettingsLink {
                     HStack(spacing: 4) {
-                        Image(systemName: "arrow.up.forward.app.fill")
-                            .font(.system(size: 10))
+                        TablerIconView(.externalLink, size: 10)
                         Text("Connect")
                             .font(.caption)
                             .fontWeight(.medium)
@@ -48,8 +44,7 @@ struct NotConnectedView: View {
             // Error
             if let error = state.lastError {
                 HStack {
-                    Image(systemName: "exclamationmark.triangle.fill")
-                        .foregroundColor(.orange)
+                    TablerIconView(.alertTriangle, color: .orange)
                     Text(error)
                         .font(.caption)
                         .foregroundColor(.secondary)
@@ -64,8 +59,7 @@ struct NotConnectedView: View {
                 Button {
                     NSApplication.shared.terminate(nil)
                 } label: {
-                    Image(systemName: "power")
-                        .font(.system(size: 12))
+                    TablerIconView(.power, size: 12)
                 }
                 .buttonStyle(.borderless)
                 .help("Quit")

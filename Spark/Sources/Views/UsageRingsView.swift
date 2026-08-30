@@ -217,9 +217,7 @@ private struct SeparateRingItem: View {
                     Button {
                         showResetPopover.toggle()
                     } label: {
-                        Image(systemName: "clock.arrow.circlepath")
-                            .font(.system(size: 8))
-                            .foregroundColor(.secondary)
+                        TablerIconView(.history, size: 11)
                             .frame(width: 14, height: 14)
                             .background(Color.secondary.opacity(0.12))
                             .clipShape(Circle())
@@ -228,8 +226,7 @@ private struct SeparateRingItem: View {
                     .popover(isPresented: $showResetPopover, arrowEdge: .bottom) {
                         VStack(spacing: 6) {
                             HStack(spacing: 4) {
-                                Image(systemName: "clock.arrow.circlepath")
-                                    .foregroundColor(.secondary)
+                                TablerIconView(.history, size: 11)
                                 Text("Reset in \(ring.resetTime ?? "")")
                                     .fontWeight(.medium)
                             }
