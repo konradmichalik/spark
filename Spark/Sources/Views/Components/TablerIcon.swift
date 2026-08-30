@@ -94,16 +94,18 @@ struct TablerLabel: View {
     let title: String
     let icon: TablerIcon
     var size: CGFloat = 13
+    var tint: Color = .secondary
 
-    init(_ title: String, icon: TablerIcon, size: CGFloat = 13) {
+    init(_ title: String, icon: TablerIcon, size: CGFloat = 13, tint: Color = .secondary) {
         self.title = title
         self.icon = icon
         self.size = size
+        self.tint = tint
     }
 
     var body: some View {
         HStack(spacing: 4) {
-            TablerIconView(icon, size: size, color: .secondary)
+            TablerIconView(icon, size: size, color: tint)
             Text(title)
         }
     }

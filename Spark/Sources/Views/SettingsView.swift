@@ -55,34 +55,6 @@ struct SettingsView: View {
 
 // MARK: - Shared Components
 
-struct CardView<Content: View>: View {
-    let content: Content
-    init(@ViewBuilder content: () -> Content) { self.content = content() }
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) { content }
-            .padding(12)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(.quaternary.opacity(0.3))
-            .clipShape(RoundedRectangle(cornerRadius: 8))
-    }
-}
-
-private struct SectionHeader: View {
-    let title: String
-    let icon: TablerIcon
-
-    var body: some View {
-        HStack(spacing: 6) {
-            TablerIconView(icon, size: 14, color: .secondary)
-            Text(title)
-                .font(.subheadline)
-                .fontWeight(.medium)
-                .foregroundColor(.secondary)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-}
-
 private struct SettingLabel: View {
     let title: String
     let subtitle: String
@@ -322,9 +294,9 @@ struct GeneralTab: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 16) {
-                SectionHeader(title: "Refresh", icon: .history)
+                SectionHeader("Refresh", icon: .history)
 
-                CardView {
+                SectionCard {
                     Picker("", selection: $state.refreshMode) {
                         Text("Smart").tag("smart")
                         Text("Fixed").tag("fixed")
@@ -365,9 +337,9 @@ struct GeneralTab: View {
                     }
                 }
 
-                SectionHeader(title: "Visible Sections", icon: .eye)
+                SectionHeader("Visible Sections", icon: .eye)
 
-                CardView {
+                SectionCard {
                     Toggle(isOn: $state.showSonnetUsage) {
                         SettingLabel(
                             title: "Sonnet Usage",
@@ -425,9 +397,9 @@ struct GeneralTab: View {
                     }
                 }
 
-                SectionHeader(title: "Startup", icon: .power)
+                SectionHeader("Startup", icon: .power)
 
-                CardView {
+                SectionCard {
                     Toggle(isOn: $launchAtLogin) {
                         SettingLabel(
                             title: "Launch at Login",
@@ -487,7 +459,7 @@ struct MenuBarTab: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 16) {
-                SectionHeader(title: "Icon Style", icon: .layoutGrid)
+                SectionHeader("Icon Style", icon: .layoutGrid)
 
                 HStack(spacing: 8) {
                     OptionCard(
@@ -516,7 +488,7 @@ struct MenuBarTab: View {
                     )
                 }
 
-                SectionHeader(title: "Displayed Value", icon: .numbers)
+                SectionHeader("Displayed Value", icon: .numbers)
 
                 HStack(spacing: 8) {
                     OptionCard(
@@ -545,9 +517,9 @@ struct MenuBarTab: View {
                     )
                 }
 
-                SectionHeader(title: "Options", icon: .adjustmentsHorizontal)
+                SectionHeader("Options", icon: .adjustmentsHorizontal)
 
-                CardView {
+                SectionCard {
                     Toggle(isOn: $state.coloredIcon) {
                         SettingLabel(
                             title: "Colored Icon",
@@ -569,7 +541,7 @@ struct DisplayTab: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 16) {
-                SectionHeader(title: "Usage Display", icon: .chartBar)
+                SectionHeader("Usage Display", icon: .chartBar)
 
                 HStack(spacing: 8) {
                     OptionCard(
@@ -597,9 +569,9 @@ struct DisplayTab: View {
                     .foregroundColor(.secondary)
                     .frame(maxWidth: .infinity, alignment: .leading)
 
-                SectionHeader(title: "Appearance", icon: .palette)
+                SectionHeader("Appearance", icon: .palette)
 
-                CardView {
+                SectionCard {
                     Toggle(isOn: $state.reduceTransparency) {
                         SettingLabel(
                             title: "Reduce Transparency",
@@ -625,10 +597,10 @@ struct ConnectionTab: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 16) {
-                SectionHeader(title: "Authentication", icon: .key)
+                SectionHeader("Authentication", icon: .key)
 
                 if state.isAuthenticated {
-                    CardView {
+                    SectionCard {
                         HStack {
                             TablerIconView(.circleCheck, size: 17, color: .green)
                             VStack(alignment: .leading, spacing: 2) {
@@ -645,7 +617,7 @@ struct ConnectionTab: View {
                         }
                     }
                 } else {
-                    CardView {
+                    SectionCard {
                         TablerLabel("Connect to Claude Code", icon: .terminal2)
                             .font(.callout)
                             .fontWeight(.medium)
@@ -678,7 +650,7 @@ struct ConnectionTab: View {
                         }
                     }
 
-                    CardView {
+                    SectionCard {
                         TablerLabel("CLI not installed or not logged in?", icon: .helpCircle)
                             .font(.caption)
                             .foregroundColor(.secondary)
@@ -691,22 +663,19 @@ struct ConnectionTab: View {
                 }
 
                 if let error = authError ?? state.lastError {
-                    CardView {
-                        HStack(spacing: 4) {
-                            TablerIconView(.alertTriangle, color: .orange)
-                            Text(error)
-                        }
-                        .font(.caption)
-                        .foregroundColor(.orange)
+                    SectionCard {
+                        TablerLabel(error, icon: .alertTriangle, tint: .orange)
+                            .font(.caption)
+                            .foregroundColor(.orange)
                     }
                 }
 
                 Divider()
                     .padding(.vertical, 4)
 
-                SectionHeader(title: "Long-lived Token", icon: .key)
+                SectionHeader("Long-lived Token", icon: .key)
 
-                CardView {
+                SectionCard {
                     Text("Use a long-lived token to skip macOS Keychain prompts entirely.")
                         .font(.caption)
                         .foregroundColor(.secondary)
@@ -728,7 +697,7 @@ struct ConnectionTab: View {
                         .padding(.top, 4)
                 }
 
-                CardView {
+                SectionCard {
                     if state.authMethod == .longLivedToken {
                         HStack {
                             TablerIconView(.rosetteDiscountCheck, color: .green)
@@ -782,9 +751,9 @@ struct NotificationsTab: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 16) {
-                SectionHeader(title: "Notifications", icon: .bellRinging)
+                SectionHeader("Notifications", icon: .bellRinging)
 
-                CardView {
+                SectionCard {
                     Toggle(isOn: $state.notificationsEnabled) {
                         SettingLabel(
                             title: "Enable Notifications",
@@ -819,9 +788,9 @@ struct NotificationsTab: View {
                     if state.notificationsEnabled { requestAndCheck() }
                 }
 
-                SectionHeader(title: "Thresholds", icon: .chartBar)
+                SectionHeader("Thresholds", icon: .chartBar)
 
-                CardView {
+                SectionCard {
                     VStack(alignment: .leading, spacing: 4) {
                         HStack {
                             Text("Warning")
@@ -851,20 +820,17 @@ struct NotificationsTab: View {
                     }
 
                     if state.criticalThreshold <= state.warningThreshold {
-                        HStack(spacing: 4) {
-                            TablerIconView(.alertTriangle, color: .orange)
-                            Text("Critical must be higher than Warning.")
-                        }
-                        .font(.caption)
-                        .foregroundColor(.orange)
+                        TablerLabel("Critical must be higher than Warning.", icon: .alertTriangle, tint: .orange)
+                            .font(.caption)
+                            .foregroundColor(.orange)
                     }
                 }
                 .opacity(state.notificationsEnabled ? 1 : 0.5)
                 .disabled(!state.notificationsEnabled)
 
-                SectionHeader(title: "Events", icon: .bellBolt)
+                SectionHeader("Events", icon: .bellBolt)
 
-                CardView {
+                SectionCard {
                     Toggle(isOn: $state.notifyOnReset) {
                         Text("Notify on usage reset")
                             .font(.callout)
@@ -902,7 +868,7 @@ struct NotificationsTab: View {
                 .opacity(state.notificationsEnabled ? 1 : 0.5)
                 .disabled(!state.notificationsEnabled)
 
-                CardView {
+                SectionCard {
                     HStack {
                         Button(action: sendTestNotification) {
                             TablerLabel("Send Test Notification", icon: .send)
@@ -910,12 +876,9 @@ struct NotificationsTab: View {
                         .disabled(!state.notificationsEnabled)
 
                         if testSent {
-                            HStack(spacing: 4) {
-                                TablerIconView(.circleCheck, color: .green)
-                                Text("Sent")
-                            }
-                            .font(.caption)
-                            .foregroundColor(.green)
+                            TablerLabel("Sent", icon: .circleCheck, tint: .green)
+                                .font(.caption)
+                                .foregroundColor(.green)
                         }
                     }
                 }
@@ -998,14 +961,14 @@ struct StatusTab: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 16) {
-                SectionHeader(title: "Claude Services", icon: .heart)
+                SectionHeader("Claude Services", icon: .heart)
 
                 Text("Live status powered by the Anthropic status page. The popover only shows a warning during active incidents.")
                     .font(.caption)
                     .foregroundColor(.secondary)
                     .frame(maxWidth: .infinity, alignment: .leading)
 
-                CardView {
+                SectionCard {
                     HStack {
                         TablerIconView(state.status.icon, size: 15, color: .primary)
                         Text(state.statusDescription)
@@ -1027,9 +990,9 @@ struct StatusTab: View {
                 }
 
                 if !state.components.isEmpty {
-                    SectionHeader(title: "Components", icon: .server)
+                    SectionHeader("Components", icon: .server)
 
-                    CardView {
+                    SectionCard {
                         ForEach(
                             Array(state.components.enumerated()),
                             id: \.offset
@@ -1201,26 +1164,17 @@ struct AboutTab: View {
             ProgressView()
                 .controlSize(.small)
         case .upToDate:
-            HStack(spacing: 4) {
-                TablerIconView(.circleCheck, color: .green)
-                Text("You're up to date")
-            }
-            .foregroundStyle(.green)
+            TablerLabel("You're up to date", icon: .circleCheck, tint: .green)
+                .foregroundStyle(.green)
         case .available(let version, let url):
             VStack(spacing: 6) {
-                HStack(spacing: 4) {
-                    TablerIconView(.circleArrowUp, color: .orange)
-                    Text("Version \(version) available")
-                }
-                .foregroundStyle(.orange)
+                TablerLabel("Version \(version) available", icon: .circleArrowUp, tint: .orange)
+                    .foregroundStyle(.orange)
                 Link("Download", destination: url)
             }
         case .error(let message):
-            HStack(spacing: 4) {
-                TablerIconView(.alertTriangle, color: .red)
-                Text(message)
-            }
-            .foregroundStyle(.red)
+            TablerLabel(message, icon: .alertTriangle, tint: .red)
+                .foregroundStyle(.red)
         }
     }
 
