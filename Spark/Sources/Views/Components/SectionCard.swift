@@ -21,5 +21,10 @@ struct SectionCard<Content: View>: View {
                 opaque: Color(nsColor: .controlBackgroundColor),
                 in: RoundedRectangle(cornerRadius: 8)
             )
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+            .overlay(
+                RoundedRectangle(cornerRadius: 8)
+                    .strokeBorder(Color.black.opacity(0.055))
+            )
     }
 }
