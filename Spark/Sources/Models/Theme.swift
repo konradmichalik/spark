@@ -90,14 +90,20 @@ private struct RingPalette {
 
 extension View {
     /// Opaque background when Reduce Transparency is on, material otherwise.
+    ///
+    /// `material` and `opaque` default to the graph surfaces' values; a caller with a different
+    /// opaque tone (a card sitting on a window rather than a graph background, say) passes its own
+    /// pair rather than duplicating this ternary.
     func adaptiveBackground(
         reduceTransparency: Bool,
+        material: some ShapeStyle = .ultraThinMaterial,
+        opaque: Color = Color(nsColor: .windowBackgroundColor),
         in shape: some InsettableShape = RoundedRectangle(cornerRadius: 4)
     ) -> some View {
         background(
             reduceTransparency
-                ? AnyShapeStyle(Color(nsColor: .windowBackgroundColor))
-                : AnyShapeStyle(.ultraThinMaterial),
+                ? AnyShapeStyle(opaque)
+                : AnyShapeStyle(material),
             in: shape
         )
     }
