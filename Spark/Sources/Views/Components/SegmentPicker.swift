@@ -17,16 +17,18 @@ struct SegmentPicker<T: SegmentLabeled>: View {
     var body: some View {
         HStack(spacing: 0) {
             ForEach(options, id: \.self) { option in
+                let isSelected = selection == option
+
                 Button {
                     selection = option
                 } label: {
                     Text(option.segmentLabel)
-                        .font(.system(size: 9.5, weight: selection == option ? .semibold : .medium))
-                        .foregroundColor(selection == option ? .primary : .secondary)
+                        .font(.system(size: 9.5, weight: isSelected ? .semibold : .medium))
+                        .foregroundColor(isSelected ? .primary : .secondary)
                         .padding(.horizontal, 5.5)
                         .padding(.vertical, 3)
                         .background {
-                            if selection == option {
+                            if isSelected {
                                 RoundedRectangle(cornerRadius: 4)
                                     .fill(Color(nsColor: .controlColor))
                                     .shadow(color: .black.opacity(0.16), radius: 0.75, y: 0.5)
@@ -35,7 +37,7 @@ struct SegmentPicker<T: SegmentLabeled>: View {
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel(option.segmentLabel)
-                .accessibilityAddTraits(selection == option ? [.isSelected] : [])
+                .accessibilityAddTraits(isSelected ? [.isSelected] : [])
             }
         }
         .padding(1)
