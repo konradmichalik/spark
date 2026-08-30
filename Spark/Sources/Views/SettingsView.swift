@@ -795,6 +795,7 @@ struct NotificationsTab: View {
                     HStack {
                         TablerIconView(
                             permissionDenied ? .alertTriangle : .circleCheck,
+                            size: 11,
                             color: permissionDenied ? .orange : .green
                         )
                         Text("System: \(permissionStatus)")
