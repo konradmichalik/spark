@@ -69,14 +69,17 @@ struct CardView<Content: View>: View {
 
 private struct SectionHeader: View {
     let title: String
-    let icon: String
+    let icon: TablerIcon
 
     var body: some View {
-        Label(title, systemImage: icon)
-            .font(.subheadline)
-            .fontWeight(.medium)
-            .foregroundColor(.secondary)
-            .frame(maxWidth: .infinity, alignment: .leading)
+        HStack(spacing: 6) {
+            TablerIconView(icon, size: 14, color: .secondary)
+            Text(title)
+                .font(.subheadline)
+                .fontWeight(.medium)
+                .foregroundColor(.secondary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 
@@ -273,31 +276,40 @@ private struct IconLogoThumb: View {
     }
 }
 
+// `OptionCard` colors its preview by wrapping it in an ambient `.foregroundColor`, which the
+// old SF Symbol image picked up for free. `TablerIconView` sets its own `.foregroundStyle`
+// internally and does not inherit, so these previews take the selection state directly instead.
+// The `arrow.up` symbol was previously drawn `.semibold`; `TablerIconView` has no weight
+// parameter, so that emphasis is dropped.
 private struct ValueHighestThumb: View {
+    let isSelected: Bool
+
     var body: some View {
-        Image(systemName: "arrow.up")
-            .font(.system(size: 14, weight: .semibold))
+        TablerIconView(.arrowUp, size: 14, color: isSelected ? .primary : .secondary)
     }
 }
 
 private struct ValueSessionThumb: View {
+    let isSelected: Bool
+
     var body: some View {
-        Image(systemName: "clock")
-            .font(.system(size: 14))
+        TablerIconView(.clock, size: 14, color: isSelected ? .primary : .secondary)
     }
 }
 
 private struct ValueWeeklyThumb: View {
+    let isSelected: Bool
+
     var body: some View {
-        Image(systemName: "calendar")
-            .font(.system(size: 14))
+        TablerIconView(.calendarMonth, size: 14, color: isSelected ? .primary : .secondary)
     }
 }
 
 private struct ValueNoneThumb: View {
+    let isSelected: Bool
+
     var body: some View {
-        Image(systemName: "eye.slash")
-            .font(.system(size: 14))
+        TablerIconView(.eyeOff, size: 14, color: isSelected ? .primary : .secondary)
     }
 }
 
@@ -310,7 +322,7 @@ struct GeneralTab: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 16) {
-                SectionHeader(title: "Refresh", icon: "clock.arrow.circlepath")
+                SectionHeader(title: "Refresh", icon: .history)
 
                 CardView {
                     Picker("", selection: $state.refreshMode) {
@@ -334,9 +346,7 @@ struct GeneralTab: View {
                             .font(.caption2)
 
                             HStack {
-                                Image(systemName: "bolt.fill")
-                                    .foregroundColor(.green)
-                                    .font(.caption2)
+                                TablerIconView(.activity, size: 11, color: .green)
                                 Text("Current: \(formatInterval(state.currentRefreshInterval))")
                                     .font(.caption2)
                                     .foregroundColor(.secondary)
@@ -355,7 +365,7 @@ struct GeneralTab: View {
                     }
                 }
 
-                SectionHeader(title: "Visible Sections", icon: "eye")
+                SectionHeader(title: "Visible Sections", icon: .eye)
 
                 CardView {
                     Toggle(isOn: $state.showSonnetUsage) {
@@ -415,7 +425,7 @@ struct GeneralTab: View {
                     }
                 }
 
-                SectionHeader(title: "Startup", icon: "power")
+                SectionHeader(title: "Startup", icon: .power)
 
                 CardView {
                     Toggle(isOn: $launchAtLogin) {
@@ -477,7 +487,7 @@ struct MenuBarTab: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 16) {
-                SectionHeader(title: "Icon Style", icon: "square.grid.4x3.fill")
+                SectionHeader(title: "Icon Style", icon: .layoutGrid)
 
                 HStack(spacing: 8) {
                     OptionCard(
@@ -506,36 +516,36 @@ struct MenuBarTab: View {
                     )
                 }
 
-                SectionHeader(title: "Displayed Value", icon: "textformat.123")
+                SectionHeader(title: "Displayed Value", icon: .numbers)
 
                 HStack(spacing: 8) {
                     OptionCard(
                         label: "Highest",
                         isSelected: state.menuBarValue == "max",
-                        preview: { ValueHighestThumb() },
+                        preview: { ValueHighestThumb(isSelected: state.menuBarValue == "max") },
                         action: { state.menuBarValue = "max" }
                     )
                     OptionCard(
                         label: "Session",
                         isSelected: state.menuBarValue == "session",
-                        preview: { ValueSessionThumb() },
+                        preview: { ValueSessionThumb(isSelected: state.menuBarValue == "session") },
                         action: { state.menuBarValue = "session" }
                     )
                     OptionCard(
                         label: "Weekly",
                         isSelected: state.menuBarValue == "weekly",
-                        preview: { ValueWeeklyThumb() },
+                        preview: { ValueWeeklyThumb(isSelected: state.menuBarValue == "weekly") },
                         action: { state.menuBarValue = "weekly" }
                     )
                     OptionCard(
                         label: "None",
                         isSelected: state.menuBarValue == "none",
-                        preview: { ValueNoneThumb() },
+                        preview: { ValueNoneThumb(isSelected: state.menuBarValue == "none") },
                         action: { state.menuBarValue = "none" }
                     )
                 }
 
-                SectionHeader(title: "Options", icon: "slider.horizontal.3")
+                SectionHeader(title: "Options", icon: .adjustmentsHorizontal)
 
                 CardView {
                     Toggle(isOn: $state.coloredIcon) {
@@ -559,7 +569,7 @@ struct DisplayTab: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 16) {
-                SectionHeader(title: "Usage Display", icon: "chart.bar.fill")
+                SectionHeader(title: "Usage Display", icon: .chartBar)
 
                 HStack(spacing: 8) {
                     OptionCard(
@@ -587,7 +597,7 @@ struct DisplayTab: View {
                     .foregroundColor(.secondary)
                     .frame(maxWidth: .infinity, alignment: .leading)
 
-                SectionHeader(title: "Appearance", icon: "paintbrush")
+                SectionHeader(title: "Appearance", icon: .palette)
 
                 CardView {
                     Toggle(isOn: $state.reduceTransparency) {
@@ -615,14 +625,12 @@ struct ConnectionTab: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 16) {
-                SectionHeader(title: "Authentication", icon: "key.fill")
+                SectionHeader(title: "Authentication", icon: .key)
 
                 if state.isAuthenticated {
                     CardView {
                         HStack {
-                            Image(systemName: "checkmark.circle.fill")
-                                .foregroundColor(.green)
-                                .font(.title2)
+                            TablerIconView(.circleCheck, size: 17, color: .green)
                             VStack(alignment: .leading, spacing: 2) {
                                 Text("Connected")
                                     .font(.callout)
@@ -638,7 +646,7 @@ struct ConnectionTab: View {
                     }
                 } else {
                     CardView {
-                        Label("Connect to Claude Code", systemImage: "terminal.fill")
+                        TablerLabel("Connect to Claude Code", icon: .terminal2)
                             .font(.callout)
                             .fontWeight(.medium)
 
@@ -661,7 +669,7 @@ struct ConnectionTab: View {
                                 isAuthenticating = false
                             } label: {
                                 HStack {
-                                    Image(systemName: "key.fill")
+                                    TablerIconView(.key)
                                     Text("Load Credentials")
                                 }
                                 .frame(maxWidth: .infinity)
@@ -671,12 +679,12 @@ struct ConnectionTab: View {
                     }
 
                     CardView {
-                        Label("CLI not installed or not logged in?", systemImage: "questionmark.circle")
+                        TablerLabel("CLI not installed or not logged in?", icon: .helpCircle)
                             .font(.caption)
                             .foregroundColor(.secondary)
 
                         Button(action: { state.openCLILogin() }, label: {
-                            Label("Open Terminal & Log In", systemImage: "arrow.up.forward.app.fill")
+                            TablerLabel("Open Terminal & Log In", icon: .externalLink)
                         })
                         .font(.callout)
                     }
@@ -684,16 +692,19 @@ struct ConnectionTab: View {
 
                 if let error = authError ?? state.lastError {
                     CardView {
-                        Label(error, systemImage: "exclamationmark.triangle.fill")
-                            .font(.caption)
-                            .foregroundColor(.orange)
+                        HStack(spacing: 4) {
+                            TablerIconView(.alertTriangle, color: .orange)
+                            Text(error)
+                        }
+                        .font(.caption)
+                        .foregroundColor(.orange)
                     }
                 }
 
                 Divider()
                     .padding(.vertical, 4)
 
-                SectionHeader(title: "Long-lived Token", icon: "key.horizontal.fill")
+                SectionHeader(title: "Long-lived Token", icon: .key)
 
                 CardView {
                     Text("Use a long-lived token to skip macOS Keychain prompts entirely.")
@@ -720,8 +731,7 @@ struct ConnectionTab: View {
                 CardView {
                     if state.authMethod == .longLivedToken {
                         HStack {
-                            Image(systemName: "checkmark.seal.fill")
-                                .foregroundColor(.green)
+                            TablerIconView(.rosetteDiscountCheck, color: .green)
                             Text("Long-lived token is active")
                                 .font(.callout)
                                 .fontWeight(.medium)
@@ -742,7 +752,7 @@ struct ConnectionTab: View {
                                 inputError = true
                             }
                         } label: {
-                            Label("Save Token", systemImage: "tray.and.arrow.down.fill")
+                            TablerLabel("Save Token", icon: .download)
                                 .frame(maxWidth: .infinity)
                         }
                         .controlSize(.large)
@@ -772,7 +782,7 @@ struct NotificationsTab: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 16) {
-                SectionHeader(title: "Notifications", icon: "bell.badge")
+                SectionHeader(title: "Notifications", icon: .bellRinging)
 
                 CardView {
                     Toggle(isOn: $state.notificationsEnabled) {
@@ -783,12 +793,10 @@ struct NotificationsTab: View {
                     }
 
                     HStack {
-                        Image(systemName: permissionDenied
-                            ? "exclamationmark.triangle.fill"
-                            : "checkmark.circle.fill"
+                        TablerIconView(
+                            permissionDenied ? .alertTriangle : .circleCheck,
+                            color: permissionDenied ? .orange : .green
                         )
-                            .foregroundColor(permissionDenied ? .orange : .green)
-                            .font(.caption)
                         Text("System: \(permissionStatus)")
                             .font(.caption)
                             .foregroundColor(.secondary)
@@ -810,7 +818,7 @@ struct NotificationsTab: View {
                     if state.notificationsEnabled { requestAndCheck() }
                 }
 
-                SectionHeader(title: "Thresholds", icon: "chart.bar.fill")
+                SectionHeader(title: "Thresholds", icon: .chartBar)
 
                 CardView {
                     VStack(alignment: .leading, spacing: 4) {
@@ -842,18 +850,18 @@ struct NotificationsTab: View {
                     }
 
                     if state.criticalThreshold <= state.warningThreshold {
-                        Label(
-                            "Critical must be higher than Warning.",
-                            systemImage: "exclamationmark.triangle"
-                        )
-                            .font(.caption)
-                            .foregroundColor(.orange)
+                        HStack(spacing: 4) {
+                            TablerIconView(.alertTriangle, color: .orange)
+                            Text("Critical must be higher than Warning.")
+                        }
+                        .font(.caption)
+                        .foregroundColor(.orange)
                     }
                 }
                 .opacity(state.notificationsEnabled ? 1 : 0.5)
                 .disabled(!state.notificationsEnabled)
 
-                SectionHeader(title: "Events", icon: "bell.and.waves.left.and.right")
+                SectionHeader(title: "Events", icon: .bellBolt)
 
                 CardView {
                     Toggle(isOn: $state.notifyOnReset) {
@@ -896,14 +904,17 @@ struct NotificationsTab: View {
                 CardView {
                     HStack {
                         Button(action: sendTestNotification) {
-                            Label("Send Test Notification", systemImage: "paperplane")
+                            TablerLabel("Send Test Notification", icon: .send)
                         }
                         .disabled(!state.notificationsEnabled)
 
                         if testSent {
-                            Label("Sent", systemImage: "checkmark.circle.fill")
-                                .font(.caption)
-                                .foregroundColor(.green)
+                            HStack(spacing: 4) {
+                                TablerIconView(.circleCheck, color: .green)
+                                Text("Sent")
+                            }
+                            .font(.caption)
+                            .foregroundColor(.green)
                         }
                     }
                 }
@@ -986,7 +997,7 @@ struct StatusTab: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 16) {
-                SectionHeader(title: "Claude Services", icon: "heart.text.square")
+                SectionHeader(title: "Claude Services", icon: .heart)
 
                 Text("Live status powered by the Anthropic status page. The popover only shows a warning during active incidents.")
                     .font(.caption)
@@ -1002,14 +1013,12 @@ struct StatusTab: View {
                         Button {
                             Task { await state.fetchStatus() }
                         } label: {
-                            Image(systemName: "arrow.clockwise")
-                                .font(.system(size: 11))
+                            TablerIconView(.refresh, size: 11)
                         }
                         .buttonStyle(.borderless)
 
                         Link(destination: URL(string: "https://status.claude.com")!) {
-                            Image(systemName: "arrow.up.right.square")
-                                .font(.system(size: 11))
+                            TablerIconView(.externalLink, size: 11)
                         }
                         .buttonStyle(.borderless)
                         .help("Open status.claude.com")
@@ -1017,7 +1026,7 @@ struct StatusTab: View {
                 }
 
                 if !state.components.isEmpty {
-                    SectionHeader(title: "Components", icon: "server.rack")
+                    SectionHeader(title: "Components", icon: .server)
 
                     CardView {
                         ForEach(
@@ -1112,7 +1121,7 @@ struct AboutTab: View {
                         NSWorkspace.shared.open(url)
                     }
                 } label: {
-                    Label("Website", systemImage: "globe")
+                    TablerLabel("Website", icon: .world)
                 }
                 .buttonStyle(.bordered)
 
@@ -1121,7 +1130,7 @@ struct AboutTab: View {
                         NSWorkspace.shared.open(url)
                     }
                 } label: {
-                    Label("GitHub", systemImage: "link")
+                    TablerLabel("GitHub", icon: .link)
                 }
                 .buttonStyle(.bordered)
             }
@@ -1186,17 +1195,26 @@ struct AboutTab: View {
             ProgressView()
                 .controlSize(.small)
         case .upToDate:
-            Label("You're up to date", systemImage: "checkmark.circle.fill")
-                .foregroundStyle(.green)
+            HStack(spacing: 4) {
+                TablerIconView(.circleCheck, color: .green)
+                Text("You're up to date")
+            }
+            .foregroundStyle(.green)
         case .available(let version, let url):
             VStack(spacing: 6) {
-                Label("Version \(version) available", systemImage: "arrow.up.circle.fill")
-                    .foregroundStyle(.orange)
+                HStack(spacing: 4) {
+                    TablerIconView(.circleArrowUp, color: .orange)
+                    Text("Version \(version) available")
+                }
+                .foregroundStyle(.orange)
                 Link("Download", destination: url)
             }
         case .error(let message):
-            Label(message, systemImage: "exclamationmark.triangle.fill")
-                .foregroundStyle(.red)
+            HStack(spacing: 4) {
+                TablerIconView(.alertTriangle, color: .red)
+                Text(message)
+            }
+            .foregroundStyle(.red)
         }
     }
 
