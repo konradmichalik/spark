@@ -26,6 +26,10 @@ enum GraphTimeRange: String, CaseIterable {
     static let dayGranularityCases: [GraphTimeRange] = [.sevenDays, .thirtyDays]
 }
 
+extension GraphTimeRange: SegmentLabeled {
+    var segmentLabel: String { rawValue }
+}
+
 enum GraphMode: String, CaseIterable {
     case limits = "Limits"
     case volume = "Volume"
@@ -38,6 +42,10 @@ enum GraphMode: String, CaseIterable {
         case .volume: .chartBar
         }
     }
+}
+
+extension GraphMode: SegmentLabeled {
+    var segmentLabel: String { rawValue }
 }
 
 struct UsageGraphView: View {
