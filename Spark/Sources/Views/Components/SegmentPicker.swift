@@ -1,5 +1,10 @@
 import SwiftUI
 
+/// Every conformer today implements `segmentLabel` as `{ rawValue }`, which looks like it could
+/// collapse to a `RawRepresentable where RawValue == String` constraint on `SegmentPicker`. It
+/// can't: at least one conformer's `rawValue` is also an `@AppStorage` persistence key, so welding
+/// label to raw value would mean a future display-string rename silently migrates (or breaks)
+/// every user's stored preference. This protocol is the seam that keeps the two separable.
 protocol SegmentLabeled: Hashable {
     var segmentLabel: String { get }
 }
