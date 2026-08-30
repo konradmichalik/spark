@@ -171,6 +171,9 @@ struct MenuBarView: View {
         return formatTokenCount(tokens)
     }
 
+    /// Formats a date as a concise relative time description.
+    /// - Parameter date: The date to describe.
+    /// - Returns: A relative time string in seconds, minutes, or hours.
     private func timeAgo(_ date: Date) -> String {
         let interval = Date().timeIntervalSince(date)
         if interval < 5 { return "just now" }

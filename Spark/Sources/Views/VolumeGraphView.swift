@@ -94,6 +94,9 @@ struct VolumeGraphView: View {
         hoveredDay = isHovering ? entry.day : (hoveredDay == entry.day ? nil : hoveredDay)
     }
 
+    /// Displays a tooltip for the currently hovered day when matching data is available.
+    /// - Parameter days: The daily volume entries to search for the hovered day.
+    /// - Returns: A tooltip containing the day's date and token count, or an indication that the day has no data.
     @ViewBuilder
     private func hoverTooltip(_ days: [VolumeDay]) -> some View {
         if let hoveredEntry = days.first(where: { $0.day == hoveredDay }) {

@@ -51,6 +51,9 @@ struct UsageGraphView: View {
 
     private var availableTimeRanges: [GraphTimeRange] { availableTimeRanges(for: graphMode) }
 
+    /// Provides the time ranges supported by the specified graph mode.
+    /// - Parameter mode: The graph mode whose supported ranges are requested.
+    /// - Returns: Seven-day and thirty-day ranges for volume mode; all available ranges for limits mode.
     private func availableTimeRanges(for mode: GraphMode) -> [GraphTimeRange] {
         mode == .volume ? GraphTimeRange.dayGranularityCases : GraphTimeRange.allCases
     }
@@ -154,6 +157,8 @@ struct UsageGraphView: View {
         }
     }
 
+    /// Displays a tooltip for the hovered usage sample or inactivity gap.
+    /// - Parameter samples: The usage snapshots available for point-based hover targets.
     @ViewBuilder
     private func hoverTooltip(samples: [UsageSnapshot]) -> some View {
         switch hoverTarget {

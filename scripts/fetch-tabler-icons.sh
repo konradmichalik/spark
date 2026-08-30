@@ -22,6 +22,7 @@ ICONS=(
 )
 
 tmp_download=""
+# cleanup removes the temporary download file when it exists.
 cleanup() {
   if [[ -n "$tmp_download" && -f "$tmp_download" ]]; then
     rm -f "$tmp_download"
