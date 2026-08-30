@@ -18,6 +18,10 @@ struct NotConnectedView: View {
                 .help("Settings")
             }
 
+            // The connected popover keeps exactly one divider because section cards carry its
+            // grouping; this view has no sections and no cards, so its two dividers remain the
+            // only structural separation between header, content, and footer. The two states are
+            // mutually exclusive on screen, so the inconsistency is invisible in practice.
             Divider()
 
             // Connection status card
