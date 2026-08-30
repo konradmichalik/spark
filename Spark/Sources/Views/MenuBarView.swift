@@ -385,56 +385,39 @@ struct StatsRow: View {
     let showProjectBreakdown: Bool
     let onSelectPeriod: (StatsPeriod) -> Void
 
+    private static let density = SectionDensity.compact
+
     var body: some View {
         if liveStats != nil || isLoading {
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: Self.density.headerGap) {
                 header
+                SectionCard(density: Self.density) {
+                    if let live = liveStats {
+                        StatsLine(label: "Messages", value: "\(live.messageCount)")
+                        StatsLine(label: "Sessions", value: "\(live.sessionCount)")
+                        StatsLine(label: "Tokens", value: live.formattedTokens, tooltip: live.tokenBreakdown)
 
-                if let live = liveStats {
-                    StatsLine(label: "Messages", value: "\(live.messageCount)")
-                    StatsLine(label: "Sessions", value: "\(live.sessionCount)")
-                    StatsLine(label: "Tokens", value: live.formattedTokens, tooltip: live.tokenBreakdown)
-
-                    if showProjectBreakdown {
-                        ProjectBreakdownDisclosure(liveStats: live)
+                        if showProjectBreakdown {
+                            ProjectBreakdownDisclosure(liveStats: live)
+                        }
                     }
                 }
             }
             .opacity(isLoading ? 0.5 : 1)
-
-            Divider()
         }
     }
 
+    /// Wraps `onSelectPeriod` rather than binding straight to a `period` property: `SegmentPicker`
+    /// needs a `Binding`, but the caller's `onSelectPeriod` (`AppState.setStatsPeriod`) guards
+    /// against a no-op write and triggers `refreshLiveStats()`. A raw property binding would skip
+    /// that refresh and leave the numbers stale after every period switch.
+    private var periodBinding: Binding<StatsPeriod> {
+        Binding(get: { period }, set: { onSelectPeriod($0) })
+    }
+
     private var header: some View {
-        HStack {
-            HStack(spacing: 4) {
-                TablerIconView(.reportAnalytics, size: 11, color: claudeOrange)
-                Text("Stats")
-                    .font(.caption2)
-                    .foregroundColor(.secondary)
-            }
-            Spacer()
-            HStack(spacing: 2) {
-                ForEach(StatsPeriod.allCases, id: \.self) { candidate in
-                    Button {
-                        onSelectPeriod(candidate)
-                    } label: {
-                        Text(candidate.rawValue)
-                            .font(.system(size: 10, weight: period == candidate ? .semibold : .regular))
-                            .foregroundColor(period == candidate ? .primary : .secondary)
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 2)
-                            .background(
-                                period == candidate
-                                    ? Color.primary.opacity(0.1)
-                                    : Color.clear
-                            )
-                            .cornerRadius(4)
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
+        SectionHeader(title: "Stats", icon: .reportAnalytics, density: Self.density) {
+            SegmentPicker(selection: periodBinding, options: StatsPeriod.allCases)
         }
     }
 }
@@ -500,25 +483,34 @@ private struct ProjectBreakdownDisclosure: View {
 
     /// A `Button` rather than `.onTapGesture` — a tap gesture exposes no keyboard focus or
     /// activation on macOS, which would leave keyboard-only and VoiceOver users unable to expand
-    /// this section at all. The full row — icon, label, and trailing chevron — is one tap target
-    /// via `contentShape`, not just the label text, so clicking anywhere across its width works.
+    /// this section at all. The full row is one tap target via `contentShape`, not just the label
+    /// text, so clicking anywhere across its width works.
+    ///
+    /// No icon, no uppercase: this is a tappable row, not a section header, and needs to read as
+    /// neither the Stats heading above it nor one of its plain content lines. The resting
+    /// background is what signals "tappable" instead. Negative horizontal padding bleeds that
+    /// background to the card's inner edge, aligning it with the card's content inset rather than
+    /// floating inside it.
     private var header: some View {
         Button {
             withAnimation(Self.animation) {
                 isExpanded.toggle()
             }
         } label: {
-            HStack(spacing: 4) {
-                TablerIconView(.folders, size: 11, color: claudeOrange)
+            HStack(spacing: 5) {
                 Text("Top Projects")
-                    .font(.caption2)
-                    .foregroundColor(.secondary)
+                    .font(.system(size: 11.5))
+                    .foregroundColor(.primary)
                 Spacer()
-                TablerIconView(.chevronRight, size: 9)
+                TablerIconView(.chevronRight, size: 10)
                     .rotationEffect(.degrees(isExpanded ? 90 : 0))
             }
+            .padding(.horizontal, 6)
+            .padding(.vertical, 4)
+            .background(RoundedRectangle(cornerRadius: 5).fill(Color.primary.opacity(0.05)))
             .contentShape(Rectangle())
         }
+        .padding(.horizontal, -6)
         .buttonStyle(.plain)
         .accessibilityValue(isExpanded ? "Expanded" : "Collapsed")
     }

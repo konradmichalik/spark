@@ -2,16 +2,17 @@ import AppKit
 import SwiftUI
 
 /// Sessions with a transcript write in the last few minutes — see `ActiveSessionResolver`. Its
-/// own section (own `Divider()`), not nested inside `StatsRow`: everything in the Stats card is
-/// scoped to the selected Today/7d/30d/All period, while this list is not, so nesting it there
-/// would falsely imply the period selector applies here too. Keeping it out of Stats also avoids
+/// own section, not nested inside `StatsRow`'s card: everything in the Stats card is scoped to
+/// the selected Today/7d/30d/All period, while this list is not, so nesting it there would
+/// falsely imply the period selector applies here too. Keeping it out of Stats also avoids
 /// putting this count next to Stats' own "Sessions" line, where two different session numbers
 /// would sit side by side meaning different things.
 ///
 /// Deliberately quiet: no "active now" label repeated on every row — that would just restate what
 /// the section title already says. A row's trailing column stays empty until that session
-/// actually starts aging. The count gets its own badge in the header, since a plain number next
-/// to a caption-sized title was getting lost.
+/// actually starts aging. The count sits in the header's accessory slot as plain monospaced text,
+/// not a badge: the uppercase header title now separates this from the rows beneath it, so the
+/// capsule that used to compensate for that isn't needed.
 struct ActiveSessionsView: View {
     let sessions: [ActiveSession]
 
@@ -25,26 +26,28 @@ struct ActiveSessionsView: View {
     /// affordance.
     @State private var showAll = false
 
+    private static let density = SectionDensity.compact
+
     var body: some View {
         if !sessions.isEmpty {
-            VStack(alignment: .leading, spacing: 5) {
+            VStack(alignment: .leading, spacing: Self.density.headerGap) {
                 header
-                ForEach(sessions.prefix(visibleCount)) { session in
-                    ActiveSessionRow(session: session)
-                }
-                if !showAll, sessions.count > Self.visibleLimit {
-                    Button {
-                        showAll = true
-                    } label: {
-                        Text("+\(sessions.count - Self.visibleLimit) more")
-                            .font(.caption2)
-                            .foregroundColor(.secondary)
+                SectionCard(density: Self.density) {
+                    ForEach(sessions.prefix(visibleCount)) { session in
+                        ActiveSessionRow(session: session)
                     }
-                    .buttonStyle(.plain)
+                    if !showAll, sessions.count > Self.visibleLimit {
+                        Button {
+                            showAll = true
+                        } label: {
+                            Text("+\(sessions.count - Self.visibleLimit) more")
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
+                        }
+                        .buttonStyle(.plain)
+                    }
                 }
             }
-
-            Divider()
         }
     }
 
@@ -53,22 +56,11 @@ struct ActiveSessionsView: View {
     }
 
     private var header: some View {
-        HStack(spacing: 4) {
-            TablerIconView(.terminal2, size: 11, color: Theme.sparkOrange)
-            Text("Active Sessions")
-                .font(.caption2)
-                .foregroundColor(.secondary)
-            Spacer()
-            // A badge, not plain text — matches the account-tier badge in the popover header, and
-            // a bare number here was reading as barely-there next to a caption-sized title.
+        SectionHeader(title: "Active Sessions", icon: .terminal2, density: Self.density) {
             Text("\(sessions.count)")
                 .font(.system(.caption2, design: .monospaced))
                 .fontWeight(.semibold)
-                .foregroundColor(Theme.sparkOrange)
-                .padding(.horizontal, 6)
-                .padding(.vertical, 1)
-                .background(Theme.sparkOrange.opacity(0.15))
-                .clipShape(Capsule())
+                .foregroundColor(.secondary)
         }
         .help("Sessions with activity in the last 5 minutes")
     }
