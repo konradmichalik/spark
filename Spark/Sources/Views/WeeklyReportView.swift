@@ -65,7 +65,7 @@ struct WeeklyReportView: View {
     private var header: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 6) {
-                TablerIconView(.calendarMonth, color: Theme.sparkOrange)
+                TablerIconView(.calendarMonth, color: .secondary)
                 Text("Usage Report")
                     .font(.custom("InstrumentSerif-Regular", size: 15))
                 Spacer()

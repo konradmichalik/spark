@@ -12,7 +12,6 @@ enum TablerIcon: String, CaseIterable {
     case arrowDown = "arrow-down"
     case arrowRight = "arrow-right"
     case arrowUp = "arrow-up"
-    case bell
     case bellBolt = "bell-bolt"
     case bellRinging = "bell-ringing"
     case calendarMonth = "calendar-month"
@@ -29,14 +28,11 @@ enum TablerIcon: String, CaseIterable {
     case externalLink = "external-link"
     case eye
     case eyeOff = "eye-off"
-    case folders
     case helpCircle = "help-circle"
     case heart
     case history
-    case infoCircle = "info-circle"
     case key
     case layoutGrid = "layout-grid"
-    case layoutNavbar = "layout-navbar"
     case link
     case linkPlus = "link-plus"
     case moon
@@ -50,9 +46,7 @@ enum TablerIcon: String, CaseIterable {
     case send
     case server
     case settings
-    case sparkles
     case terminal2 = "terminal-2"
-    case userCircle = "user-circle"
     case world
 
     var assetName: String { rawValue }
