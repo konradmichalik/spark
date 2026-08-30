@@ -432,12 +432,12 @@ private struct StatsLine: View {
     var body: some View {
         HStack {
             Text(label)
-                .font(.caption)
-                .foregroundColor(.secondary)
+                .font(.system(size: 11.5))
+                .foregroundColor(.primary)
             Spacer()
             Text(value)
-                .font(.system(.caption, design: .monospaced))
-                .fontWeight(.medium)
+                .font(.system(size: 11.5, design: .monospaced))
+                .foregroundColor(.primary)
         }
         .help(tooltip ?? "")
     }
@@ -765,8 +765,8 @@ struct UsageRow: View {
                             }
                             if let detail = projectionDetail {
                                 Text(detail)
-                                    .font(.caption2)
-                                    .foregroundColor(.secondary)
+                                    .font(.system(size: 10))
+                                    .foregroundStyle(.tertiary)
                                     .fixedSize(horizontal: false, vertical: true)
                             }
                         }
@@ -781,8 +781,8 @@ struct UsageRow: View {
                         HStack(spacing: 4) {
                             TablerIconView(.history, size: 10, color: .secondary)
                             Text("\(resetTime) left")
-                                .font(.caption2)
-                                .foregroundColor(.secondary)
+                                .font(.system(size: 10))
+                                .foregroundStyle(.tertiary)
                         }
                     })
                     .buttonStyle(.plain)
@@ -797,8 +797,8 @@ struct UsageRow: View {
 
                             if let resetDate {
                                 Text(resetDate, format: .dateTime.weekday(.wide).day().month(.wide).hour().minute())
-                                    .font(.caption2)
-                                    .foregroundColor(.secondary)
+                                    .font(.system(size: 10))
+                                    .foregroundStyle(.tertiary)
                             }
                         }
                         .padding(10)
@@ -818,8 +818,7 @@ struct UsageRow: View {
                 .help(paceDescription ?? "")
 
                 Text("\(Int(utilization))%")
-                    .font(.system(.body, design: .monospaced))
-                    .fontWeight(.medium)
+                    .font(.system(size: 15, weight: .semibold, design: .monospaced))
                     .foregroundColor(utilization >= warningThreshold ? color : .primary)
                     .frame(width: 40, alignment: .trailing)
             }

@@ -109,23 +109,24 @@ private struct ActiveSessionRow: View {
                 .frame(width: 6, height: 6)
 
             Text(session.displayName)
-                .font(.caption)
+                .font(.system(size: 11.5))
+                .foregroundColor(.primary)
                 .lineLimit(1)
                 .truncationMode(.middle)
 
-            // Secondary weight so the hex recedes behind the project name it disambiguates.
+            // Tertiary weight so the hex recedes behind the project name it disambiguates.
             if let suffix = session.sessionIdSuffix {
                 Text(suffix)
-                    .font(.system(.caption2, design: .monospaced))
-                    .foregroundColor(.secondary)
+                    .font(.system(size: 10, design: .monospaced))
+                    .foregroundStyle(.tertiary)
             }
 
             Spacer()
 
             if let trailing = trailingText {
                 Text(trailing)
-                    .font(.system(.caption2, design: .monospaced))
-                    .foregroundColor(.secondary)
+                    .font(.system(size: 10, design: .monospaced))
+                    .foregroundStyle(.tertiary)
             }
         }
         .contentShape(Rectangle())
