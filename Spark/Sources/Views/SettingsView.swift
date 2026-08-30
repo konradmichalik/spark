@@ -1145,6 +1145,11 @@ struct AboutTab: View {
             Text("\u{00A9} 2026 Konrad Michalik")
                 .font(.caption2)
                 .foregroundColor(.secondary)
+
+            // swiftlint:disable:next force_unwrapping
+            Link("Icons by Tabler Icons (MIT)", destination: URL(string: "https://tabler.io/icons")!)
+                .font(.caption2)
+                .foregroundColor(.secondary)
         }
         .frame(maxWidth: .infinity)
         .padding()
