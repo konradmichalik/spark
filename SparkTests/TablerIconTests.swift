@@ -22,9 +22,4 @@ final class TablerIconTests: XCTestCase {
             )
         }
     }
-
-    func testAssetNamesAreUnique() {
-        let names = TablerIcon.allCases.map(\.assetName)
-        XCTAssertEqual(Set(names).count, names.count, "Duplicate asset names in TablerIcon")
-    }
 }

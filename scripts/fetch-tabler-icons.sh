@@ -22,10 +22,10 @@ curl -fsSL "https://cdn.jsdelivr.net/npm/@tabler/icons@${VERSION}/LICENSE" \
   -o "$DEST/TABLER-LICENSE"
 
 for name in "${ICONS[@]}"; do
-  set="$DEST/${name}.imageset"
-  mkdir -p "$set"
-  curl -fsSL "$BASE/${name}.svg" -o "$set/${name}.svg"
-  cat > "$set/Contents.json" <<JSON
+  imageset_dir="$DEST/${name}.imageset"
+  mkdir -p "$imageset_dir"
+  curl -fsSL "$BASE/${name}.svg" -o "$imageset_dir/${name}.svg"
+  cat > "$imageset_dir/Contents.json" <<JSON
 {
   "images" : [
     {
