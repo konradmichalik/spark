@@ -1,7 +1,7 @@
 import XCTest
 @testable import Spark
 
-final class SegmentPickerTests: XCTestCase {
+final class SegmentLabelingTests: XCTestCase {
 
     func testStatsPeriodLabelsMatchRawValues() {
         for period in StatsPeriod.allCases {
