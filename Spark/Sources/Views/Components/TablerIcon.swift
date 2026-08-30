@@ -27,6 +27,7 @@ enum TablerIcon: String, CaseIterable {
     case clock
     case download
     case externalLink = "external-link"
+    case eye
     case eyeOff = "eye-off"
     case folders
     case helpCircle = "help-circle"
@@ -40,6 +41,7 @@ enum TablerIcon: String, CaseIterable {
     case linkPlus = "link-plus"
     case moon
     case numbers
+    case palette
     case power
     case refresh
     case refreshAlert = "refresh-alert"
@@ -80,5 +82,29 @@ struct TablerIconView: View {
             .frame(width: size, height: size)
             .foregroundStyle(color)
             .accessibilityHidden(true)
+    }
+}
+
+/// A `Label` equivalent for bundled icons.
+///
+/// SwiftUI's `Label(_:systemImage:)` only takes SF Symbol names, so every button and link that
+/// used one needs an icon-plus-text pair instead. Thirteen call sites need it, which is well past
+/// the point where repeating the `HStack` at each one stops being cheaper than naming it.
+struct TablerLabel: View {
+    let title: String
+    let icon: TablerIcon
+    var size: CGFloat = 13
+
+    init(_ title: String, icon: TablerIcon, size: CGFloat = 13) {
+        self.title = title
+        self.icon = icon
+        self.size = size
+    }
+
+    var body: some View {
+        HStack(spacing: 4) {
+            TablerIconView(icon, size: size, color: .secondary)
+            Text(title)
+        }
     }
 }

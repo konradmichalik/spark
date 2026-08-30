@@ -9,6 +9,17 @@ enum Theme {
     static let sparkOrange = Color(nsColor: sparkOrangeNS)
     static let sparkOrangeNS = NSColor(red: 0.85, green: 0.47, blue: 0.34, alpha: 1)
 
+    /// Icon tint. The brand orange sits at roughly 2.4:1 on a light window background, below the
+    /// 3:1 that non-text UI elements need, so icons use a darkened variant in light mode and a
+    /// lightened one in dark. `sparkOrange` itself is unchanged and still paints the logo, the
+    /// tier badge, and the session graph line at their exact brand tone.
+    static let sparkOrangeIcon = Color(nsColor: NSColor(name: nil) { appearance in
+        let isDark = appearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
+        return isDark
+            ? NSColor(red: 0.90, green: 0.56, blue: 0.42, alpha: 1)
+            : NSColor(red: 0.77, green: 0.39, blue: 0.25, alpha: 1)
+    })
+
     /// History graph lines
     static let graphSession = sparkOrange
     static let graphWeekly = Color(nsColor: NSColor(red: 0.55, green: 0.60, blue: 0.67, alpha: 1))
