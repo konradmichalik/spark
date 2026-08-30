@@ -977,15 +977,17 @@ struct StatusTab: View {
                         Button {
                             Task { await state.fetchStatus() }
                         } label: {
-                            TablerIconView(.refresh, size: 11)
+                            TablerIconView(.refresh, size: 11, isDecorative: false)
                         }
                         .buttonStyle(.borderless)
+                        .accessibilityLabel("Refresh Claude service status")
 
                         Link(destination: URL(string: "https://status.claude.com")!) {
-                            TablerIconView(.externalLink, size: 11)
+                            TablerIconView(.externalLink, size: 11, isDecorative: false)
                         }
                         .buttonStyle(.borderless)
                         .help("Open status.claude.com")
+                        .accessibilityLabel("Open Claude status page")
                     }
                 }
 

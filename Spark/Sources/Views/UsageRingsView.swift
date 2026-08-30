@@ -217,12 +217,13 @@ private struct SeparateRingItem: View {
                     Button {
                         showResetPopover.toggle()
                     } label: {
-                        TablerIconView(.history, size: 9)
+                        TablerIconView(.history, size: 9, isDecorative: false)
                             .frame(width: 14, height: 14)
                             .background(Color.secondary.opacity(0.12))
                             .clipShape(Circle())
                     }
                     .buttonStyle(.plain)
+                    .accessibilityLabel("\(ring.label) reset time")
                     .popover(isPresented: $showResetPopover, arrowEdge: .bottom) {
                         VStack(spacing: 6) {
                             HStack(spacing: 4) {

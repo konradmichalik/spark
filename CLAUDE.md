@@ -33,7 +33,7 @@ xcodebuild -scheme Spark -configuration Debug test
 
 **Views:** `MenuBarExtra` scene → `MenuBarView` (main popover) → child views (`UsageGraphView`, `SettingsView`, `ClaudeLogoShape` for the ring icon). `Views/Components/` holds pieces shared between the popover and the settings window: `SectionHeader`/`SectionCard` (grouped-card layout), `SegmentPicker` (the segmented control), and `TablerIcon`/`TablerIconView` (the bundled icon set).
 
-**Icons:** Tabler outline SVGs live in `Spark/Assets.xcassets/Icons/`. To add one: add the case to the `TablerIcon` enum, add the same name to the `ICONS` array in `scripts/fetch-tabler-icons.sh`, re-run the script, then `make xcode`. Skipping a step fails `TablerIconTests`.
+**Icons:** Tabler outline SVGs live in `Spark/Assets.xcassets/Icons/`. To add one: add the case to the `TablerIcon` enum, add the same name to the `ICONS` array in `scripts/fetch-tabler-icons.sh`, re-run the script, then `make xcode`. `ICONS` takes the raw Tabler asset name (`adjustments-horizontal`), not the Swift case name (`adjustmentsHorizontal`) — the script builds both the download URL and the image-set directory from it. Skipping a step, or using the case name, fails `TablerIconTests`.
 
 **Local stats:** Parses `~/.claude/history.jsonl` and per-project JSONL files for daily message/token counts. Active sessions (`ActiveSessionResolver`) are derived from the same cached file metadata — no extra parsing — as sessions with a transcript write in the last 5 minutes.
 
