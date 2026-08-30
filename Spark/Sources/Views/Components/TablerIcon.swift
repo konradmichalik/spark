@@ -62,11 +62,18 @@ struct TablerIconView: View {
     let icon: TablerIcon
     var size: CGFloat = 13
     var color: Color = .secondary
+    /// `true` (the default) hides the icon from the accessibility tree, which is right when it
+    /// sits beside text that already carries the label — VoiceOver would otherwise announce the
+    /// icon and its neighbor as two elements. Pass `false` when the icon *is* the control (an
+    /// icon-only button with no adjacent text), so it isn't excluded from the enclosing control's
+    /// accessibility element; pair that with an explicit `.accessibilityLabel` on the control.
+    var isDecorative: Bool = true
 
-    init(_ icon: TablerIcon, size: CGFloat = 13, color: Color = .secondary) {
+    init(_ icon: TablerIcon, size: CGFloat = 13, color: Color = .secondary, isDecorative: Bool = true) {
         self.icon = icon
         self.size = size
         self.color = color
+        self.isDecorative = isDecorative
     }
 
     var body: some View {
@@ -75,7 +82,7 @@ struct TablerIconView: View {
             .resizable()
             .frame(width: size, height: size)
             .foregroundStyle(color)
-            .accessibilityHidden(true)
+            .accessibilityHidden(isDecorative)
     }
 }
 

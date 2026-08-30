@@ -87,10 +87,11 @@ struct MenuBarView: View {
             .accessibilityLabel("Usage Report")
 
             SettingsLink {
-                TablerIconView(.settings, size: 13, color: .secondary)
+                TablerIconView(.settings, size: 13, color: .secondary, isDecorative: false)
             }
             .buttonStyle(.borderless)
             .help("Settings")
+            .accessibilityLabel("Settings")
         }
     }
 
@@ -160,10 +161,11 @@ struct MenuBarView: View {
             Button {
                 NSApplication.shared.terminate(nil)
             } label: {
-                TablerIconView(.power, size: 12, color: .secondary)
+                TablerIconView(.power, size: 12, color: .secondary, isDecorative: false)
             }
             .buttonStyle(.borderless)
             .help("Quit")
+            .accessibilityLabel("Quit")
         }
     }
 
@@ -746,9 +748,11 @@ struct UsageRow: View {
 
                 if projectionTitle != nil {
                     Button(action: { showProjectionPopover.toggle() }, label: {
-                        TablerIconView(.chartLine, size: 10, color: projectionIconColor)
+                        TablerIconView(.chartLine, size: 10, color: projectionIconColor, isDecorative: false)
                     })
                     .buttonStyle(.plain)
+                    .help("Usage projection")
+                    .accessibilityLabel("Usage projection")
                     .popover(isPresented: $showProjectionPopover, arrowEdge: .bottom) {
                         VStack(spacing: 6) {
                             if let title = projectionTitle {
@@ -961,13 +965,14 @@ struct RefreshButton: View {
 
     var body: some View {
         Button(action: action) {
-            TablerIconView(.refresh, size: 12, color: .secondary)
+            TablerIconView(.refresh, size: 12, color: .secondary, isDecorative: false)
                 .rotationEffect(.degrees(rotation))
         }
         .buttonStyle(.borderless)
         .disabled(isLoading)
         .opacity(isLoading ? 0.5 : 1)
         .help(isLoading ? "Refreshing\u{2026}" : "Refresh")
+        .accessibilityLabel(isLoading ? "Refreshing" : "Refresh")
         .task(id: isLoading) {
             guard isLoading else { return }
             while !Task.isCancelled {

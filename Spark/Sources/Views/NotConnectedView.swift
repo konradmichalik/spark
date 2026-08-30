@@ -12,10 +12,11 @@ struct NotConnectedView: View {
                     .font(.custom("InstrumentSerif-Regular", size: 15))
                 Spacer()
                 SettingsLink {
-                    TablerIconView(.settings, size: 12)
+                    TablerIconView(.settings, size: 12, isDecorative: false)
                 }
                 .buttonStyle(.borderless)
                 .help("Settings")
+                .accessibilityLabel("Settings")
             }
 
             // The connected popover keeps exactly one divider because section cards carry its
@@ -63,10 +64,11 @@ struct NotConnectedView: View {
                 Button {
                     NSApplication.shared.terminate(nil)
                 } label: {
-                    TablerIconView(.power, size: 12)
+                    TablerIconView(.power, size: 12, isDecorative: false)
                 }
                 .buttonStyle(.borderless)
                 .help("Quit")
+                .accessibilityLabel("Quit")
             }
         }
         .padding(12)
