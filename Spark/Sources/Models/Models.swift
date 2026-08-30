@@ -277,13 +277,13 @@ enum ClaudeServiceStatus: String, Codable, Sendable {
         self == .operational || self == .none
     }
 
-    var emoji: String {
+    var icon: TablerIcon {
         switch self {
-        case .operational, .none: "checkmark.circle.fill"
-        case .degradedPerformance: "exclamationmark.triangle.fill"
-        case .partialOutage: "bolt.trianglebadge.exclamationmark.fill"
-        case .majorOutage: "xmark.circle.fill"
-        case .unknown: "questionmark.circle.fill"
+        case .operational, .none: .circleCheck
+        case .degradedPerformance: .alertTriangle
+        case .partialOutage: .alertTriangle
+        case .majorOutage: .circleX
+        case .unknown: .helpCircle
         }
     }
 }

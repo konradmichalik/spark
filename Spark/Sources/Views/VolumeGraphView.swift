@@ -99,7 +99,7 @@ struct VolumeGraphView: View {
         if let hoveredEntry = days.first(where: { $0.day == hoveredDay }) {
             HStack(spacing: 4) {
                 if hoveredEntry.isEmpty {
-                    Image(systemName: "moon.zzz")
+                    TablerIconView(.moon, size: 12)
                     Text("\(formatAxisDay(hoveredEntry.day)) · no data")
                 } else {
                     Text(formatAxisDay(hoveredEntry.day))

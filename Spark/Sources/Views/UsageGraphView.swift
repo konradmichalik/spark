@@ -32,10 +32,10 @@ enum GraphMode: String, CaseIterable {
 
     /// Icon-only segmented control labels — the full words don't fit on one line alongside the
     /// "History" label and the time-range buttons at the popover's 300pt width.
-    var iconName: String {
+    var icon: TablerIcon {
         switch self {
-        case .limits: "chart.line.uptrend.xyaxis"
-        case .volume: "chart.bar.xaxis"
+        case .limits: .chartLine
+        case .volume: .chartBar
         }
     }
 }
@@ -132,7 +132,7 @@ struct UsageGraphView: View {
 
     // MARK: - Header
 
-    /// The mode toggle is icon-only (see `GraphMode.iconName`) rather than spelling out
+    /// The mode toggle is icon-only (see `GraphMode.icon`) rather than spelling out
     /// "Limits"/"Volume" — that's what keeps the label, the toggle, and all five time-range
     /// buttons (`1h`…`30d`) fitting on one row within the popover's 300pt width. With the full
     /// words, this row would overflow, and since none of these views have a fixed size, SwiftUI
@@ -140,9 +140,7 @@ struct UsageGraphView: View {
     private var header: some View {
         HStack {
             HStack(spacing: 4) {
-                Image(systemName: "clock.arrow.circlepath")
-                    .font(.caption2)
-                    .foregroundColor(Theme.graphSession)
+                TablerIconView(.history, size: 11, color: Theme.graphSession)
                 Text("History")
                     .font(.caption2)
                     .foregroundColor(.secondary)
@@ -163,9 +161,7 @@ struct UsageGraphView: View {
                             }
                         }
                     } label: {
-                        Image(systemName: mode.iconName)
-                            .font(.system(size: 10, weight: graphMode == mode ? .semibold : .regular))
-                            .foregroundColor(graphMode == mode ? .primary : .secondary)
+                        TablerIconView(mode.icon, size: 10, color: graphMode == mode ? .primary : .secondary)
                             .padding(.horizontal, 6)
                             .padding(.vertical, 2)
                             .background(
@@ -239,7 +235,7 @@ struct UsageGraphView: View {
             .modifier(TooltipStyle(reduceTransparency: reduceTransparency))
         case .gap(let band):
             HStack(spacing: 4) {
-                Image(systemName: "moon.zzz")
+                TablerIconView(.moon, size: 12)
                 Text("\(band.duration.shortDuration) · no data")
             }
             .foregroundColor(.secondary)

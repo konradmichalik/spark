@@ -54,9 +54,7 @@ struct ActiveSessionsView: View {
 
     private var header: some View {
         HStack(spacing: 4) {
-            Image(systemName: "terminal")
-                .font(.caption2)
-                .foregroundColor(Theme.sparkOrange)
+            TablerIconView(.terminal2, size: 11, color: Theme.sparkOrange)
             Text("Active Sessions")
                 .font(.caption2)
                 .foregroundColor(.secondary)

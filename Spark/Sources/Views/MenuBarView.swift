@@ -31,16 +31,14 @@ struct MenuBarView: View {
                     openWindow(id: WeeklyReportView.windowID)
                     NSApp.activate(ignoringOtherApps: true)
                 } label: {
-                    Image(systemName: "calendar")
-                        .font(.system(size: 12))
+                    TablerIconView(.calendarMonth, size: 13)
                 }
                 .buttonStyle(.borderless)
                 .help("Usage Report")
                 .accessibilityLabel("Usage Report")
 
                 SettingsLink {
-                    Image(systemName: "gearshape")
-                        .font(.system(size: 12))
+                    TablerIconView(.settings, size: 13)
                 }
                 .buttonStyle(.borderless)
                 .help("Settings")
@@ -204,9 +202,7 @@ struct MenuBarView: View {
             if let extra = state.usageData.extraUsage, extra.hasSpend,
                let spend = extra.formattedSpendWithLimit {
                 HStack(spacing: 6) {
-                    Image(systemName: "plus.circle")
-                        .font(.caption2)
-                        .foregroundColor(.secondary)
+                    TablerIconView(.circlePlus, size: 11)
                     Text("Extra usage")
                         .font(.caption2)
                         .foregroundColor(.secondary)
@@ -222,9 +218,7 @@ struct MenuBarView: View {
             // Reconnect prompt (token expired, ACL wiped by Claude Code)
             if state.needsReconnect {
                 HStack(spacing: 6) {
-                    Image(systemName: "arrow.triangle.2.circlepath")
-                        .foregroundColor(.orange)
-                        .font(.caption)
+                    TablerIconView(.refreshAlert, size: 12, color: .orange)
                     Text("Session expired")
                         .font(.caption)
                         .foregroundColor(.secondary)
@@ -241,8 +235,7 @@ struct MenuBarView: View {
             // Error
             if let error = state.lastError {
                 HStack {
-                    Image(systemName: "exclamationmark.triangle.fill")
-                        .foregroundColor(.orange)
+                    TablerIconView(.alertTriangle, size: 13, color: .orange)
                     Text(error)
                         .font(.caption)
                         .foregroundColor(.secondary)
@@ -287,8 +280,7 @@ struct MenuBarView: View {
                 Button {
                     NSApplication.shared.terminate(nil)
                 } label: {
-                    Image(systemName: "power")
-                        .font(.system(size: 12))
+                    TablerIconView(.power, size: 12)
                 }
                 .buttonStyle(.borderless)
                 .help("Quit")
@@ -357,9 +349,7 @@ struct StatsRow: View {
     private var header: some View {
         HStack {
             HStack(spacing: 4) {
-                Image(systemName: "number.square")
-                    .font(.caption2)
-                    .foregroundColor(claudeOrange)
+                TablerIconView(.reportAnalytics, size: 11, color: claudeOrange)
                 Text("Stats")
                     .font(.caption2)
                     .foregroundColor(.secondary)
@@ -459,16 +449,12 @@ private struct ProjectBreakdownDisclosure: View {
             }
         } label: {
             HStack(spacing: 4) {
-                Image(systemName: "folder")
-                    .font(.caption2)
-                    .foregroundColor(claudeOrange)
+                TablerIconView(.folders, size: 11, color: claudeOrange)
                 Text("Top Projects")
                     .font(.caption2)
                     .foregroundColor(.secondary)
                 Spacer()
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 8, weight: .semibold))
-                    .foregroundColor(.secondary)
+                TablerIconView(.chevronRight, size: 9)
                     .rotationEffect(.degrees(isExpanded ? 90 : 0))
             }
             .contentShape(Rectangle())
@@ -589,15 +575,13 @@ struct LocalOnlyUsageRow: View {
     let label: String
     let localTokens: String
 
-    private var iconName: String {
-        label == "Sonnet" ? "wand.and.stars" : "chart.bar.fill"
+    private var icon: TablerIcon {
+        label == "Sonnet" ? .sparkles : .chartBar
     }
 
     var body: some View {
         HStack(spacing: 4) {
-            Image(systemName: iconName)
-                .font(.caption2)
-                .foregroundColor(claudeOrange)
+            TablerIconView(icon, size: 11, color: claudeOrange)
             Text(label)
                 .font(.caption)
                 .foregroundColor(.secondary)
@@ -634,11 +618,11 @@ struct UsageRow: View {
         return "Pace: \(pace.tier.label) — \(percent)% of the on-track rate. At this rate, quota exhausts \(exhausts) reset."
     }
 
-    private var iconName: String {
-        if label.hasPrefix("Session") { return "bolt.fill" }
-        if label.hasPrefix("Weekly") { return "calendar" }
-        if label.hasPrefix("Sonnet") { return "wand.and.stars" }
-        return "chart.bar.fill"
+    private var icon: TablerIcon {
+        if label.hasPrefix("Session") { return .activity }
+        if label.hasPrefix("Weekly") { return .calendarMonth }
+        if label.hasPrefix("Sonnet") { return .sparkles }
+        return .chartBar
     }
 
     private var color: Color {
@@ -704,9 +688,7 @@ struct UsageRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack {
-                Image(systemName: iconName)
-                    .font(.caption2)
-                    .foregroundColor(claudeOrange)
+                TablerIconView(icon, size: 11, color: claudeOrange)
                 Text(label)
                     .font(.caption)
                     .foregroundColor(.secondary)
@@ -719,9 +701,7 @@ struct UsageRow: View {
 
                 if projectionTitle != nil {
                     Button(action: { showProjectionPopover.toggle() }, label: {
-                        Image(systemName: "chart.line.uptrend.xyaxis")
-                            .font(.system(size: 9))
-                            .foregroundColor(projectionIconColor)
+                        TablerIconView(.chartLine, size: 9, color: projectionIconColor)
                             .frame(width: 18, height: 18)
                             .background(projectionIconColor.opacity(0.12))
                             .clipShape(Circle())
@@ -731,8 +711,7 @@ struct UsageRow: View {
                         VStack(spacing: 6) {
                             if let title = projectionTitle {
                                 HStack(spacing: 4) {
-                                    Image(systemName: "chart.line.uptrend.xyaxis")
-                                        .foregroundColor(projectionIconColor)
+                                    TablerIconView(.chartLine, size: 9, color: projectionIconColor)
                                     Text(title)
                                         .fontWeight(.medium)
                                 }
@@ -754,9 +733,7 @@ struct UsageRow: View {
                 if let resetTime {
                     Button(action: { showResetPopover.toggle() }, label: {
                         HStack(spacing: 4) {
-                            Image(systemName: "clock.arrow.circlepath")
-                                .font(.system(size: 9))
-                                .foregroundColor(.secondary)
+                            TablerIconView(.history, size: 11)
                                 .frame(width: 18, height: 18)
                                 .background(Color.secondary.opacity(0.12))
                                 .clipShape(Circle())
@@ -769,8 +746,7 @@ struct UsageRow: View {
                     .popover(isPresented: $showResetPopover, arrowEdge: .bottom) {
                         VStack(spacing: 6) {
                             HStack(spacing: 4) {
-                                Image(systemName: "clock.arrow.circlepath")
-                                    .foregroundColor(.secondary)
+                                TablerIconView(.history, size: 11)
                                 Text("Reset in \(resetTime)")
                                     .fontWeight(.medium)
                             }
@@ -885,8 +861,7 @@ struct StatusRow: View {
 
     var body: some View {
         HStack {
-            Image(systemName: state.status.emoji)
-                .foregroundColor(Theme.sparkOrange)
+            TablerIconView(state.status.icon, size: 13, color: Theme.sparkOrange)
             Text("Claude: \(state.status.displayName)")
                 .font(.caption)
 
@@ -897,8 +872,7 @@ struct StatusRow: View {
                     HStack(spacing: 2) {
                         Text("Code: \(state.claudeCodeStatus.displayName)")
                             .font(.caption2)
-                        Image(systemName: "arrow.up.right.square")
-                            .font(.system(size: 9))
+                        TablerIconView(.externalLink, size: 9, color: Theme.sparkOrange)
                     }
                     .foregroundColor(Theme.sparkOrange)
                 }
@@ -948,8 +922,7 @@ struct RefreshButton: View {
 
     var body: some View {
         Button(action: action) {
-            Image(systemName: "arrow.clockwise")
-                .font(.system(size: 12))
+            TablerIconView(.refresh, size: 12)
                 .rotationEffect(.degrees(rotation))
         }
         .buttonStyle(.borderless)

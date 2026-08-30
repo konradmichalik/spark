@@ -995,8 +995,7 @@ struct StatusTab: View {
 
                 CardView {
                     HStack {
-                        Image(systemName: state.status.emoji)
-                            .font(.title3)
+                        TablerIconView(state.status.icon, size: 20, color: .primary)
                         Text(state.statusDescription)
                             .fontWeight(.medium)
                         Spacer()
@@ -1026,11 +1025,11 @@ struct StatusTab: View {
                             id: \.offset
                         ) { _, component in
                             HStack {
-                                Image(systemName: component.status.emoji)
-                                    .foregroundColor(
-                                        component.status.isHealthy ? .green : Theme.sparkOrange
-                                    )
-                                    .font(.caption)
+                                TablerIconView(
+                                    component.status.icon,
+                                    size: 12,
+                                    color: component.status.isHealthy ? .green : Theme.sparkOrange
+                                )
                                 Text(component.name)
                                     .font(.callout)
                                 Spacer()
