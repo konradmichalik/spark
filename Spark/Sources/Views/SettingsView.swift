@@ -995,7 +995,7 @@ struct StatusTab: View {
 
                 CardView {
                     HStack {
-                        TablerIconView(state.status.icon, size: 20, color: .primary)
+                        TablerIconView(state.status.icon, size: 15, color: .primary)
                         Text(state.statusDescription)
                             .fontWeight(.medium)
                         Spacer()

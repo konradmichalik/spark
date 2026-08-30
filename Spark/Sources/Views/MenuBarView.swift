@@ -31,14 +31,14 @@ struct MenuBarView: View {
                     openWindow(id: WeeklyReportView.windowID)
                     NSApp.activate(ignoringOtherApps: true)
                 } label: {
-                    TablerIconView(.calendarMonth, size: 13)
+                    TablerIconView(.calendarMonth, size: 13, color: .secondary)
                 }
                 .buttonStyle(.borderless)
                 .help("Usage Report")
                 .accessibilityLabel("Usage Report")
 
                 SettingsLink {
-                    TablerIconView(.settings, size: 13)
+                    TablerIconView(.settings, size: 13, color: .secondary)
                 }
                 .buttonStyle(.borderless)
                 .help("Settings")
@@ -280,7 +280,7 @@ struct MenuBarView: View {
                 Button {
                     NSApplication.shared.terminate(nil)
                 } label: {
-                    TablerIconView(.power, size: 12)
+                    TablerIconView(.power, size: 12, color: .secondary)
                 }
                 .buttonStyle(.borderless)
                 .help("Quit")
@@ -922,7 +922,7 @@ struct RefreshButton: View {
 
     var body: some View {
         Button(action: action) {
-            TablerIconView(.refresh, size: 12)
+            TablerIconView(.refresh, size: 12, color: .secondary)
                 .rotationEffect(.degrees(rotation))
         }
         .buttonStyle(.borderless)

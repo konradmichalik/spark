@@ -161,6 +161,11 @@ struct UsageGraphView: View {
                             }
                         }
                     } label: {
+                        // Selection was previously also cued by `.semibold` vs `.regular` weight;
+                        // TablerIconView has no weight parameter, so for now selection is carried
+                        // by colour and the background highlight below. Task 9 replaces this
+                        // icon-only toggle with a text `SegmentPicker` whose labels restore the
+                        // weight cue.
                         TablerIconView(mode.icon, size: 10, color: graphMode == mode ? .primary : .secondary)
                             .padding(.horizontal, 6)
                             .padding(.vertical, 2)
