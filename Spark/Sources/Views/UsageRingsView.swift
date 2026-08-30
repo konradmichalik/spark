@@ -217,7 +217,7 @@ private struct SeparateRingItem: View {
                     Button {
                         showResetPopover.toggle()
                     } label: {
-                        TablerIconView(.history, size: 11)
+                        TablerIconView(.history, size: 9)
                             .frame(width: 14, height: 14)
                             .background(Color.secondary.opacity(0.12))
                             .clipShape(Circle())
