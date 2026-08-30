@@ -51,3 +51,12 @@ extension SectionHeader where Accessory == EmptyView {
         self.init(title: title, icon: icon, density: density) { EmptyView() }
     }
 }
+
+extension SectionHeader {
+    /// Lets a caller with a real accessory use the same unlabeled-title call shape as the
+    /// `EmptyView` convenience above, instead of falling back to the memberwise `title:` label —
+    /// one call shape for every `SectionHeader` site, accessory or not.
+    init(_ title: String, icon: TablerIcon, density: SectionDensity = .regular, @ViewBuilder accessory: @escaping () -> Accessory) {
+        self.init(title: title, icon: icon, density: density, accessory: accessory)
+    }
+}

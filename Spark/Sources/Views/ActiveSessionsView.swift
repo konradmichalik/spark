@@ -56,7 +56,7 @@ struct ActiveSessionsView: View {
     }
 
     private var header: some View {
-        SectionHeader(title: "Active Sessions", icon: .terminal2, density: Self.density) {
+        SectionHeader("Active Sessions", icon: .terminal2, density: Self.density) {
             Text("\(sessions.count)")
                 .font(.system(.caption2, design: .monospaced))
                 .fontWeight(.semibold)

@@ -416,7 +416,7 @@ struct StatsRow: View {
     }
 
     private var header: some View {
-        SectionHeader(title: "Stats", icon: .reportAnalytics, density: Self.density) {
+        SectionHeader("Stats", icon: .reportAnalytics, density: Self.density) {
             SegmentPicker(selection: periodBinding, options: StatsPeriod.allCases)
         }
     }
@@ -488,9 +488,15 @@ private struct ProjectBreakdownDisclosure: View {
     ///
     /// No icon, no uppercase: this is a tappable row, not a section header, and needs to read as
     /// neither the Stats heading above it nor one of its plain content lines. The resting
-    /// background is what signals "tappable" instead. Negative horizontal padding bleeds that
-    /// background to the card's inner edge, aligning it with the card's content inset rather than
-    /// floating inside it.
+    /// background is what signals "tappable" instead.
+    ///
+    /// The inner `+6`/outer `-6` horizontal padding pair cancels only for the size reported
+    /// upward to the card's `VStack` — not for the background drawn around the padded label. So
+    /// the label text still lands on the same left edge as the `StatsLine` rows above it (no
+    /// layout shift), while the highlight itself bleeds ~6pt past that edge on each side, the way
+    /// a resting selection highlight surrounds its label rather than displacing it. That bleed is
+    /// horizontal only: the card's 10pt vertical clearance is untouched, so the 8pt corner curve
+    /// is never entered.
     private var header: some View {
         Button {
             withAnimation(Self.animation) {
