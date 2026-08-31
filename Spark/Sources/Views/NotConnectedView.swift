@@ -12,20 +12,22 @@ struct NotConnectedView: View {
                     .font(.custom("InstrumentSerif-Regular", size: 15))
                 Spacer()
                 SettingsLink {
-                    Image(systemName: "gearshape")
-                        .font(.system(size: 12))
+                    TablerIconView(.settings, size: 12, isDecorative: false)
                 }
                 .buttonStyle(.borderless)
                 .help("Settings")
+                .accessibilityLabel("Settings")
             }
 
+            // The connected popover keeps exactly one divider because section cards carry its
+            // grouping; this view has no sections and no cards, so its two dividers remain the
+            // only structural separation between header, content, and footer. The two states are
+            // mutually exclusive on screen, so the inconsistency is invisible in practice.
             Divider()
 
             // Connection status card
             VStack(spacing: 10) {
-                Image(systemName: "link.badge.plus")
-                    .font(.system(size: 24))
-                    .foregroundColor(Theme.sparkOrange)
+                TablerIconView(.linkPlus, size: 24, color: Theme.sparkOrange)
 
                 Text("Not connected")
                     .font(.caption)
@@ -33,8 +35,7 @@ struct NotConnectedView: View {
 
                 SettingsLink {
                     HStack(spacing: 4) {
-                        Image(systemName: "arrow.up.forward.app.fill")
-                            .font(.system(size: 10))
+                        TablerIconView(.externalLink, size: 10)
                         Text("Connect")
                             .font(.caption)
                             .fontWeight(.medium)
@@ -47,13 +48,7 @@ struct NotConnectedView: View {
 
             // Error
             if let error = state.lastError {
-                HStack {
-                    Image(systemName: "exclamationmark.triangle.fill")
-                        .foregroundColor(.orange)
-                    Text(error)
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
+                WarningBanner(message: error)
             }
 
             Divider()
@@ -64,11 +59,11 @@ struct NotConnectedView: View {
                 Button {
                     NSApplication.shared.terminate(nil)
                 } label: {
-                    Image(systemName: "power")
-                        .font(.system(size: 12))
+                    TablerIconView(.power, size: 12, isDecorative: false)
                 }
                 .buttonStyle(.borderless)
                 .help("Quit")
+                .accessibilityLabel("Quit")
             }
         }
         .padding(12)

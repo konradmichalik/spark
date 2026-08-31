@@ -15,7 +15,19 @@ Spark/Sources/
   Models/     Models.swift, AppState.swift, StatsModels.swift, Theme.swift
   Services/   UsageClient.swift, KeychainService.swift
   Views/      MenuBarView, UsageGraphView, SettingsView, ClaudeLogoShape
+  Views/Components/  SectionHeader, SectionCard, SegmentPicker, TablerIcon — shared across the
+              popover and settings window
 ```
+
+Icons are bundled Tabler outline SVGs (`Spark/Assets.xcassets/Icons/`), wrapped by the
+`TablerIcon` enum and rendered with `TablerIconView`. To add one: add the enum case in
+`TablerIcon.swift`, add the same name to the `ICONS` array in `scripts/fetch-tabler-icons.sh`,
+re-run the script, then `make xcode`. `ICONS` takes the raw Tabler asset name
+(`adjustments-horizontal`), not the Swift case name (`adjustmentsHorizontal`) — the script builds
+both the download URL and the image-set directory name from that string, so a camel-cased entry
+downloads nothing and generates an asset no case can find. Skip a step and `TablerIconTests` goes
+red — either the new case has no asset, or (running the script without adding a case) a stale
+`.imageset` ships with nothing pointing at it.
 
 > [!NOTE]
 > The project uses [XcodeGen](https://github.com/yonaskolb/XcodeGen) (`project.yml`) so the `.xcodeproj` is fully derived — never edit it by hand.

@@ -233,9 +233,10 @@ struct MenuBarLabel: View {
 
     @ViewBuilder
     private var disconnectIcon: some View {
-        Image(systemName: "exclamationmark.triangle.fill")
-            .symbolRenderingMode(.monochrome)
-            .foregroundColor(.orange)
+        // The icon stands alone here with no adjacent text, so it is the control rather than
+        // decoration next to one — `isDecorative: false` keeps it out of
+        // `.accessibilityHidden`, and the label below attaches directly to it.
+        TablerIconView(.alertTriangle, size: 13, color: .orange, isDecorative: false)
             .accessibilityLabel("Spark disconnected — tap to reconnect")
     }
 

@@ -1,7 +1,6 @@
 import SwiftUI
 
 private let graphHeight: CGFloat = 80
-private let yAxisWidth: CGFloat = 32
 private let xAxisHeight: CGFloat = 14
 
 enum GraphTimeRange: String, CaseIterable {
@@ -26,18 +25,17 @@ enum GraphTimeRange: String, CaseIterable {
     static let dayGranularityCases: [GraphTimeRange] = [.sevenDays, .thirtyDays]
 }
 
+extension GraphTimeRange: SegmentLabeled {
+    var segmentLabel: String { rawValue }
+}
+
 enum GraphMode: String, CaseIterable {
     case limits = "Limits"
     case volume = "Volume"
+}
 
-    /// Icon-only segmented control labels — the full words don't fit on one line alongside the
-    /// "History" label and the time-range buttons at the popover's 300pt width.
-    var iconName: String {
-        switch self {
-        case .limits: "chart.line.uptrend.xyaxis"
-        case .volume: "chart.bar.xaxis"
-        }
-    }
+extension GraphMode: SegmentLabeled {
+    var segmentLabel: String { rawValue }
 }
 
 struct UsageGraphView: View {
@@ -49,8 +47,13 @@ struct UsageGraphView: View {
     @State private var hoverTarget: GraphHoverTarget?
     @State private var canvasWidth: CGFloat = 0
 
+    private static let density = SectionDensity.compact
+
     private var availableTimeRanges: [GraphTimeRange] { availableTimeRanges(for: graphMode) }
 
+    /// Provides the time ranges supported by the specified graph mode.
+    /// - Parameter mode: The graph mode whose supported ranges are requested.
+    /// - Returns: Seven-day and thirty-day ranges for volume mode; all available ranges for limits mode.
     private func availableTimeRanges(for mode: GraphMode) -> [GraphTimeRange] {
         mode == .volume ? GraphTimeRange.dayGranularityCases : GraphTimeRange.allCases
     }
@@ -74,11 +77,18 @@ struct UsageGraphView: View {
             gapThreshold: Self.gapThreshold
         )
 
-        return VStack(alignment: .leading, spacing: 4) {
-            header
+        return VStack(alignment: .leading, spacing: Self.density.headerGap) {
+            SectionHeader("History", icon: .history, density: Self.density) {
+                SegmentPicker(selection: modeBinding, options: GraphMode.allCases)
+            }
 
-            if graphMode == .limits {
-                HStack(alignment: .top, spacing: 0) {
+            SectionCard(density: Self.density) {
+                HStack {
+                    Spacer()
+                    SegmentPicker(selection: $timeRange, options: availableTimeRanges)
+                }
+
+                if graphMode == .limits {
                     UsageGraphCanvas(
                         data: samples,
                         axis: axis,
@@ -93,32 +103,13 @@ struct UsageGraphView: View {
                         hoverLegend(samples: samples)
                     }
 
-                    yAxisLabels
+                    xAxisLabels(axis: axis)
+                } else {
+                    VolumeGraphView(rollups: rollups, timeRange: timeRange)
                 }
-
-                xAxisLabels(axis: axis)
-            } else {
-                VolumeGraphView(rollups: rollups, timeRange: timeRange)
             }
         }
         .onChange(of: timeRange) { hoverTarget = nil }
-    }
-
-    private var yAxisLabels: some View {
-        VStack(alignment: .trailing) {
-            Text("100%").frame(height: 1)
-            Spacer()
-            Text("75%")
-            Spacer()
-            Text("50%")
-            Spacer()
-            Text("25%")
-            Spacer()
-            Text("0%").frame(height: 1)
-        }
-        .font(.system(size: 8, design: .monospaced))
-        .foregroundColor(.secondary)
-        .frame(width: yAxisWidth, height: graphHeight)
     }
 
     private var widthReader: some View {
@@ -130,80 +121,25 @@ struct UsageGraphView: View {
         }
     }
 
-    // MARK: - Header
+    // MARK: - Mode Binding
 
-    /// The mode toggle is icon-only (see `GraphMode.iconName`) rather than spelling out
-    /// "Limits"/"Volume" — that's what keeps the label, the toggle, and all five time-range
-    /// buttons (`1h`…`30d`) fitting on one row within the popover's 300pt width. With the full
-    /// words, this row would overflow, and since none of these views have a fixed size, SwiftUI
-    /// would resolve the overflow by wrapping each button's text mid-word.
-    private var header: some View {
-        HStack {
-            HStack(spacing: 4) {
-                Image(systemName: "clock.arrow.circlepath")
-                    .font(.caption2)
-                    .foregroundColor(Theme.graphSession)
-                Text("History")
-                    .font(.caption2)
-                    .foregroundColor(.secondary)
-            }
-
-            HStack(spacing: 2) {
-                ForEach(GraphMode.allCases, id: \.self) { mode in
-                    Button {
-                        withAnimation(.easeInOut(duration: 0.2)) {
-                            graphMode = mode
-                            // Corrected in the same update as the mode switch, not via a
-                            // follow-up `.onChange` — that leaves one render in between where
-                            // the mode has switched but the time range hasn't, and Volume's
-                            // rollup lookup treats an unadjusted sub-day range as "no data for
-                            // today," flashing the empty state before the real chart appears.
-                            if !availableTimeRanges(for: mode).contains(timeRange) {
-                                timeRange = .sevenDays
-                            }
-                        }
-                    } label: {
-                        Image(systemName: mode.iconName)
-                            .font(.system(size: 10, weight: graphMode == mode ? .semibold : .regular))
-                            .foregroundColor(graphMode == mode ? .primary : .secondary)
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 2)
-                            .background(
-                                graphMode == mode
-                                    ? Color.primary.opacity(0.1)
-                                    : Color.clear
-                            )
-                            .cornerRadius(4)
+    /// The range correction lives here rather than an `.onChange(of: graphMode)` because
+    /// `SegmentPicker` writes through a plain `Binding`: a follow-up `.onChange` leaves one render
+    /// in between where the mode has switched but the time range hasn't, and Volume's rollup
+    /// lookup treats an unadjusted sub-day range as "no data for today", flashing the empty state
+    /// before the real chart appears. Correcting inside the same `set` keeps both changes atomic.
+    private var modeBinding: Binding<GraphMode> {
+        Binding(
+            get: { graphMode },
+            set: { newMode in
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    graphMode = newMode
+                    if !availableTimeRanges(for: newMode).contains(timeRange) {
+                        timeRange = .sevenDays
                     }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel(mode.rawValue)
-                    .help(mode.rawValue)
                 }
             }
-
-            Spacer()
-
-            HStack(spacing: 2) {
-                ForEach(availableTimeRanges, id: \.self) { range in
-                    Button {
-                        timeRange = range
-                    } label: {
-                        Text(range.rawValue)
-                            .font(.system(size: 10, weight: timeRange == range ? .semibold : .regular))
-                            .foregroundColor(timeRange == range ? .primary : .secondary)
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 2)
-                            .background(
-                                timeRange == range
-                                    ? Color.primary.opacity(0.1)
-                                    : Color.clear
-                            )
-                            .cornerRadius(4)
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-        }
+        )
     }
 
     // MARK: - Hover Tooltip
@@ -221,6 +157,8 @@ struct UsageGraphView: View {
         }
     }
 
+    /// Displays a tooltip for the hovered usage sample or inactivity gap.
+    /// - Parameter samples: The usage snapshots available for point-based hover targets.
     @ViewBuilder
     private func hoverTooltip(samples: [UsageSnapshot]) -> some View {
         switch hoverTarget {
@@ -239,7 +177,7 @@ struct UsageGraphView: View {
             .modifier(TooltipStyle(reduceTransparency: reduceTransparency))
         case .gap(let band):
             HStack(spacing: 4) {
-                Image(systemName: "moon.zzz")
+                TablerIconView(.moon, size: 12)
                 Text("\(band.duration.shortDuration) · no data")
             }
             .foregroundColor(.secondary)
@@ -299,7 +237,6 @@ struct UsageGraphView: View {
                     .font(.system(size: 8, design: .monospaced))
                     .foregroundColor(.secondary)
             }
-            Spacer().frame(width: yAxisWidth)
         }
         .frame(height: xAxisHeight)
     }

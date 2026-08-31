@@ -130,3 +130,7 @@ See [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) for setup, architecture, and rele
 ## 📜 License
 
 MIT
+
+## Credits
+
+Icons by [Tabler Icons](https://tabler.io/icons), licensed under the MIT License.

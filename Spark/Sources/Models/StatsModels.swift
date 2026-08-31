@@ -34,6 +34,10 @@ enum StatsPeriod: String, CaseIterable, Sendable {
     }
 }
 
+extension StatsPeriod: SegmentLabeled {
+    var segmentLabel: String { rawValue }
+}
+
 // MARK: - Live Stats (parsed from history.jsonl)
 
 struct LiveStats: Sendable {

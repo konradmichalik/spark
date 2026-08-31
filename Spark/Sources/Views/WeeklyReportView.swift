@@ -10,6 +10,8 @@ struct WeeklyReportView: View {
 
     @EnvironmentObject var state: AppState
 
+    private let density = SectionDensity.compact
+
     var body: some View {
         // `header` (period picker + prev/next controls) stays outside the ScrollView — those are
         // exactly the controls someone reaches for after scrolling down, and a control that
@@ -21,12 +23,9 @@ struct WeeklyReportView: View {
                 VStack(alignment: .leading, spacing: 16) {
                     if let report = state.weeklyReport, report.hasData {
                         totalsSection(report)
-                        Divider()
                         paceSection(report)
-                        Divider()
                         modelSplitSection(report)
                         if !report.topProjects.isEmpty {
-                            Divider()
                             topProjectsSection(report)
                         }
                     } else if state.weeklyReport == nil {
@@ -46,12 +45,13 @@ struct WeeklyReportView: View {
             }
         }
         .padding(20)
-        // A fixed ideal size for the window to open at, tall enough that the common case (a
-        // handful of top projects) fits without scrolling; `.windowResizability(.contentMinSize)`
-        // (set on the `Window` scene) lets the user grow it further, and the `ScrollView` above
-        // means content taller than this (e.g. a month with many top projects) scrolls instead
-        // of clipping at the minimum size.
-        .frame(minWidth: 340, idealWidth: 360, minHeight: 380, idealHeight: 620)
+        // A fixed ideal size for the window to open at, tall enough that the common case (every
+        // section present, including the cache-hit-rate warning) fits without scrolling;
+        // `.windowResizability(.contentMinSize)` (set on the `Window` scene) lets the user grow
+        // it further, and the `ScrollView` above means content taller than this (e.g. a long
+        // project name wrapping, or the user shrinking the window back down) scrolls instead of
+        // clipping at the minimum size.
+        .frame(minWidth: 340, idealWidth: 360, minHeight: 380, idealHeight: 700)
         // Dims stale numbers while a reopen or period change re-scans, instead of showing them
         // un-dimmed.
         .opacity(state.isLoadingWeeklyReport ? 0.5 : 1)
@@ -65,35 +65,19 @@ struct WeeklyReportView: View {
     private var header: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 6) {
-                Image(systemName: "calendar")
-                    .foregroundColor(Theme.sparkOrange)
+                TablerIconView(.calendarMonth, color: .secondary)
                 Text("Usage Report")
                     .font(.custom("InstrumentSerif-Regular", size: 15))
                 Spacer()
-                periodPicker
+                SegmentPicker(selection: periodBinding, options: ReportPeriod.allCases)
+                    .disabled(state.isLoadingWeeklyReport)
             }
             periodNavigator
         }
     }
 
-    private var periodPicker: some View {
-        HStack(spacing: 2) {
-            ForEach(ReportPeriod.allCases, id: \.self) { period in
-                Button {
-                    state.loadWeeklyReport(period: period, offset: 0)
-                } label: {
-                    Text(period == .week ? "Week" : "Month")
-                        .font(.system(size: 10, weight: state.reportPeriod == period ? .semibold : .regular))
-                        .foregroundColor(state.reportPeriod == period ? .primary : .secondary)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
-                        .background(state.reportPeriod == period ? Color.primary.opacity(0.1) : Color.clear)
-                        .cornerRadius(4)
-                }
-                .buttonStyle(.plain)
-                .disabled(state.isLoadingWeeklyReport)
-            }
-        }
+    private var periodBinding: Binding<ReportPeriod> {
+        Binding(get: { state.reportPeriod }, set: { state.loadWeeklyReport(period: $0, offset: 0) })
     }
 
     private var periodNavigator: some View {
@@ -101,8 +85,7 @@ struct WeeklyReportView: View {
             Button {
                 state.goToEarlierPeriod()
             } label: {
-                Image(systemName: "chevron.left")
-                    .font(.system(size: 11, weight: .medium))
+                TablerIconView(.chevronLeft, size: 11)
                     .padding(6)
                     .contentShape(Rectangle())
             }
@@ -121,8 +104,7 @@ struct WeeklyReportView: View {
             Button {
                 state.goToLaterPeriod()
             } label: {
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 11, weight: .medium))
+                TablerIconView(.chevronRight, size: 11)
                     .padding(6)
                     .contentShape(Rectangle())
             }
@@ -151,35 +133,36 @@ struct WeeklyReportView: View {
     private func totalsSection(_ report: PeriodReport) -> some View {
         let periodNoun = report.period == .month ? "month" : "week"
 
-        return VStack(alignment: .leading, spacing: 4) {
-            if report.isEmptyWindow {
-                // The current month started, but its first day hasn't closed yet — there is
-                // nothing to compare against, so skip the trend badge entirely rather than
-                // showing a misleading "0 tokens, down 100%".
-                Text("No closed days yet this month")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-            } else {
-                HStack(alignment: .firstTextBaseline, spacing: 8) {
-                    Text(formatTokenCount(report.currentPeriodTokens))
-                        .font(.system(.title2, design: .monospaced))
-                        .fontWeight(.semibold)
-                    if let trend = report.trendPercent {
-                        TrendBadge(percent: trend, comparisonNoun: periodNoun)
+        return VStack(alignment: .leading, spacing: density.headerGap) {
+            SectionHeader("Totals", icon: .reportAnalytics, density: density)
+            SectionCard(density: density) {
+                if report.isEmptyWindow {
+                    // The current month started, but its first day hasn't closed yet — there is
+                    // nothing to compare against, so skip the trend badge entirely rather than
+                    // showing a misleading "0 tokens, down 100%".
+                    Text("No closed days yet this month")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                } else {
+                    HStack(alignment: .firstTextBaseline, spacing: 8) {
+                        Text(formatTokenCount(report.currentPeriodTokens))
+                            .font(.system(.title2, design: .monospaced))
+                            .fontWeight(.semibold)
+                        if let trend = report.trendPercent {
+                            TrendBadge(percent: trend, comparisonNoun: periodNoun)
+                        }
                     }
+                    Text("tokens vs. \(formatTokenCount(report.previousPeriodTokens)) the \(periodNoun) before")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
                 }
-                Text("tokens vs. \(formatTokenCount(report.previousPeriodTokens)) the \(periodNoun) before")
-                    .font(.caption2)
-                    .foregroundColor(.secondary)
             }
             // Active multi-turn usage re-sends its whole growing context every turn, so the hit
             // rate sits near-ceiling (95-99%+) almost all the time — showing it unconditionally
             // would just be noise. Surfacing it only below the threshold turns it into a warning
             // for when something (e.g. an unstable prompt prefix) actually broke the caching.
             if let cacheHitRate = report.cacheHitRate, cacheHitRate < Self.cacheHitRateWarningThreshold {
-                Text("Cache hit rate dropped to \(Int((cacheHitRate * 100).rounded()))%")
-                    .font(.caption2)
-                    .foregroundColor(.secondary)
+                WarningBanner(message: "Cache hit rate dropped to \(Int((cacheHitRate * 100).rounded()))%")
             }
         }
     }
@@ -193,16 +176,16 @@ struct WeeklyReportView: View {
         let days = paceDays(for: report)
         let hasAnyPaceData = days.contains(where: \.hasData)
 
-        return VStack(alignment: .leading, spacing: 6) {
-            Text("Pace")
-                .font(.caption2)
-                .foregroundColor(.secondary)
-            if !hasAnyPaceData {
-                Text(report.periodOffset == 0 ? "Not enough data yet" : "No usage history for that period")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-            } else {
-                PaceGraph(days: days)
+        return VStack(alignment: .leading, spacing: density.headerGap) {
+            SectionHeader("Pace", icon: .chartLine, density: density)
+            SectionCard(density: density) {
+                if !hasAnyPaceData {
+                    Text(report.periodOffset == 0 ? "Not enough data yet" : "No usage history for that period")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                } else {
+                    PaceGraph(days: days)
+                }
             }
         }
     }
@@ -217,30 +200,30 @@ struct WeeklyReportView: View {
     private func modelSplitSection(_ report: PeriodReport) -> some View {
         let rows = ModelRow.rows(from: report.modelTotals)
 
-        return VStack(alignment: .leading, spacing: 6) {
-            Text("By Model")
-                .font(.caption2)
-                .foregroundColor(.secondary)
-            if rows.isEmpty {
-                Text(report.periodOffset == 0 ? "No model usage yet" : "No model usage in that period")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-            } else {
-                HStack(spacing: 16) {
-                    ModelDonutChart(rows: rows)
-                    VStack(alignment: .leading, spacing: 6) {
-                        ForEach(rows) { row in
-                            HStack(spacing: 6) {
-                                Circle()
-                                    .fill(row.color)
-                                    .frame(width: 8, height: 8)
-                                Text(row.label)
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                                Spacer()
-                                Text(formatTokenCount(row.tokens))
-                                    .font(.system(.caption, design: .monospaced))
-                                    .fontWeight(.medium)
+        return VStack(alignment: .leading, spacing: density.headerGap) {
+            SectionHeader("By Model", icon: .chartBar, density: density)
+            SectionCard(density: density) {
+                if rows.isEmpty {
+                    Text(report.periodOffset == 0 ? "No model usage yet" : "No model usage in that period")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                } else {
+                    HStack(spacing: 16) {
+                        ModelDonutChart(rows: rows)
+                        VStack(alignment: .leading, spacing: 6) {
+                            ForEach(rows) { row in
+                                HStack(spacing: 6) {
+                                    Circle()
+                                        .fill(row.color)
+                                        .frame(width: 8, height: 8)
+                                    Text(row.label)
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                    Spacer()
+                                    Text(formatTokenCount(row.tokens))
+                                        .font(.system(.caption, design: .monospaced))
+                                        .fontWeight(.medium)
+                                }
                             }
                         }
                     }
@@ -250,20 +233,20 @@ struct WeeklyReportView: View {
     }
 
     private func topProjectsSection(_ report: PeriodReport) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text("Top Projects")
-                .font(.caption2)
-                .foregroundColor(.secondary)
-            ForEach(report.topProjects) { project in
-                HStack {
-                    Text(project.displayName)
-                        .font(.caption)
-                        .lineLimit(1)
-                        .truncationMode(.middle)
-                    Spacer()
-                    Text(formatTokenCount(project.tokens))
-                        .font(.system(.caption, design: .monospaced))
-                        .foregroundColor(.secondary)
+        VStack(alignment: .leading, spacing: density.headerGap) {
+            SectionHeader("Top Projects", icon: .layoutGrid, density: density)
+            SectionCard(density: density) {
+                ForEach(report.topProjects) { project in
+                    HStack {
+                        Text(project.displayName)
+                            .font(.caption)
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                        Spacer()
+                        Text(formatTokenCount(project.tokens))
+                            .font(.system(.caption, design: .monospaced))
+                            .foregroundColor(.secondary)
+                    }
                 }
             }
         }

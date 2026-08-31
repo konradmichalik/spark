@@ -9,6 +9,29 @@ enum Theme {
     static let sparkOrange = Color(nsColor: sparkOrangeNS)
     static let sparkOrangeNS = NSColor(red: 0.85, green: 0.47, blue: 0.34, alpha: 1)
 
+    /// Icon tint. The brand orange sits at roughly 2.4:1 on a light window background, below the
+    /// 3:1 that non-text UI elements need, so icons use a darkened variant in light mode and a
+    /// lightened one in dark. `sparkOrange` itself is unchanged and still paints the logo, the
+    /// tier badge, and the session graph line at their exact brand tone.
+    static let sparkOrangeIcon = Color(nsColor: NSColor(name: nil) { appearance in
+        let isDark = appearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
+        return isDark
+            ? NSColor(red: 0.90, green: 0.56, blue: 0.42, alpha: 1)
+            : NSColor(red: 0.77, green: 0.39, blue: 0.25, alpha: 1)
+    })
+
+    /// Trend-down accent (Weekly Report). Paired with `sparkOrangeIcon` for trend-up so both
+    /// directions read as an intentional accent rather than one themed color and one raw SwiftUI
+    /// `.orange`/`.green`. Kept distinct from `paceColor`'s budget-tier green, which signals
+    /// "comfortably under budget" rather than "lower than last period" — same contrast-safe
+    /// per-appearance construction as `sparkOrangeIcon`.
+    static let trendDown = Color(nsColor: NSColor(name: nil) { appearance in
+        let isDark = appearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
+        return isDark
+            ? NSColor(red: 0.45, green: 0.72, blue: 0.55, alpha: 1)
+            : NSColor(red: 0.20, green: 0.50, blue: 0.32, alpha: 1)
+    })
+
     /// History graph lines
     static let graphSession = sparkOrange
     static let graphWeekly = Color(nsColor: NSColor(red: 0.55, green: 0.60, blue: 0.67, alpha: 1))
@@ -79,14 +102,26 @@ private struct RingPalette {
 
 extension View {
     /// Opaque background when Reduce Transparency is on, material otherwise.
+    ///
+    /// `material` and `opaque` default to the graph surfaces' values; a caller with a different
+    /// opaque tone (a card sitting on a window rather than a graph background, say) passes its own
+    /// Applies an appearance-adaptive background using either an opaque color or a material style.
+    /// - Parameters:
+    ///   - reduceTransparency: Whether to use the opaque background color instead of the material style.
+    ///   - material: The material style used when transparency is enabled.
+    ///   - opaque: The color used when transparency is reduced.
+    ///   - shape: The shape that clips the background.
+    /// - Returns: A view with the selected background applied within the specified shape.
     func adaptiveBackground(
         reduceTransparency: Bool,
+        material: some ShapeStyle = .ultraThinMaterial,
+        opaque: Color = Color(nsColor: .windowBackgroundColor),
         in shape: some InsettableShape = RoundedRectangle(cornerRadius: 4)
     ) -> some View {
         background(
             reduceTransparency
-                ? AnyShapeStyle(Color(nsColor: .windowBackgroundColor))
-                : AnyShapeStyle(.ultraThinMaterial),
+                ? AnyShapeStyle(opaque)
+                : AnyShapeStyle(material),
             in: shape
         )
     }

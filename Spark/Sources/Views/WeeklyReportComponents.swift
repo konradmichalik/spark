@@ -300,11 +300,11 @@ struct TrendBadge: View {
         return .flat
     }
 
-    private var symbolName: String {
+    private var icon: TablerIcon {
         switch direction {
-        case .up: "arrow.up"
-        case .down: "arrow.down"
-        case .flat: "arrow.right"
+        case .up: .arrowUp
+        case .down: .arrowDown
+        case .flat: .arrowRight
         }
     }
 
@@ -320,15 +320,15 @@ struct TrendBadge: View {
     /// text already say the same thing regardless of color.
     private var tintColor: Color {
         switch direction {
-        case .up: .orange
-        case .down: .green
+        case .up: Theme.sparkOrangeIcon
+        case .down: Theme.trendDown
         case .flat: .secondary
         }
     }
 
     var body: some View {
         HStack(spacing: 2) {
-            Image(systemName: symbolName)
+            TablerIconView(icon, size: 11, color: tintColor)
             Text("\(abs(roundedPercent))%")
         }
         .font(.caption2)

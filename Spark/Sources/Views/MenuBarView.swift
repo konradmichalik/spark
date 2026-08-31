@@ -10,246 +10,18 @@ struct MenuBarView: View {
     private static let sevenDays: TimeInterval = 7 * 24 * 3600
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            // Header
-            HStack(spacing: 6) {
-                SparkLogoView(size: 20, isLoading: state.isLoading)
-                Text("Spark")
-                    .font(.custom("InstrumentSerif-Regular", size: 15))
-
-                Text(state.accountTier.displayName)
-                    .font(.caption2)
-                    .fontWeight(.medium)
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
-                    .background(claudeOrange.opacity(0.15))
-                    .foregroundColor(claudeOrange)
-                    .clipShape(Capsule())
-
-                Spacer()
-                Button {
-                    openWindow(id: WeeklyReportView.windowID)
-                    NSApp.activate(ignoringOtherApps: true)
-                } label: {
-                    Image(systemName: "calendar")
-                        .font(.system(size: 12))
-                }
-                .buttonStyle(.borderless)
-                .help("Usage Report")
-                .accessibilityLabel("Usage Report")
-
-                SettingsLink {
-                    Image(systemName: "gearshape")
-                        .font(.system(size: 12))
-                }
-                .buttonStyle(.borderless)
-                .help("Settings")
-            }
+        VStack(alignment: .leading, spacing: 14) {
+            headerRow
 
             // Status - only show when there's a problem
             if !state.status.isHealthy {
-                Divider()
                 StatusRow(state: state)
             }
 
-            Divider()
-
-            if state.usageDisplayStyle == "bars" {
-                // Session Usage
-                if let session = state.usageData.session {
-                    let sessionProjection = state.showProjection
-                        ? SessionProjection.calculate(
-                            history: state.history,
-                            currentUtilization: session.utilization,
-                            resetsAt: session.resetsAtDate
-                        )
-                        : .insufficientData
-
-                    UsageRow(
-                        label: "Session (5h)",
-                        utilization: session.utilization,
-                        resetTime: session.timeUntilReset,
-                        resetDate: session.resetsAtDate,
-                        warningThreshold: state.warningThreshold,
-                        criticalThreshold: state.criticalThreshold,
-                        projection: sessionProjection,
-                        pace: Pace.calculate(
-                            utilization: session.utilization,
-                            resetsAt: session.resetsAtDate,
-                            windowLength: Self.fiveHours
-                        )
-                    )
-                }
-
-                // Weekly Usage
-                if let weekly = state.usageData.weekly {
-                    UsageRow(
-                        label: "Weekly (7 days)",
-                        utilization: weekly.utilization,
-                        resetTime: weekly.timeUntilReset,
-                        resetDate: weekly.resetsAtDate,
-                        warningThreshold: state.warningThreshold,
-                        criticalThreshold: state.criticalThreshold,
-                        pace: Pace.calculate(
-                            utilization: weekly.utilization,
-                            resetsAt: weekly.resetsAtDate,
-                            windowLength: Self.sevenDays
-                        )
-                    )
-                }
-
-                // Sonnet Usage
-                if state.showSonnetUsage {
-                    // `weeklySonnet` is nil when the account's plan doesn't report a
-                    // Sonnet-specific weekly quota — falling back to a zeroed bucket there would
-                    // draw an empty 0% bar that reads as "no usage" when it actually means "no
-                    // such quota to measure against." Local token attribution, unlike the quota,
-                    // always exists independently, so it's shown as a plain line instead.
-                    if let sonnet = state.usageData.weeklySonnet {
-                        UsageRow(
-                            label: "Sonnet (Weekly)",
-                            utilization: sonnet.utilization,
-                            resetTime: sonnet.timeUntilReset,
-                            resetDate: sonnet.resetsAtDate,
-                            warningThreshold: state.warningThreshold,
-                            criticalThreshold: state.criticalThreshold,
-                            localTokens: formattedLocalTokens(state.liveStats, family: .sonnet),
-                            pace: Pace.calculate(
-                                utilization: sonnet.utilization,
-                                resetsAt: sonnet.resetsAtDate,
-                                windowLength: Self.sevenDays
-                            )
-                        )
-                    } else if let localTokens = formattedLocalTokens(state.liveStats, family: .sonnet) {
-                        LocalOnlyUsageRow(label: "Sonnet", localTokens: localTokens)
-                    }
-                }
-
-                // Opus Usage
-                if state.showOpusUsage {
-                    if let opus = state.usageData.weeklyOpus {
-                        UsageRow(
-                            label: "Opus (Weekly)",
-                            utilization: opus.utilization,
-                            resetTime: opus.timeUntilReset,
-                            resetDate: opus.resetsAtDate,
-                            warningThreshold: state.warningThreshold,
-                            criticalThreshold: state.criticalThreshold,
-                            localTokens: formattedLocalTokens(state.liveStats, family: .opus),
-                            pace: Pace.calculate(
-                                utilization: opus.utilization,
-                                resetsAt: opus.resetsAtDate,
-                                windowLength: Self.sevenDays
-                            )
-                        )
-                    } else if let localTokens = formattedLocalTokens(state.liveStats, family: .opus) {
-                        LocalOnlyUsageRow(label: "Opus", localTokens: localTokens)
-                    }
-                }
-
-                // Fable Usage
-                if state.showFableUsage {
-                    if let fable = state.usageData.weeklyFable {
-                        UsageRow(
-                            label: "Fable (Weekly)",
-                            utilization: fable.utilization,
-                            resetTime: fable.timeUntilReset,
-                            resetDate: fable.resetsAtDate,
-                            warningThreshold: state.warningThreshold,
-                            criticalThreshold: state.criticalThreshold,
-                            localTokens: formattedLocalTokens(state.liveStats, family: .fable),
-                            pace: Pace.calculate(
-                                utilization: fable.utilization,
-                                resetsAt: fable.resetsAtDate,
-                                windowLength: Self.sevenDays
-                            )
-                        )
-                    } else if let localTokens = formattedLocalTokens(state.liveStats, family: .fable) {
-                        LocalOnlyUsageRow(label: "Fable", localTokens: localTokens)
-                    }
-                }
-
-                if state.usageData.session == nil && state.lastError == nil && !state.isLoading {
-                    Text("No data available")
-                        .foregroundColor(.secondary)
-                        .font(.caption)
-                }
-            } else {
-                let sessionProjection = state.showProjection
-                    ? SessionProjection.calculate(
-                        history: state.history,
-                        currentUtilization: state.usageData.session?.utilization ?? 0,
-                        resetsAt: state.usageData.session?.resetsAtDate
-                    )
-                    : .insufficientData
-
-                UsageRingsView(
-                    session: state.usageData.session,
-                    weekly: state.usageData.weekly,
-                    sonnet: state.usageData.weeklySonnet,
-                    opus: state.usageData.weeklyOpus,
-                    fable: state.usageData.weeklyFable,
-                    showSonnet: state.showSonnetUsage,
-                    showOpus: state.showOpusUsage,
-                    showFable: state.showFableUsage,
-                    showProjection: state.showProjection,
-                    warningThreshold: state.warningThreshold,
-                    criticalThreshold: state.criticalThreshold,
-                    sessionProjection: sessionProjection,
-                    displayStyle: state.usageDisplayStyle
-                )
-            }
-
-            // Extra usage (pay-as-you-go) — subtle line, only when credits spent
-            if let extra = state.usageData.extraUsage, extra.hasSpend,
-               let spend = extra.formattedSpendWithLimit {
-                HStack(spacing: 6) {
-                    Image(systemName: "plus.circle")
-                        .font(.caption2)
-                        .foregroundColor(.secondary)
-                    Text("Extra usage")
-                        .font(.caption2)
-                        .foregroundColor(.secondary)
-                    Spacer()
-                    Text(spend)
-                        .font(.system(.caption2, design: .monospaced))
-                        .foregroundColor(.secondary)
-                }
-                .accessibilityElement(children: .combine)
-                .accessibilityLabel("Extra usage \(extra.spendAccessibilityValue ?? spend)")
-            }
-
-            // Reconnect prompt (token expired, ACL wiped by Claude Code)
-            if state.needsReconnect {
-                HStack(spacing: 6) {
-                    Image(systemName: "arrow.triangle.2.circlepath")
-                        .foregroundColor(.orange)
-                        .font(.caption)
-                    Text("Session expired")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                    Spacer()
-                    Button("Reconnect") {
-                        state.reconnect()
-                    }
-                    .font(.caption)
-                    .buttonStyle(.borderless)
-                    .foregroundColor(Theme.sparkOrange)
-                }
-            }
-
-            // Error
-            if let error = state.lastError {
-                HStack {
-                    Image(systemName: "exclamationmark.triangle.fill")
-                        .foregroundColor(.orange)
-                    Text(error)
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
-            }
-
-            Divider()
+            usageSection
+            extraUsageRow
+            reconnectPrompt
+            errorRow
 
             // Active Sessions
             if state.showActiveSessions {
@@ -270,29 +42,9 @@ struct MenuBarView: View {
             // Mini Graph
             if state.showGraph, !state.history.isEmpty {
                 UsageGraphView(history: state.history, rollups: state.rollups)
-                Divider()
             }
 
-            // Footer
-            HStack {
-                RefreshButton(isLoading: state.isLoading) {
-                    Task { await state.fetchUsage() }
-                }
-
-                Text("Updated: \(timeAgo(state.usageData.lastUpdated))")
-                    .font(.caption2)
-                    .foregroundColor(.secondary)
-                Spacer()
-
-                Button {
-                    NSApplication.shared.terminate(nil)
-                } label: {
-                    Image(systemName: "power")
-                        .font(.system(size: 12))
-                }
-                .buttonStyle(.borderless)
-                .help("Quit")
-            }
+            footerRow
         }
         .padding(12)
         .frame(width: 300)
@@ -307,6 +59,110 @@ struct MenuBarView: View {
         .onDisappear { state.stopActiveSessionTicker() }
     }
 
+    private var headerRow: some View {
+        HStack(spacing: 6) {
+            SparkLogoView(size: 20, isLoading: state.isLoading)
+            Text("Spark")
+                .font(.custom("InstrumentSerif-Regular", size: 15))
+
+            Text(state.accountTier.displayName)
+                .font(.caption2)
+                .fontWeight(.medium)
+                .padding(.horizontal, 6)
+                .padding(.vertical, 2)
+                .background(claudeOrange.opacity(0.15))
+                .foregroundColor(claudeOrange)
+                .clipShape(Capsule())
+
+            Spacer()
+            Button {
+                openWindow(id: WeeklyReportView.windowID)
+                NSApp.activate(ignoringOtherApps: true)
+            } label: {
+                TablerIconView(.calendarMonth, size: 13, color: .secondary)
+            }
+            .buttonStyle(.borderless)
+            .help("Usage Report")
+            .accessibilityLabel("Usage Report")
+
+            SettingsLink {
+                TablerIconView(.settings, size: 13, color: .secondary, isDecorative: false)
+            }
+            .buttonStyle(.borderless)
+            .help("Settings")
+            .accessibilityLabel("Settings")
+        }
+    }
+
+    // Extra usage (pay-as-you-go) — subtle line, only when credits spent
+    @ViewBuilder
+    private var extraUsageRow: some View {
+        if let extra = state.usageData.extraUsage, extra.hasSpend,
+           let spend = extra.formattedSpendWithLimit {
+            HStack(spacing: 6) {
+                TablerIconView(.circlePlus, size: 11)
+                Text("Extra usage")
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+                Spacer()
+                Text(spend)
+                    .font(.system(.caption2, design: .monospaced))
+                    .foregroundColor(.secondary)
+            }
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel("Extra usage \(extra.spendAccessibilityValue ?? spend)")
+        }
+    }
+
+    // Reconnect prompt (token expired, ACL wiped by Claude Code)
+    @ViewBuilder
+    private var reconnectPrompt: some View {
+        if state.needsReconnect {
+            HStack(spacing: 6) {
+                TablerIconView(.refreshAlert, size: 12, color: .orange)
+                Text("Session expired")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                Spacer()
+                Button("Reconnect") {
+                    state.reconnect()
+                }
+                .font(.caption)
+                .buttonStyle(.borderless)
+                .foregroundColor(Theme.sparkOrange)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var errorRow: some View {
+        if let error = state.lastError {
+            WarningBanner(message: error)
+        }
+    }
+
+    private var footerRow: some View {
+        HStack {
+            RefreshButton(isLoading: state.isLoading) {
+                Task { await state.fetchUsage() }
+            }
+
+            Text("Updated: \(timeAgo(state.usageData.lastUpdated))")
+                .font(.caption2)
+                .foregroundColor(.secondary)
+            Spacer()
+
+            Button {
+                NSApplication.shared.terminate(nil)
+            } label: {
+                TablerIconView(.power, size: 12, color: .secondary, isDecorative: false)
+            }
+            .buttonStyle(.borderless)
+            .help("Quit")
+            .accessibilityLabel("Quit")
+        }
+    }
+
     /// Local token attribution for a model family, or `nil` when there's nothing to show —
     /// omitted rather than rendered as "0" to avoid noise on every row that hasn't seen that
     /// model in the currently selected Stats period.
@@ -315,12 +171,207 @@ struct MenuBarView: View {
         return formatTokenCount(tokens)
     }
 
+    /// Formats a date as a concise relative time description.
+    /// - Parameter date: The date to describe.
+    /// - Returns: A relative time string in seconds, minutes, or hours.
     private func timeAgo(_ date: Date) -> String {
         let interval = Date().timeIntervalSince(date)
         if interval < 5 { return "just now" }
         if interval < 60 { return "\(Int(interval))s ago" }
         if interval < 3600 { return "\(Int(interval / 60))m ago" }
         return "\(Int(interval / 3600))h ago"
+    }
+}
+
+// MARK: - Usage Section
+
+/// Split from `MenuBarView`'s own body into an extension purely to keep the struct's declared
+/// body under SwiftLint's `type_body_length` limit — these still read and drive `state` exactly
+/// as if they lived inline.
+extension MenuBarView {
+    /// The Usage section: bars or rings, whichever `state.usageDisplayStyle` selects, sharing one
+    /// header and card — a card is a container and does not care which display style fills it.
+    fileprivate var usageSection: some View {
+        let density = SectionDensity.compact
+        return VStack(alignment: .leading, spacing: density.headerGap) {
+            SectionHeader("Usage", icon: .activity, density: density)
+            SectionCard(density: density) {
+                if state.usageDisplayStyle == "bars" {
+                    usageBars
+                } else {
+                    usageRings
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    fileprivate var usageBars: some View {
+        sessionUsageRow
+        weeklyUsageRow
+        sonnetUsageRow
+        opusUsageRow
+        fableUsageRow
+        noUsageDataText
+    }
+
+    @ViewBuilder
+    fileprivate var sessionUsageRow: some View {
+        if let session = state.usageData.session {
+            let sessionProjection = state.showProjection
+                ? SessionProjection.calculate(
+                    history: state.history,
+                    currentUtilization: session.utilization,
+                    resetsAt: session.resetsAtDate
+                )
+                : .insufficientData
+
+            UsageRow(
+                label: "Session (5h)",
+                utilization: session.utilization,
+                resetTime: session.timeUntilReset,
+                resetDate: session.resetsAtDate,
+                warningThreshold: state.warningThreshold,
+                criticalThreshold: state.criticalThreshold,
+                projection: sessionProjection,
+                pace: Pace.calculate(
+                    utilization: session.utilization,
+                    resetsAt: session.resetsAtDate,
+                    windowLength: Self.fiveHours
+                )
+            )
+        }
+    }
+
+    @ViewBuilder
+    fileprivate var weeklyUsageRow: some View {
+        if let weekly = state.usageData.weekly {
+            UsageRow(
+                label: "Weekly (7 days)",
+                utilization: weekly.utilization,
+                resetTime: weekly.timeUntilReset,
+                resetDate: weekly.resetsAtDate,
+                warningThreshold: state.warningThreshold,
+                criticalThreshold: state.criticalThreshold,
+                pace: Pace.calculate(
+                    utilization: weekly.utilization,
+                    resetsAt: weekly.resetsAtDate,
+                    windowLength: Self.sevenDays
+                )
+            )
+        }
+    }
+
+    @ViewBuilder
+    fileprivate var sonnetUsageRow: some View {
+        // `weeklySonnet` is nil when the account's plan doesn't report a
+        // Sonnet-specific weekly quota — falling back to a zeroed bucket there would
+        // draw an empty 0% bar that reads as "no usage" when it actually means "no
+        // such quota to measure against." Local token attribution, unlike the quota,
+        // always exists independently, so it's shown as a plain line instead.
+        if state.showSonnetUsage {
+            if let sonnet = state.usageData.weeklySonnet {
+                UsageRow(
+                    label: "Sonnet (Weekly)",
+                    utilization: sonnet.utilization,
+                    resetTime: sonnet.timeUntilReset,
+                    resetDate: sonnet.resetsAtDate,
+                    warningThreshold: state.warningThreshold,
+                    criticalThreshold: state.criticalThreshold,
+                    localTokens: formattedLocalTokens(state.liveStats, family: .sonnet),
+                    pace: Pace.calculate(
+                        utilization: sonnet.utilization,
+                        resetsAt: sonnet.resetsAtDate,
+                        windowLength: Self.sevenDays
+                    )
+                )
+            } else if let localTokens = formattedLocalTokens(state.liveStats, family: .sonnet) {
+                LocalOnlyUsageRow(label: "Sonnet", localTokens: localTokens)
+            }
+        }
+    }
+
+    @ViewBuilder
+    fileprivate var opusUsageRow: some View {
+        if state.showOpusUsage {
+            if let opus = state.usageData.weeklyOpus {
+                UsageRow(
+                    label: "Opus (Weekly)",
+                    utilization: opus.utilization,
+                    resetTime: opus.timeUntilReset,
+                    resetDate: opus.resetsAtDate,
+                    warningThreshold: state.warningThreshold,
+                    criticalThreshold: state.criticalThreshold,
+                    localTokens: formattedLocalTokens(state.liveStats, family: .opus),
+                    pace: Pace.calculate(
+                        utilization: opus.utilization,
+                        resetsAt: opus.resetsAtDate,
+                        windowLength: Self.sevenDays
+                    )
+                )
+            } else if let localTokens = formattedLocalTokens(state.liveStats, family: .opus) {
+                LocalOnlyUsageRow(label: "Opus", localTokens: localTokens)
+            }
+        }
+    }
+
+    @ViewBuilder
+    fileprivate var fableUsageRow: some View {
+        if state.showFableUsage {
+            if let fable = state.usageData.weeklyFable {
+                UsageRow(
+                    label: "Fable (Weekly)",
+                    utilization: fable.utilization,
+                    resetTime: fable.timeUntilReset,
+                    resetDate: fable.resetsAtDate,
+                    warningThreshold: state.warningThreshold,
+                    criticalThreshold: state.criticalThreshold,
+                    localTokens: formattedLocalTokens(state.liveStats, family: .fable),
+                    pace: Pace.calculate(
+                        utilization: fable.utilization,
+                        resetsAt: fable.resetsAtDate,
+                        windowLength: Self.sevenDays
+                    )
+                )
+            } else if let localTokens = formattedLocalTokens(state.liveStats, family: .fable) {
+                LocalOnlyUsageRow(label: "Fable", localTokens: localTokens)
+            }
+        }
+    }
+
+    @ViewBuilder
+    fileprivate var noUsageDataText: some View {
+        if state.usageData.session == nil && state.lastError == nil && !state.isLoading {
+            Text("No data available")
+                .foregroundColor(.secondary)
+                .font(.caption)
+        }
+    }
+
+    fileprivate var usageRings: some View {
+        let sessionProjection = state.showProjection
+            ? SessionProjection.calculate(
+                history: state.history,
+                currentUtilization: state.usageData.session?.utilization ?? 0,
+                resetsAt: state.usageData.session?.resetsAtDate
+            )
+            : .insufficientData
+
+        return UsageRingsView(
+            session: state.usageData.session,
+            weekly: state.usageData.weekly,
+            sonnet: state.usageData.weeklySonnet,
+            opus: state.usageData.weeklyOpus,
+            fable: state.usageData.weeklyFable,
+            showSonnet: state.showSonnetUsage,
+            showOpus: state.showOpusUsage,
+            showFable: state.showFableUsage,
+            showProjection: state.showProjection,
+            warningThreshold: state.warningThreshold,
+            criticalThreshold: state.criticalThreshold,
+            sessionProjection: sessionProjection,
+            displayStyle: state.usageDisplayStyle
+        )
     }
 }
 
@@ -333,58 +384,39 @@ struct StatsRow: View {
     let showProjectBreakdown: Bool
     let onSelectPeriod: (StatsPeriod) -> Void
 
+    private static let density = SectionDensity.compact
+
     var body: some View {
         if liveStats != nil || isLoading {
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: Self.density.headerGap) {
                 header
+                SectionCard(density: Self.density) {
+                    if let live = liveStats {
+                        StatsLine(label: "Messages", value: "\(live.messageCount)")
+                        StatsLine(label: "Sessions", value: "\(live.sessionCount)")
+                        StatsLine(label: "Tokens", value: live.formattedTokens, tooltip: live.tokenBreakdown)
 
-                if let live = liveStats {
-                    StatsLine(label: "Messages", value: "\(live.messageCount)")
-                    StatsLine(label: "Sessions", value: "\(live.sessionCount)")
-                    StatsLine(label: "Tokens", value: live.formattedTokens, tooltip: live.tokenBreakdown)
-
-                    if showProjectBreakdown {
-                        ProjectBreakdownDisclosure(liveStats: live)
+                        if showProjectBreakdown {
+                            ProjectBreakdownDisclosure(liveStats: live)
+                        }
                     }
                 }
             }
             .opacity(isLoading ? 0.5 : 1)
-
-            Divider()
         }
     }
 
+    /// Wraps `onSelectPeriod` rather than binding straight to a `period` property: `SegmentPicker`
+    /// needs a `Binding`, but the caller's `onSelectPeriod` (`AppState.setStatsPeriod`) guards
+    /// against a no-op write and triggers `refreshLiveStats()`. A raw property binding would skip
+    /// that refresh and leave the numbers stale after every period switch.
+    private var periodBinding: Binding<StatsPeriod> {
+        Binding(get: { period }, set: { onSelectPeriod($0) })
+    }
+
     private var header: some View {
-        HStack {
-            HStack(spacing: 4) {
-                Image(systemName: "number.square")
-                    .font(.caption2)
-                    .foregroundColor(claudeOrange)
-                Text("Stats")
-                    .font(.caption2)
-                    .foregroundColor(.secondary)
-            }
-            Spacer()
-            HStack(spacing: 2) {
-                ForEach(StatsPeriod.allCases, id: \.self) { candidate in
-                    Button {
-                        onSelectPeriod(candidate)
-                    } label: {
-                        Text(candidate.rawValue)
-                            .font(.system(size: 10, weight: period == candidate ? .semibold : .regular))
-                            .foregroundColor(period == candidate ? .primary : .secondary)
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 2)
-                            .background(
-                                period == candidate
-                                    ? Color.primary.opacity(0.1)
-                                    : Color.clear
-                            )
-                            .cornerRadius(4)
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
+        SectionHeader("Stats", icon: .reportAnalytics, density: Self.density) {
+            SegmentPicker(selection: periodBinding, options: StatsPeriod.allCases)
         }
     }
 }
@@ -397,12 +429,12 @@ private struct StatsLine: View {
     var body: some View {
         HStack {
             Text(label)
-                .font(.caption)
-                .foregroundColor(.secondary)
+                .font(.system(size: 11))
+                .foregroundColor(.primary)
             Spacer()
             Text(value)
-                .font(.system(.caption, design: .monospaced))
-                .fontWeight(.medium)
+                .font(.system(size: 11.5, design: .monospaced))
+                .foregroundColor(.primary)
         }
         .help(tooltip ?? "")
     }
@@ -450,29 +482,40 @@ private struct ProjectBreakdownDisclosure: View {
 
     /// A `Button` rather than `.onTapGesture` — a tap gesture exposes no keyboard focus or
     /// activation on macOS, which would leave keyboard-only and VoiceOver users unable to expand
-    /// this section at all. The full row — icon, label, and trailing chevron — is one tap target
-    /// via `contentShape`, not just the label text, so clicking anywhere across its width works.
+    /// this section at all. The full row is one tap target via `contentShape`, not just the label
+    /// text, so clicking anywhere across its width works.
+    ///
+    /// No icon, no uppercase: this is a tappable row, not a section header, and needs to read as
+    /// neither the Stats heading above it nor one of its plain content lines. The resting
+    /// background is what signals "tappable" instead.
+    ///
+    /// The inner `+6`/outer `-6` horizontal padding pair cancels only for the size reported
+    /// upward to the card's `VStack` — not for the background drawn around the padded label. So
+    /// the label text still lands on the same left edge as the `StatsLine` rows above it (no
+    /// layout shift), while the highlight itself bleeds ~6pt past that edge on each side, the way
+    /// a resting selection highlight surrounds its label rather than displacing it. That bleed is
+    /// horizontal only: the card's 10pt vertical clearance is untouched, so the 8pt corner curve
+    /// is never entered.
     private var header: some View {
         Button {
             withAnimation(Self.animation) {
                 isExpanded.toggle()
             }
         } label: {
-            HStack(spacing: 4) {
-                Image(systemName: "folder")
-                    .font(.caption2)
-                    .foregroundColor(claudeOrange)
+            HStack(spacing: 5) {
                 Text("Top Projects")
-                    .font(.caption2)
-                    .foregroundColor(.secondary)
+                    .font(.system(size: 11))
+                    .foregroundColor(.primary)
                 Spacer()
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 8, weight: .semibold))
-                    .foregroundColor(.secondary)
+                TablerIconView(.chevronRight, size: 10)
                     .rotationEffect(.degrees(isExpanded ? 90 : 0))
             }
+            .padding(.horizontal, 6)
+            .padding(.vertical, 4)
+            .background(RoundedRectangle(cornerRadius: 5).fill(Color.primary.opacity(0.05)))
             .contentShape(Rectangle())
         }
+        .padding(.horizontal, -6)
         .buttonStyle(.plain)
         .accessibilityValue(isExpanded ? "Expanded" : "Collapsed")
     }
@@ -589,18 +632,11 @@ struct LocalOnlyUsageRow: View {
     let label: String
     let localTokens: String
 
-    private var iconName: String {
-        label == "Sonnet" ? "wand.and.stars" : "chart.bar.fill"
-    }
-
     var body: some View {
         HStack(spacing: 4) {
-            Image(systemName: iconName)
-                .font(.caption2)
-                .foregroundColor(claudeOrange)
             Text(label)
-                .font(.caption)
-                .foregroundColor(.secondary)
+                .font(.system(size: 11))
+                .foregroundColor(.primary)
             Text("· \(localTokens) local")
                 .font(.caption2)
                 .foregroundColor(.secondary)
@@ -632,13 +668,6 @@ struct UsageRow: View {
         let percent = Int((pace.ratio * 100).rounded())
         let exhausts = pace.ratio > 1 ? "before" : "at or after"
         return "Pace: \(pace.tier.label) — \(percent)% of the on-track rate. At this rate, quota exhausts \(exhausts) reset."
-    }
-
-    private var iconName: String {
-        if label.hasPrefix("Session") { return "bolt.fill" }
-        if label.hasPrefix("Weekly") { return "calendar" }
-        if label.hasPrefix("Sonnet") { return "wand.and.stars" }
-        return "chart.bar.fill"
     }
 
     private var color: Color {
@@ -704,12 +733,9 @@ struct UsageRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack {
-                Image(systemName: iconName)
-                    .font(.caption2)
-                    .foregroundColor(claudeOrange)
                 Text(label)
-                    .font(.caption)
-                    .foregroundColor(.secondary)
+                    .font(.system(size: 11))
+                    .foregroundColor(.primary)
 
                 if let localTokens {
                     Text("· \(localTokens) local")
@@ -719,20 +745,16 @@ struct UsageRow: View {
 
                 if projectionTitle != nil {
                     Button(action: { showProjectionPopover.toggle() }, label: {
-                        Image(systemName: "chart.line.uptrend.xyaxis")
-                            .font(.system(size: 9))
-                            .foregroundColor(projectionIconColor)
-                            .frame(width: 18, height: 18)
-                            .background(projectionIconColor.opacity(0.12))
-                            .clipShape(Circle())
+                        TablerIconView(.chartLine, size: 10, color: projectionIconColor, isDecorative: false)
                     })
                     .buttonStyle(.plain)
+                    .help("Usage projection")
+                    .accessibilityLabel("Usage projection")
                     .popover(isPresented: $showProjectionPopover, arrowEdge: .bottom) {
                         VStack(spacing: 6) {
                             if let title = projectionTitle {
                                 HStack(spacing: 4) {
-                                    Image(systemName: "chart.line.uptrend.xyaxis")
-                                        .foregroundColor(projectionIconColor)
+                                    TablerIconView(.chartLine, size: 9, color: projectionIconColor)
                                     Text(title)
                                         .fontWeight(.medium)
                                 }
@@ -740,8 +762,8 @@ struct UsageRow: View {
                             }
                             if let detail = projectionDetail {
                                 Text(detail)
-                                    .font(.caption2)
-                                    .foregroundColor(.secondary)
+                                    .font(.system(size: 10))
+                                    .foregroundStyle(.tertiary)
                                     .fixedSize(horizontal: false, vertical: true)
                             }
                         }
@@ -754,23 +776,17 @@ struct UsageRow: View {
                 if let resetTime {
                     Button(action: { showResetPopover.toggle() }, label: {
                         HStack(spacing: 4) {
-                            Image(systemName: "clock.arrow.circlepath")
-                                .font(.system(size: 9))
-                                .foregroundColor(.secondary)
-                                .frame(width: 18, height: 18)
-                                .background(Color.secondary.opacity(0.12))
-                                .clipShape(Circle())
-                            Text(resetTime)
-                                .font(.caption2)
-                                .foregroundColor(.secondary)
+                            TablerIconView(.history, size: 10, color: .secondary)
+                            Text("\(resetTime) left")
+                                .font(.system(size: 10))
+                                .foregroundStyle(.tertiary)
                         }
                     })
                     .buttonStyle(.plain)
                     .popover(isPresented: $showResetPopover, arrowEdge: .bottom) {
                         VStack(spacing: 6) {
                             HStack(spacing: 4) {
-                                Image(systemName: "clock.arrow.circlepath")
-                                    .foregroundColor(.secondary)
+                                TablerIconView(.history, size: 11)
                                 Text("Reset in \(resetTime)")
                                     .fontWeight(.medium)
                             }
@@ -778,8 +794,8 @@ struct UsageRow: View {
 
                             if let resetDate {
                                 Text(resetDate, format: .dateTime.weekday(.wide).day().month(.wide).hour().minute())
-                                    .font(.caption2)
-                                    .foregroundColor(.secondary)
+                                    .font(.system(size: 10))
+                                    .foregroundStyle(.tertiary)
                             }
                         }
                         .padding(10)
@@ -799,10 +815,9 @@ struct UsageRow: View {
                 .help(paceDescription ?? "")
 
                 Text("\(Int(utilization))%")
-                    .font(.system(.body, design: .monospaced))
-                    .fontWeight(.medium)
+                    .font(.system(size: 13, weight: .semibold, design: .monospaced))
                     .foregroundColor(utilization >= warningThreshold ? color : .primary)
-                    .frame(width: 40, alignment: .trailing)
+                    .frame(width: 36, alignment: .trailing)
             }
         }
     }
@@ -885,8 +900,7 @@ struct StatusRow: View {
 
     var body: some View {
         HStack {
-            Image(systemName: state.status.emoji)
-                .foregroundColor(Theme.sparkOrange)
+            TablerIconView(state.status.icon, size: 13, color: Theme.sparkOrange)
             Text("Claude: \(state.status.displayName)")
                 .font(.caption)
 
@@ -897,8 +911,7 @@ struct StatusRow: View {
                     HStack(spacing: 2) {
                         Text("Code: \(state.claudeCodeStatus.displayName)")
                             .font(.caption2)
-                        Image(systemName: "arrow.up.right.square")
-                            .font(.system(size: 9))
+                        TablerIconView(.externalLink, size: 9, color: Theme.sparkOrange)
                     }
                     .foregroundColor(Theme.sparkOrange)
                 }
@@ -948,14 +961,14 @@ struct RefreshButton: View {
 
     var body: some View {
         Button(action: action) {
-            Image(systemName: "arrow.clockwise")
-                .font(.system(size: 12))
+            TablerIconView(.refresh, size: 12, color: .secondary, isDecorative: false)
                 .rotationEffect(.degrees(rotation))
         }
         .buttonStyle(.borderless)
         .disabled(isLoading)
         .opacity(isLoading ? 0.5 : 1)
         .help(isLoading ? "Refreshing\u{2026}" : "Refresh")
+        .accessibilityLabel(isLoading ? "Refreshing" : "Refresh")
         .task(id: isLoading) {
             guard isLoading else { return }
             while !Task.isCancelled {
