@@ -1,7 +1,6 @@
 import SwiftUI
 
 private let graphHeight: CGFloat = 80
-private let yAxisWidth: CGFloat = 32
 private let xAxisHeight: CGFloat = 14
 
 enum GraphTimeRange: String, CaseIterable {
@@ -87,22 +86,18 @@ struct UsageGraphView: View {
                 }
 
                 if graphMode == .limits {
-                    HStack(alignment: .top, spacing: 0) {
-                        UsageGraphCanvas(
-                            data: samples,
-                            axis: axis,
-                            hoverTarget: $hoverTarget
-                        )
-                        .frame(height: graphHeight)
-                        .background(widthReader)
-                        .overlay(alignment: .topLeading) {
-                            hoverTooltip(samples: samples)
-                        }
-                        .overlay(alignment: .bottomLeading) {
-                            hoverLegend(samples: samples)
-                        }
-
-                        yAxisLabels
+                    UsageGraphCanvas(
+                        data: samples,
+                        axis: axis,
+                        hoverTarget: $hoverTarget
+                    )
+                    .frame(height: graphHeight)
+                    .background(widthReader)
+                    .overlay(alignment: .topLeading) {
+                        hoverTooltip(samples: samples)
+                    }
+                    .overlay(alignment: .bottomLeading) {
+                        hoverLegend(samples: samples)
                     }
 
                     xAxisLabels(axis: axis)
@@ -112,23 +107,6 @@ struct UsageGraphView: View {
             }
         }
         .onChange(of: timeRange) { hoverTarget = nil }
-    }
-
-    private var yAxisLabels: some View {
-        VStack(alignment: .trailing) {
-            Text("100%").frame(height: 1)
-            Spacer()
-            Text("75%")
-            Spacer()
-            Text("50%")
-            Spacer()
-            Text("25%")
-            Spacer()
-            Text("0%").frame(height: 1)
-        }
-        .font(.system(size: 8, design: .monospaced))
-        .foregroundColor(.secondary)
-        .frame(width: yAxisWidth, height: graphHeight)
     }
 
     private var widthReader: some View {
@@ -254,7 +232,6 @@ struct UsageGraphView: View {
                     .font(.system(size: 8, design: .monospaced))
                     .foregroundColor(.secondary)
             }
-            Spacer().frame(width: yAxisWidth)
         }
         .frame(height: xAxisHeight)
     }
