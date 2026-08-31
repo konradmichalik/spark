@@ -19,6 +19,9 @@ final class TranscriptFileWatcherTests: XCTestCase {
     /// change" without asking the real filesystem to report one.
     func testDetectsAWriteUnderTheWatchedRoot() throws {
         let expectation = expectation(description: "file change detected")
+        // FSEvents can deliver more than one callback for a single write (e.g. separate
+        // create/modify events); the test only needs to observe at least one.
+        expectation.assertForOverFulfill = false
         let watcher = TranscriptFileWatcher(paths: [tempDir.path], latency: 0.1) {
             expectation.fulfill()
         }
@@ -42,6 +45,7 @@ final class TranscriptFileWatcherTests: XCTestCase {
         try FileManager.default.createDirectory(at: subagentsDir, withIntermediateDirectories: true)
 
         let expectation = expectation(description: "nested file change detected")
+        expectation.assertForOverFulfill = false
         let watcher = TranscriptFileWatcher(paths: [tempDir.path], latency: 0.1) {
             expectation.fulfill()
         }
