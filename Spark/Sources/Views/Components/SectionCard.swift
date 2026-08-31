@@ -1,4 +1,14 @@
+import AppKit
 import SwiftUI
+
+// `.controlBackgroundColor` alone is near-white next to the popover's `.windowBackgroundColor`,
+// a gap Apple picks deliberately for legibility. Blending the two into one opaque color keeps
+// the card readable without the harsh jump, and without relying on whatever happens to be
+// painted behind it.
+private let opaqueCardBackground = Color(
+    nsColor: NSColor.windowBackgroundColor.blended(withFraction: 0.5, of: .controlBackgroundColor)
+        ?? .controlBackgroundColor
+)
 
 /// The container a section's rows sit on. Replaces the popover's dividers: grouping is carried
 /// by the card's edge and the gap between sections, not by a line drawn across the full width.
@@ -18,10 +28,7 @@ struct SectionCard<Content: View>: View {
             .adaptiveBackground(
                 reduceTransparency: reduceTransparency,
                 material: .quaternary.opacity(0.3),
-                // `.controlBackgroundColor` alone is near-white next to the popover's
-                // `.windowBackgroundColor`, a gap Apple picks deliberately for legibility. Blending
-                // it down keeps the card readable without the harsh jump.
-                opaque: Color(nsColor: .controlBackgroundColor).opacity(0.5),
+                opaque: opaqueCardBackground,
                 in: RoundedRectangle(cornerRadius: 8)
             )
             .clipShape(RoundedRectangle(cornerRadius: 8))
