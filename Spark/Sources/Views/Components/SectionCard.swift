@@ -18,7 +18,10 @@ struct SectionCard<Content: View>: View {
             .adaptiveBackground(
                 reduceTransparency: reduceTransparency,
                 material: .quaternary.opacity(0.3),
-                opaque: Color(nsColor: .controlBackgroundColor),
+                // `.controlBackgroundColor` alone is near-white next to the popover's
+                // `.windowBackgroundColor`, a gap Apple picks deliberately for legibility. Blending
+                // it down keeps the card readable without the harsh jump.
+                opaque: Color(nsColor: .controlBackgroundColor).opacity(0.5),
                 in: RoundedRectangle(cornerRadius: 8)
             )
             .clipShape(RoundedRectangle(cornerRadius: 8))
