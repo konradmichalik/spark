@@ -1,9 +1,13 @@
 import Foundation
 
 /// A week or calendar month, whichever the report is currently showing.
-enum ReportPeriod: CaseIterable {
-    case week
-    case month
+enum ReportPeriod: String, CaseIterable {
+    case week = "Week"
+    case month = "Month"
+}
+
+extension ReportPeriod: SegmentLabeled {
+    var segmentLabel: String { rawValue }
 }
 
 /// A current-vs-previous-period token summary, navigable back one period at a time via
