@@ -48,12 +48,7 @@ struct NotConnectedView: View {
 
             // Error
             if let error = state.lastError {
-                HStack {
-                    TablerIconView(.alertTriangle, color: .orange)
-                    Text(error)
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
+                WarningBanner(message: error)
             }
 
             Divider()

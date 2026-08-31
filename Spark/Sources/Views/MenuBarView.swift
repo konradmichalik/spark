@@ -137,12 +137,7 @@ struct MenuBarView: View {
     @ViewBuilder
     private var errorRow: some View {
         if let error = state.lastError {
-            HStack {
-                TablerIconView(.alertTriangle, size: 13, color: .orange)
-                Text(error)
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-            }
+            WarningBanner(message: error)
         }
     }
 
