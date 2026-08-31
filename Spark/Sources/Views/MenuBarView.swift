@@ -44,7 +44,6 @@ struct MenuBarView: View {
                 UsageGraphView(history: state.history, rollups: state.rollups)
             }
 
-            Divider()
             footerRow
         }
         .padding(12)
