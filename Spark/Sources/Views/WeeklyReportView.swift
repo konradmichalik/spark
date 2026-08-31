@@ -45,12 +45,13 @@ struct WeeklyReportView: View {
             }
         }
         .padding(20)
-        // A fixed ideal size for the window to open at, tall enough that the common case (a
-        // handful of top projects) fits without scrolling; `.windowResizability(.contentMinSize)`
-        // (set on the `Window` scene) lets the user grow it further, and the `ScrollView` above
-        // means content taller than this (e.g. a month with many top projects) scrolls instead
-        // of clipping at the minimum size.
-        .frame(minWidth: 340, idealWidth: 360, minHeight: 380, idealHeight: 620)
+        // A fixed ideal size for the window to open at, tall enough that the common case (every
+        // section present, including the cache-hit-rate warning) fits without scrolling;
+        // `.windowResizability(.contentMinSize)` (set on the `Window` scene) lets the user grow
+        // it further, and the `ScrollView` above means content taller than this (e.g. a long
+        // project name wrapping, or the user shrinking the window back down) scrolls instead of
+        // clipping at the minimum size.
+        .frame(minWidth: 340, idealWidth: 360, minHeight: 380, idealHeight: 700)
         // Dims stale numbers while a reopen or period change re-scans, instead of showing them
         // un-dimmed.
         .opacity(state.isLoadingWeeklyReport ? 0.5 : 1)
