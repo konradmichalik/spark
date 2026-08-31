@@ -5,11 +5,11 @@ enum SectionDensity {
     case regular
     case compact
 
-    var titleSize: CGFloat { self == .regular ? 12 : 10 }
-    var iconSize: CGFloat { self == .regular ? 14 : 13 }
-    var cardPadding: CGFloat { self == .regular ? 12 : 10 }
-    var cardSpacing: CGFloat { self == .regular ? 8 : 4 }
-    var headerGap: CGFloat { self == .regular ? 8 : 6 }
+    var titleSize: CGFloat { self == .regular ? 12 : 9 }
+    var iconSize: CGFloat { self == .regular ? 14 : 12 }
+    var cardPadding: CGFloat { self == .regular ? 12 : 8 }
+    var cardSpacing: CGFloat { self == .regular ? 8 : 3 }
+    var headerGap: CGFloat { self == .regular ? 8 : 5 }
 
     /// Colour marks a category usefully at four marks on a dense surface read at a glance. Across
     /// fifteen settings headers on seven tabs it marks nothing, and the tab bar already separates

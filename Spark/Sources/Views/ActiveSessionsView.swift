@@ -109,7 +109,7 @@ private struct ActiveSessionRow: View {
                 .frame(width: 6, height: 6)
 
             Text(session.displayName)
-                .font(.system(size: 11.5))
+                .font(.system(size: 11))
                 .foregroundColor(.primary)
                 .lineLimit(1)
                 .truncationMode(.middle)

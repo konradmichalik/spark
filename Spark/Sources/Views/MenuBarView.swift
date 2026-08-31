@@ -426,7 +426,7 @@ private struct StatsLine: View {
     var body: some View {
         HStack {
             Text(label)
-                .font(.system(size: 11.5))
+                .font(.system(size: 11))
                 .foregroundColor(.primary)
             Spacer()
             Text(value)
@@ -501,7 +501,7 @@ private struct ProjectBreakdownDisclosure: View {
         } label: {
             HStack(spacing: 5) {
                 Text("Top Projects")
-                    .font(.system(size: 11.5))
+                    .font(.system(size: 11))
                     .foregroundColor(.primary)
                 Spacer()
                 TablerIconView(.chevronRight, size: 10)
@@ -632,7 +632,7 @@ struct LocalOnlyUsageRow: View {
     var body: some View {
         HStack(spacing: 4) {
             Text(label)
-                .font(.system(size: 11.5))
+                .font(.system(size: 11))
                 .foregroundColor(.primary)
             Text("· \(localTokens) local")
                 .font(.caption2)
@@ -731,7 +731,7 @@ struct UsageRow: View {
         VStack(alignment: .leading, spacing: 4) {
             HStack {
                 Text(label)
-                    .font(.system(size: 11.5))
+                    .font(.system(size: 11))
                     .foregroundColor(.primary)
 
                 if let localTokens {
@@ -812,9 +812,9 @@ struct UsageRow: View {
                 .help(paceDescription ?? "")
 
                 Text("\(Int(utilization))%")
-                    .font(.system(size: 15, weight: .semibold, design: .monospaced))
+                    .font(.system(size: 13, weight: .semibold, design: .monospaced))
                     .foregroundColor(utilization >= warningThreshold ? color : .primary)
-                    .frame(width: 40, alignment: .trailing)
+                    .frame(width: 36, alignment: .trailing)
             }
         }
     }
