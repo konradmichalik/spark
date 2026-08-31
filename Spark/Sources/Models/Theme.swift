@@ -20,6 +20,18 @@ enum Theme {
             : NSColor(red: 0.77, green: 0.39, blue: 0.25, alpha: 1)
     })
 
+    /// Trend-down accent (Weekly Report). Paired with `sparkOrangeIcon` for trend-up so both
+    /// directions read as an intentional accent rather than one themed color and one raw SwiftUI
+    /// `.orange`/`.green`. Kept distinct from `paceColor`'s budget-tier green, which signals
+    /// "comfortably under budget" rather than "lower than last period" — same contrast-safe
+    /// per-appearance construction as `sparkOrangeIcon`.
+    static let trendDown = Color(nsColor: NSColor(name: nil) { appearance in
+        let isDark = appearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
+        return isDark
+            ? NSColor(red: 0.45, green: 0.72, blue: 0.55, alpha: 1)
+            : NSColor(red: 0.20, green: 0.50, blue: 0.32, alpha: 1)
+    })
+
     /// History graph lines
     static let graphSession = sparkOrange
     static let graphWeekly = Color(nsColor: NSColor(red: 0.55, green: 0.60, blue: 0.67, alpha: 1))

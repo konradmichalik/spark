@@ -320,8 +320,8 @@ struct TrendBadge: View {
     /// text already say the same thing regardless of color.
     private var tintColor: Color {
         switch direction {
-        case .up: .orange
-        case .down: .green
+        case .up: Theme.sparkOrangeIcon
+        case .down: Theme.trendDown
         case .flat: .secondary
         }
     }
