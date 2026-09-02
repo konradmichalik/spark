@@ -58,6 +58,7 @@ final class AppState: ObservableObject {
     @AppStorage("coloredIcon") var coloredIcon: Bool = true
     @AppStorage("usageDisplayStyle") var usageDisplayStyle: String = "bars"
     @AppStorage("reduceTransparency") var reduceTransparency: Bool = false
+    @AppStorage("exportDataEnabled") var exportDataEnabled: Bool = false
 
     // Navigation
     @Published var selectedSettingsTab: SettingsTab = .general
@@ -277,6 +278,7 @@ final class AppState: ObservableObject {
             consecutiveRateLimits = 0
             addHistorySnapshot()
             refreshLiveStats()
+            writeExternalExportIfEnabled()
             scheduleNextRefresh()
         } catch let error as UsageClient.ClientError {
             switch error {
@@ -754,11 +756,7 @@ final class AppState: ObservableObject {
     }
 
     private var historyFileURL: URL {
-        // swiftlint:disable:next force_unwrapping
-        let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
-        let dir = appSupport.appendingPathComponent("Spark")
-        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-        return dir.appendingPathComponent("history.json")
+        AppSupportDirectory.spark.appendingPathComponent("history.json")
     }
 
     private func saveHistory() {
@@ -793,6 +791,41 @@ final class AppState: ObservableObject {
     func clearRollups() {
         rollups = [:]
         saveHistory()
+    }
+
+    // MARK: - External Export
+
+    private var externalExportURL: URL {
+        AppSupportDirectory.spark.appendingPathComponent("data.json")
+    }
+
+    /// Called when the "Export data for external apps" toggle changes: writes immediately using
+    /// the current state on enable, so a consumer doesn't have to wait for the next refresh cycle,
+    /// or removes the file on disable so no stale data lingers once the feature is off.
+    func handleExportDataToggleChanged() {
+        if exportDataEnabled {
+            writeExternalExportIfEnabled()
+        } else {
+            ExternalExportPersistence.delete(at: externalExportURL)
+        }
+    }
+
+    /// Mirrors `usageData`/`liveStats`/`activeSessions`/`history` into `data.json` for external
+    /// consumers (e.g. a Stream Deck plugin) — see `handleExportDataToggleChanged` for the
+    /// on/off transition. Called after every successful `fetchUsage()`. View-building itself is
+    /// `ExternalExportBuilder`, a pure function kept separate from `AppState` for testability.
+    private func writeExternalExportIfEnabled() {
+        guard exportDataEnabled else { return }
+        let input = ExternalExportInput(
+            usageData: usageData,
+            liveStats: liveStats,
+            activeSessions: activeSessions,
+            sessionTrend: history.suffix(24).map(\.sessionUtilization),
+            warningThreshold: warningThreshold,
+            criticalThreshold: criticalThreshold
+        )
+        let file = ExternalExportBuilder.file(input, ttlSeconds: Int(refreshInterval) + 60)
+        ExternalExportPersistence.write(file, to: externalExportURL)
     }
 
     // MARK: - Stats

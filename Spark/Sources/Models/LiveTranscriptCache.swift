@@ -4,11 +4,7 @@ import Foundation
 
 enum TranscriptCachePersistence {
     static var defaultFileURL: URL {
-        // swiftlint:disable:next force_unwrapping
-        let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
-        let dir = appSupport.appendingPathComponent("Spark")
-        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-        return dir.appendingPathComponent("transcript-cache.json")
+        AppSupportDirectory.spark.appendingPathComponent("transcript-cache.json")
     }
 
     static func load(from url: URL = defaultFileURL) -> TranscriptCacheStore {
