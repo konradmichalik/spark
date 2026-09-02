@@ -418,6 +418,21 @@ struct GeneralTab: View {
                         }
                     }
                 }
+
+                SectionHeader("Data Export", icon: .externalLink)
+
+                SectionCard {
+                    Toggle(isOn: $state.exportDataEnabled) {
+                        SettingLabel(
+                            title: "Export data for external apps",
+                            subtitle: "Writes usage state to ~/Library/Application Support/Spark/data.json on every "
+                                + "refresh, for external consumers like a Stream Deck plugin."
+                        )
+                    }
+                    .onChange(of: state.exportDataEnabled) {
+                        state.handleExportDataToggleChanged()
+                    }
+                }
             }
             .padding()
         }

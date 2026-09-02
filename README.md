@@ -115,6 +115,10 @@ Click the icon to open the detailed popover with usage stats, the history graph,
 > [!TIP]
 > Smart refresh drops back to **Active** instantly the moment it detects a change — either in your reported usage percentage, or in your local Claude Code transcripts, which Spark watches directly. Local activity is the faster signal in practice: it fires the moment you start a new message, not just when the next poll happens to notice a changed percentage.
 
+### Data Export
+
+**Settings → General → Data Export → Export data for external apps** (off by default) writes the current usage state to `~/Library/Application Support/Spark/data.json` on every refresh, for external consumers such as a Stream Deck plugin. Turning it off deletes the file.
+
 ## 🐛 Troubleshooting
 
 **No data / "Not connected" state**

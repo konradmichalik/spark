@@ -58,6 +58,7 @@ final class AppState: ObservableObject {
     @AppStorage("coloredIcon") var coloredIcon: Bool = true
     @AppStorage("usageDisplayStyle") var usageDisplayStyle: String = "bars"
     @AppStorage("reduceTransparency") var reduceTransparency: Bool = false
+    @AppStorage("exportDataEnabled") var exportDataEnabled: Bool = false
 
     // Navigation
     @Published var selectedSettingsTab: SettingsTab = .general
@@ -347,6 +348,7 @@ final class AppState: ObservableObject {
         consecutiveRateLimits = 0
         Self.log.notice("refreshTokenAndFetch: fetch succeeded after refresh")
         scheduleNextRefresh()
+        await writeExternalExportIfEnabled()
     }
 
     private func handleRateLimited() async {
@@ -754,11 +756,7 @@ final class AppState: ObservableObject {
     }
 
     private var historyFileURL: URL {
-        // swiftlint:disable:next force_unwrapping
-        let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
-        let dir = appSupport.appendingPathComponent("Spark")
-        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-        return dir.appendingPathComponent("history.json")
+        AppSupportDirectory.spark.appendingPathComponent("history.json")
     }
 
     private func saveHistory() {
@@ -793,6 +791,51 @@ final class AppState: ObservableObject {
     func clearRollups() {
         rollups = [:]
         saveHistory()
+    }
+
+    // MARK: - External Export
+
+    private var externalExportURL: URL {
+        AppSupportDirectory.spark.appendingPathComponent("data.json")
+    }
+
+    /// Called when the "Export data for external apps" toggle changes: writes immediately using
+    /// the current state on enable, so a consumer doesn't have to wait for the next refresh cycle,
+    /// or removes the file on disable so no stale data lingers once the feature is off.
+    func handleExportDataToggleChanged() {
+        if exportDataEnabled {
+            Task { await writeExternalExportIfEnabled() }
+        } else {
+            ExternalExportPersistence.delete(at: externalExportURL)
+        }
+    }
+
+    /// Mirrors `usageData`/`activeSessions`/`history` into `data.json` for external consumers
+    /// (e.g. a Stream Deck plugin) — see `handleExportDataToggleChanged` for the on/off
+    /// transition. Called only once liveStats/activeSessions for the current refresh have
+    /// landed (from `refreshLiveStats()`), or directly after a usage fetch that bypassed it (the
+    /// token-refresh recovery path in `fetchUsageAndApply`), so this never writes a poll's data
+    /// alongside the previous poll's live stats. The `today` view always re-parses `.today`
+    /// itself rather than reusing `liveStats`, which tracks whatever period the Stats card is
+    /// currently showing (7d/30d/All) — the export's "today" must not silently become a
+    /// different period just because the user switched tabs. View-building itself is
+    /// `ExternalExportBuilder`, a pure function kept separate from `AppState` for testability.
+    private func writeExternalExportIfEnabled() async {
+        guard exportDataEnabled else { return }
+        let todayStats = await LiveStatsParser.parseStats(period: .today)
+        let input = ExternalExportInput(
+            usageData: usageData,
+            liveStats: todayStats,
+            activeSessions: activeSessions,
+            sessionTrend: history.suffix(24).map(\.sessionUtilization),
+            warningThreshold: warningThreshold,
+            criticalThreshold: criticalThreshold
+        )
+        // `currentRefreshInterval`, not `refreshInterval`: in Smart mode the next poll can be up
+        // to 1800s away, and a fixed 60s headroom on the base 300s interval would let a consumer
+        // treat still-fresh data as stale well before the next write actually lands.
+        let file = ExternalExportBuilder.file(input, ttlSeconds: Int(currentRefreshInterval) + 60)
+        ExternalExportPersistence.write(file, to: externalExportURL)
     }
 
     // MARK: - Stats
@@ -850,6 +893,9 @@ final class AppState: ObservableObject {
             // never triggers its own scan.
             await self.updateRollups()
             await self.refreshActiveSessions()
+            // Only after both liveStats and activeSessions above have landed, so the export's
+            // `today`/`active` views reflect this refresh rather than the previous one.
+            await self.writeExternalExportIfEnabled()
         }
     }
 
