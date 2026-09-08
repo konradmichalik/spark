@@ -3,6 +3,7 @@
 ## Versioning
 
 Spark follows [Semantic Versioning](https://semver.org/):
+
 - **MAJOR** — breaking changes
 - **MINOR** — new features, backward-compatible
 - **PATCH** — bug fixes
@@ -17,21 +18,21 @@ Spark follows [Semantic Versioning](https://semver.org/):
 
    Optionally bump `CURRENT_PROJECT_VERSION` (build number).
 
-2. **Commit the version bump:**
+1. **Commit the version bump:**
 
    ```bash
    git add project.yml Spark/Info.plist site/index.html
    git commit -m "release: v0.x.x"
    ```
 
-3. **Tag and push:**
+1. **Tag and push:**
 
    ```bash
    git tag v0.x.x
    git push && git push --tags
    ```
 
-4. **GitHub Actions takes over:**
+1. **GitHub Actions takes over:**
 
    The `release.yml` workflow automatically:
    - Builds dual-architecture binaries (arm64 + x86_64)
@@ -40,7 +41,7 @@ Spark follows [Semantic Versioning](https://semver.org/):
    - Generates SHA256 checksums
    - Dispatches an update to the [Homebrew tap](https://github.com/konradmichalik/homebrew-tap) to update the cask
 
-5. **Verify:**
+1. **Verify:**
 
    - Check the [Releases page](https://github.com/konradmichalik/spark/releases) for the new release
    - Check the [Homebrew tap](https://github.com/konradmichalik/homebrew-tap/blob/main/Casks/spark.rb) for updated checksums
