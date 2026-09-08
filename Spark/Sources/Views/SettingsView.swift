@@ -1053,7 +1053,7 @@ struct AboutTab: View {
         VStack(spacing: 16) {
             Spacer()
 
-            SparkLogoView(size: 80)
+            SparkLogoView(size: 80, style: .icon)
 
             Text("Spark")
                 .font(.custom("InstrumentSerif-Regular", size: 28))

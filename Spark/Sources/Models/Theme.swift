@@ -9,6 +9,15 @@ enum Theme {
     static let sparkOrange = Color(nsColor: sparkOrangeNS)
     static let sparkOrangeNS = NSColor(red: 0.85, green: 0.47, blue: 0.34, alpha: 1)
 
+    /// `SparkLogoView(style: .icon)` palette (Settings > About): the light spark and ring drawn
+    /// on the brand-orange background, sampled from `AppIcon.appiconset/icon_1024.png` so the
+    /// in-app "about" mark matches the actual app icon rather than the transparent `.mark` style
+    /// used in the menu bar and empty states.
+    static let sparkIconBackground = sparkOrange
+    static let sparkIconRingTrack = Color(nsColor: NSColor(red: 0.867, green: 0.557, blue: 0.459, alpha: 1))
+    static let sparkIconRingProgress = Color(nsColor: NSColor(red: 0.925, green: 0.733, blue: 0.671, alpha: 1))
+    static let sparkIconSpark = Color(nsColor: NSColor(red: 0.957, green: 0.839, blue: 0.804, alpha: 1))
+
     /// Icon tint. The brand orange sits at roughly 2.4:1 on a light window background, below the
     /// 3:1 that non-text UI elements need, so icons use a darkened variant in light mode and a
     /// lightened one in dark. `sparkOrange` itself is unchanged and still paints the logo, the

@@ -178,13 +178,24 @@ struct ClaudeLogoShape: Shape {
 
 /// Native SwiftUI Spark logo: Claude spark + ring, pixel-perfect at any size.
 struct SparkLogoView: View {
+    /// `.mark` draws the orange spark and ring on a transparent background, for use over the menu
+    /// bar or an empty-state background. `.icon` draws the app-icon look instead: a light spark
+    /// and ring on the brand-orange squircle, for the Settings > About screen.
+    enum Style {
+        case mark
+        case icon
+    }
+
     let size: CGFloat
     var isLoading: Bool = false
+    var style: Style = .mark
 
     private let ringRatio: CGFloat = 0.9
     private let ringWidth: CGFloat = 0.08
     private let sparkInset: CGFloat = 0.25
     private let gapDegrees: Double = 145
+    /// Matches the corner radius of `AppIcon.appiconset/icon_1024.png` at this size.
+    private let iconCornerRadiusRatio: CGFloat = 0.22
 
     @State private var ringProgress: Double = 0
     @State private var sparkOpacity: Double = 0
@@ -192,21 +203,39 @@ struct SparkLogoView: View {
 
     private var halfGap: Double { gapDegrees / 2 }
 
+    private var trackColor: Color {
+        style == .icon ? Theme.sparkIconRingTrack : Color.gray.opacity(0.25)
+    }
+
+    private var progressColor: Color {
+        style == .icon ? Theme.sparkIconRingProgress : Theme.sparkOrange
+    }
+
+    private var sparkColor: Color {
+        style == .icon ? Theme.sparkIconSpark : Theme.sparkOrange
+    }
+
     var body: some View {
         ZStack {
+            if style == .icon {
+                RoundedRectangle(cornerRadius: size * iconCornerRadiusRatio, style: .continuous)
+                    .fill(Theme.sparkIconBackground)
+                    .frame(width: size, height: size)
+            }
+
             // Ring (rotates during loading, spark does not)
             Group {
-                // Gray track (unfilled portion after the orange arc)
+                // Dim track (unfilled portion after the progress arc)
                 Circle()
                     .trim(from: (360 - gapDegrees) / 360.0, to: 1.0)
-                    .stroke(Color.gray.opacity(0.25), lineWidth: size * ringWidth)
+                    .stroke(trackColor, lineWidth: size * ringWidth)
                     .rotationEffect(.degrees(-90))
                     .frame(width: size * ringRatio, height: size * ringRatio)
 
-                // Orange arc (starts at 12 o'clock, fills clockwise)
+                // Progress arc (starts at 12 o'clock, fills clockwise)
                 Circle()
                     .trim(from: 0, to: (360 - gapDegrees) / 360.0 * ringProgress)
-                    .stroke(Theme.sparkOrange, style: StrokeStyle(lineWidth: size * ringWidth, lineCap: .butt))
+                    .stroke(progressColor, style: StrokeStyle(lineWidth: size * ringWidth, lineCap: .butt))
                     .rotationEffect(.degrees(-90))
                     .frame(width: size * ringRatio, height: size * ringRatio)
             }
@@ -214,7 +243,7 @@ struct SparkLogoView: View {
 
             // Spark shape (static during loading)
             ClaudeLogoShape()
-                .fill(Theme.sparkOrange)
+                .fill(sparkColor)
                 .opacity(sparkOpacity)
                 .frame(width: size * (1 - sparkInset * 2), height: size * (1 - sparkInset * 2))
         }

@@ -19,3 +19,4 @@ xcuserdata/
 .build/
 Packages/
 Package.resolved
+.issues/
