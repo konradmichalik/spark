@@ -12,7 +12,6 @@ enum PricingClient {
 
     private static let sourceURL = URL(
         string: "https://raw.githubusercontent.com/BerriAI/litellm/main/model_prices_and_context_window.json"
-        // swiftlint:disable:next force_unwrapping
     )!
 
     private static let maxCacheAge: TimeInterval = 24 * 60 * 60
