@@ -106,8 +106,10 @@ struct LiveStats: Sendable {
     }
 
     /// Top projects by token volume, each with a display name resolved from `cwd` where known.
+    /// Projects without fresh tokens (cache reads only) are left out, they would show as 0.
     func topProjects(limit: Int) -> [ProjectUsage] {
         projectTotals
+            .filter { $0.value > 0 }
             .sorted { $0.value > $1.value }
             .prefix(limit)
             .map { key, tokens in
