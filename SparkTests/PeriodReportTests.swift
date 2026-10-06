@@ -477,4 +477,25 @@ final class PeriodReportTests: XCTestCase {
 
         XCTAssertEqual(report.currentPeriodTokens, 30, "every day of September, including the 30th, must be summed")
     }
+
+    // MARK: - Cost summary
+
+    func testBuildCarriesTheCostSummaryThrough() {
+        let summary = CostSummary(total: 12.5, byModel: [:], byProject: [:], unpricedModels: [])
+
+        let report = PeriodReport.build(
+            rollups: [:],
+            costSummary: summary,
+            now: date("2026-08-21"),
+            calendar: calendar
+        )
+
+        XCTAssertEqual(report.costSummary, summary)
+    }
+
+    func testBuildWithoutPricesHasNoCostSummary() {
+        let report = PeriodReport.build(rollups: [:], now: date("2026-08-21"), calendar: calendar)
+
+        XCTAssertNil(report.costSummary)
+    }
 }

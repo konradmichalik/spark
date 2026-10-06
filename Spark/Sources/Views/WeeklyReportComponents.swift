@@ -9,6 +9,8 @@ struct ModelRow: Identifiable {
     let label: String
     let tokens: Int
     let family: ModelFamily
+    /// API-price estimate for the family, `nil` when the cost view is off.
+    let cost: Double?
 
     /// Keyed on `family`, not the display `label` string — a relabel must never silently desync
     /// the donut/legend color from what it represents.
@@ -21,7 +23,7 @@ struct ModelRow: Identifiable {
         }
     }
 
-    static func rows(from modelTotals: [String: Int]) -> [ModelRow] {
+    static func rows(from modelTotals: [String: Int], costByModel: [String: Double]? = nil) -> [ModelRow] {
         let families: [(ModelFamily, String)] = [(.sonnet, "Sonnet"), (.opus, "Opus"), (.fable, "Fable"), (.other, "Other")]
         var rows: [ModelRow] = []
         for (family, label) in families {
@@ -29,8 +31,12 @@ struct ModelRow: Identifiable {
             for (rawId, value) in modelTotals where ModelFamily.family(forRawModelId: rawId) == family {
                 tokens += value
             }
+            let cost = costByModel?
+                .filter { ModelFamily.family(forRawModelId: $0.key) == family }
+                .values
+                .reduce(0, +)
             if tokens > 0 {
-                rows.append(ModelRow(id: label, label: label, tokens: tokens, family: family))
+                rows.append(ModelRow(id: label, label: label, tokens: tokens, family: family, cost: cost))
             }
         }
         return rows

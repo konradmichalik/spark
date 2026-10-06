@@ -395,6 +395,13 @@ struct GeneralTab: View {
                             subtitle: "Show which projects used the most tokens."
                         )
                     }
+
+                    Toggle(isOn: $state.showApiCost) {
+                        SettingLabel(
+                            title: "API Cost in Report",
+                            subtitle: "Estimate the pay-as-you-go cost. Downloads the public price list from GitHub once a day."
+                        )
+                    }
                 }
 
                 SectionHeader("Startup", icon: .power)

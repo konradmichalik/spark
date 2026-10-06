@@ -21,6 +21,16 @@ struct CostEstimate: Equatable, Sendable {
     let unpricedModels: [String]
 }
 
+/// The estimate shown in the usage report. Models without a price are in `unpricedModels` and
+/// missing from `total`, `byModel` and `byProject`.
+struct CostSummary: Equatable, Sendable {
+    let total: Double
+    let byModel: [String: Double]
+    /// Keyed by the encoded project directory name, like `LiveStats.projectTotals`.
+    let byProject: [String: Double]
+    let unpricedModels: [String]
+}
+
 /// Claude prices from the LiteLLM `model_prices_and_context_window.json`, keyed by raw model ID.
 struct PricingTable: Codable, Equatable, Sendable {
     let prices: [String: ModelPrice]
@@ -73,6 +83,25 @@ struct PricingTable: Codable, Equatable, Sendable {
             }
         }
         return CostEstimate(total: total, unpricedModels: unpriced.sorted())
+    }
+
+    func summary(
+        modelTotals: [String: ModelTokenTotals],
+        projectModelTotals: [String: [String: ModelTokenTotals]]
+    ) -> CostSummary {
+        let estimate = cost(forModelTotals: modelTotals)
+        let byModel = modelTotals.reduce(into: [String: Double]()) { result, entry in
+            if let price = price(forRawModelId: entry.key), entry.value.total > 0 {
+                result[entry.key] = price.cost(of: entry.value)
+            }
+        }
+        let byProject = projectModelTotals.mapValues { cost(forModelTotals: $0).total }
+        return CostSummary(
+            total: estimate.total,
+            byModel: byModel,
+            byProject: byProject,
+            unpricedModels: estimate.unpricedModels
+        )
     }
 
     /// Provider-prefixed (`bedrock/...`) and versioned (`...-v1:0`) entries are other offerings

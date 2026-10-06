@@ -108,6 +108,44 @@ final class PricingTableTests: XCTestCase {
         XCTAssertEqual(cost.unpricedModels, ["claude-future-9"])
     }
 
+    // MARK: - summary
+
+    func testSummaryBreaksCostDownByModelAndProject() throws {
+        let table = try PricingTable.parse(sample)
+        let million = ModelTokenTotals(input: 1_000_000, output: 0, cacheCreation: 0, cacheRead: 0)
+        let modelTotals = [
+            "claude-opus-4-5-20251101": ModelTokenTotals(input: 2_000_000, output: 0, cacheCreation: 0, cacheRead: 0),
+            "claude-sonnet-5-5": million
+        ]
+        let projectModelTotals = [
+            "-Users-a": ["claude-opus-4-5-20251101": million, "claude-sonnet-5-5": million],
+            "-Users-b": ["claude-opus-4-5-20251101": million]
+        ]
+
+        let summary = table.summary(modelTotals: modelTotals, projectModelTotals: projectModelTotals)
+
+        XCTAssertEqual(summary.total, 13.0, accuracy: 1e-9)
+        XCTAssertEqual(try XCTUnwrap(summary.byModel["claude-opus-4-5-20251101"]), 10.0, accuracy: 1e-9)
+        XCTAssertEqual(try XCTUnwrap(summary.byModel["claude-sonnet-5-5"]), 3.0, accuracy: 1e-9)
+        XCTAssertEqual(try XCTUnwrap(summary.byProject["-Users-a"]), 8.0, accuracy: 1e-9)
+        XCTAssertEqual(try XCTUnwrap(summary.byProject["-Users-b"]), 5.0, accuracy: 1e-9)
+    }
+
+    func testSummaryLeavesUnpricedModelsOutOfEveryBreakdown() throws {
+        let table = try PricingTable.parse(sample)
+        let million = ModelTokenTotals(input: 1_000_000, output: 0, cacheCreation: 0, cacheRead: 0)
+
+        let summary = table.summary(
+            modelTotals: ["claude-future-9": million],
+            projectModelTotals: ["-Users-a": ["claude-future-9": million]]
+        )
+
+        XCTAssertEqual(summary.total, 0)
+        XCTAssertEqual(summary.unpricedModels, ["claude-future-9"])
+        XCTAssertTrue(summary.byModel.isEmpty)
+        XCTAssertEqual(summary.byProject["-Users-a"], 0)
+    }
+
     func testCostIgnoresModelsWithoutTokens() throws {
         let table = try PricingTable.parse(sample)
 

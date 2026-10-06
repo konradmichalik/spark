@@ -405,4 +405,16 @@ final class TranscriptCacheTests: XCTestCase {
         XCTAssertEqual(result.modelTotals["claude-opus-5"]?.real, 17)
         XCTAssertEqual(result.modelTotals["claude-opus-5"]?.total, 1_017)
     }
+
+    func testProjectModelTotalsSplitEachProjectByModel() throws {
+        let content = line(input: 100, output: 0, isoDate: isoString(daysAgo: 0), messageId: "a", model: "claude-opus-5") + "\n" +
+            line(input: 30, output: 0, isoDate: isoString(daysAgo: 0), messageId: "b", model: "claude-sonnet-5") + "\n"
+        try content.write(to: fileURL, atomically: false, encoding: .utf8)
+
+        var store = TranscriptCacheStore.empty
+        let result = TranscriptCache.aggregate(claudeDir: tempDir, cutoff: nil, store: &store)
+
+        XCTAssertEqual(result.projectModelTotals["-Users-me-app"]?["claude-opus-5"]?.input, 100)
+        XCTAssertEqual(result.projectModelTotals["-Users-me-app"]?["claude-sonnet-5"]?.input, 30)
+    }
 }

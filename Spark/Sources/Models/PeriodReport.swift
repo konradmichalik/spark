@@ -32,6 +32,9 @@ struct PeriodReport {
     /// matching `currentPeriodTokens`.
     let modelTotals: [String: Int]
     let topProjects: [ProjectUsage]
+    /// What the current period's usage would cost at API prices. `nil` when the cost view is off
+    /// or no prices could be loaded.
+    let costSummary: CostSummary?
     let period: ReportPeriod
     /// 0 = the current period; 1 = one period back, etc. — echoes the `periodOffset` this report
     /// was built for, so the view can label the shown range without recomputing boundaries.
@@ -54,6 +57,7 @@ struct PeriodReport {
         rollups: [String: DailyRollup],
         modelTotals: [String: Int] = [:],
         topProjects: [ProjectUsage] = [],
+        costSummary: CostSummary? = nil,
         period: ReportPeriod = .week,
         periodOffset: Int = 0,
         now: Date = Date(),
@@ -78,6 +82,7 @@ struct PeriodReport {
             cacheHitRate: cacheHitRate,
             modelTotals: modelTotals,
             topProjects: topProjects,
+            costSummary: costSummary,
             period: period,
             periodOffset: periodOffset,
             rangeStart: range.start,

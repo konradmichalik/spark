@@ -157,6 +157,7 @@ struct WeeklyReportView: View {
                         .foregroundColor(.secondary)
                 }
             }
+            costLine(report)
             // Active multi-turn usage re-sends its whole growing context every turn, so the hit
             // rate sits near-ceiling (95-99%+) almost all the time — showing it unconditionally
             // would just be noise. Surfacing it only below the threshold turns it into a warning
@@ -168,6 +169,33 @@ struct WeeklyReportView: View {
     }
 
     private static let cacheHitRateWarningThreshold = 0.9
+
+    /// What this period would have cost on pay-as-you-go API prices, as opposed to the flat
+    /// subscription. An estimate: public list prices, no long-context or batch tiers.
+    @ViewBuilder
+    private func costLine(_ report: PeriodReport) -> some View {
+        if let summary = report.costSummary {
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(alignment: .firstTextBaseline, spacing: 6) {
+                    Text("≈ \(formatCost(summary.total))")
+                        .font(.system(.body, design: .monospaced))
+                        .fontWeight(.semibold)
+                    Text("at API prices")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                }
+                if !summary.unpricedModels.isEmpty {
+                    Text("No price for \(summary.unpricedModels.joined(separator: ", ")), not included")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                }
+            }
+        } else if state.showApiCost {
+            Text("API prices unavailable, check your connection")
+                .font(.caption2)
+                .foregroundColor(.secondary)
+        }
+    }
 
     /// Session (5h) and Weekly quota utilization over the shown period, with day ticks and a
     /// hover readout. Sourced from the polled `UsageSnapshot` history, the same data the
@@ -198,7 +226,7 @@ struct WeeklyReportView: View {
     }
 
     private func modelSplitSection(_ report: PeriodReport) -> some View {
-        let rows = ModelRow.rows(from: report.modelTotals)
+        let rows = ModelRow.rows(from: report.modelTotals, costByModel: report.costSummary?.byModel)
 
         return VStack(alignment: .leading, spacing: density.headerGap) {
             SectionHeader("By Model", icon: .chartBar, density: density)
@@ -220,6 +248,11 @@ struct WeeklyReportView: View {
                                         .font(.caption)
                                         .foregroundColor(.secondary)
                                     Spacer()
+                                    if let cost = row.cost {
+                                        Text(formatCost(cost))
+                                            .font(.system(.caption, design: .monospaced))
+                                            .foregroundColor(.secondary)
+                                    }
                                     Text(formatTokenCount(row.tokens))
                                         .font(.system(.caption, design: .monospaced))
                                         .fontWeight(.medium)
@@ -243,6 +276,11 @@ struct WeeklyReportView: View {
                             .lineLimit(1)
                             .truncationMode(.middle)
                         Spacer()
+                        if let cost = report.costSummary?.byProject[project.key] {
+                            Text(formatCost(cost))
+                                .font(.system(.caption, design: .monospaced))
+                                .foregroundColor(.secondary)
+                        }
                         Text(formatTokenCount(project.tokens))
                             .font(.system(.caption, design: .monospaced))
                             .foregroundColor(.secondary)

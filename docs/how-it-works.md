@@ -1,6 +1,6 @@
 # How Spark works
 
-Spark queries `api.anthropic.com/api/oauth/usage` using the OAuth token Claude Code CLI stores in the macOS Keychain via `KeychainService`. Account tier info (Pro, Max, Team, etc.) is read from the same Keychain entry. Service status is fetched from `status.anthropic.com/api/v2/summary.json`. All network calls run on a background actor; the UI updates on the main thread via `@Observable` state.
+Spark queries `api.anthropic.com/api/oauth/usage` using the OAuth token Claude Code CLI stores in the macOS Keychain via `KeychainService`. Account tier info (Pro, Max, Team, etc.) is read from the same Keychain entry. Service status is fetched from `status.anthropic.com/api/v2/summary.json`. With "API Cost in Report" enabled, the public Claude prices are downloaded from the LiteLLM price list on `raw.githubusercontent.com` at most once a day and cached in `pricing.json`. Only the request itself leaves the Mac, no usage data is sent. All network calls run on a background actor; the UI updates on the main thread via `@Observable` state.
 
 > [!WARNING]
 > Spark relies on an undocumented internal API endpoint. Anthropic may change or remove it without notice. If data stops loading after a CLI update, check for a new Spark release.

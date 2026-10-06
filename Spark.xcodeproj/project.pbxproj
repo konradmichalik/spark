@@ -13,6 +13,7 @@
 		1C17B1FD57626A227303436A /* HistoryPersistence.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D3823FC513C4690FCBC2217 /* HistoryPersistence.swift */; };
 		1EC5961F3A1EFE04AAE33570 /* PeriodReportTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC316D105650DAEF74416FB2 /* PeriodReportTests.swift */; };
 		1F26775BD0D9639ECC720F7A /* SparkApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2CB3DC178234EDAC2F64F1B /* SparkApp.swift */; };
+		1F489A5D9FE1C6DCD2569D01 /* PricingTableTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C2D118FF865D2FB3F724EE7 /* PricingTableTests.swift */; };
 		214153042165F0A0A0EE96CE /* WeeklyReportComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4415B461FB149B437AA5F7E /* WeeklyReportComponents.swift */; };
 		21A049328DAAD4829671CAA5 /* ExternalExportTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86558F33D7D9BE3173CFD8B5 /* ExternalExportTests.swift */; };
 		223380A1B677ACB800BFBAA5 /* VolumeDaySeriesTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF56C863C2E9DAA94522E345 /* VolumeDaySeriesTests.swift */; };
@@ -24,6 +25,7 @@
 		2F36AA3D50278B08B704185A /* VolumeGraphView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50BBD7F941849D80F541807B /* VolumeGraphView.swift */; };
 		3239D0C1DC2824C4D35FB9B2 /* NotConnectedView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF9C3135A8DDDF4266067319 /* NotConnectedView.swift */; };
 		331ED77C583EC450DC45AEBD /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1AEFF3D8115EF35EAF713CD4 /* Models.swift */; };
+		37F48EF817425026652B17E4 /* PricingClientTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4EE25A8C80677A5C9C412D59 /* PricingClientTests.swift */; };
 		3F1A89DA07231B1D7A9792E0 /* ProjectFamily.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53EE1D593320A6EDA9FD4F10 /* ProjectFamily.swift */; };
 		4BA3557B84A9F5B6038C08F9 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 32A7C394BCF978609C456945 /* Assets.xcassets */; };
 		4E59DA55FC764CCBE5472C2E /* ActiveSessionsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6DF5D94C01A168E6DE5E3A16 /* ActiveSessionsTests.swift */; };
@@ -33,6 +35,7 @@
 		5672E6A2E839951C42C4F7CD /* ActiveSessionsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5AB665C27F71D156F8D55561 /* ActiveSessionsView.swift */; };
 		5737999D4A925AD8876129E8 /* TablerIconTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E375FF8322D7EC948A73F0F /* TablerIconTests.swift */; };
 		57B71262F7554B9BC72E358C /* CLIVersionClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF78E655D9AB62828B52CF4F /* CLIVersionClient.swift */; };
+		58B6989A66B8051CB6C0D114 /* PricingTable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9114624DC1DD0EDDB4ABAADE /* PricingTable.swift */; };
 		5E1ACEB65D7A3407F219B6B2 /* PaceDaySeriesTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 213724CBD8658B1C8CA4E1E0 /* PaceDaySeriesTests.swift */; };
 		6382007F2324E7AA9D1B6A96 /* CompressedTimeAxisTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1871D46DD2167EDF9A6DD39 /* CompressedTimeAxisTests.swift */; };
 		63D6304360C5841D67A42962 /* CompressedTimeAxis.swift in Sources */ = {isa = PBXBuildFile; fileRef = 08B81E3D9B3750868F8BA40B /* CompressedTimeAxis.swift */; };
@@ -65,6 +68,7 @@
 		D400C983072E3B87DBC738F8 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8227C3FD71A94C6C7A1FFD95 /* Theme.swift */; };
 		D4224BCA555578280006F2E8 /* MenuBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC917B43DD2A87E3FC1C9E77 /* MenuBarView.swift */; };
 		D4C6CCA5FBFB49A193C1725D /* MenuBarWindowTopPinner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22117178BBD6A42BF8AD7FF8 /* MenuBarWindowTopPinner.swift */; };
+		D5517A6402E6C75E16A63D07 /* PricingClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = F066501B315CAB9CC892C599 /* PricingClient.swift */; };
 		D90395B93114188C0177A4AC /* UsageRingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 67F7A4612A57906540BFA7B5 /* UsageRingsView.swift */; };
 		DC92C49A8E33691424B97E61 /* PaceDaySeries.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53BF129A3DDCBA7B9CC83194 /* PaceDaySeries.swift */; };
 		DE6EA568248B8289B57742B6 /* LiveTranscriptCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 184C94C5D15DF3DAD3A1E5FE /* LiveTranscriptCache.swift */; };
@@ -117,6 +121,7 @@
 		434290BE7AAE6383B3B558AA /* UsageGraphCanvas.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UsageGraphCanvas.swift; sourceTree = "<group>"; };
 		47981BFA0481C7734C2F4910 /* ThemeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThemeTests.swift; sourceTree = "<group>"; };
 		4C4DFC70AE73D06B9435C0CB /* CLIVersionClientTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CLIVersionClientTests.swift; sourceTree = "<group>"; };
+		4EE25A8C80677A5C9C412D59 /* PricingClientTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PricingClientTests.swift; sourceTree = "<group>"; };
 		50BBD7F941849D80F541807B /* VolumeGraphView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VolumeGraphView.swift; sourceTree = "<group>"; };
 		53BF129A3DDCBA7B9CC83194 /* PaceDaySeries.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaceDaySeries.swift; sourceTree = "<group>"; };
 		53EE1D593320A6EDA9FD4F10 /* ProjectFamily.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectFamily.swift; sourceTree = "<group>"; };
@@ -133,6 +138,7 @@
 		6E375FF8322D7EC948A73F0F /* TablerIconTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TablerIconTests.swift; sourceTree = "<group>"; };
 		74F5D2CDD114AA16C654D6FF /* ClaudeConfigDirectoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudeConfigDirectoryTests.swift; sourceTree = "<group>"; };
 		7A3800BF9BB5D110847F0B8F /* SegmentPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SegmentPicker.swift; sourceTree = "<group>"; };
+		7C2D118FF865D2FB3F724EE7 /* PricingTableTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PricingTableTests.swift; sourceTree = "<group>"; };
 		8066DE0FCE569DFBA806F45A /* SparkTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SparkTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		8137041F7A6F5AED398C91AB /* ProjectFamilyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectFamilyTests.swift; sourceTree = "<group>"; };
 		8227C3FD71A94C6C7A1FFD95 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
@@ -141,6 +147,7 @@
 		8D90D9EBDE3387B5A7716693 /* ExternalExport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExternalExport.swift; sourceTree = "<group>"; };
 		8E08CC7D6843B465A64E112E /* KeychainService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainService.swift; sourceTree = "<group>"; };
 		8F53A9B591A91EBF57EB766A /* SegmentLabelingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SegmentLabelingTests.swift; sourceTree = "<group>"; };
+		9114624DC1DD0EDDB4ABAADE /* PricingTable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PricingTable.swift; sourceTree = "<group>"; };
 		9652B0D23609965E54C5FC30 /* UsageClientTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UsageClientTests.swift; sourceTree = "<group>"; };
 		99438B38B3EACF38510858FF /* SectionCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SectionCard.swift; sourceTree = "<group>"; };
 		9ACF980668F9758E22A4C4F2 /* TranscriptFileWatcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranscriptFileWatcher.swift; sourceTree = "<group>"; };
@@ -161,6 +168,7 @@
 		E86EED62411024E4E2D49149 /* Spark.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Spark.entitlements; sourceTree = "<group>"; };
 		E8E79C7AA7E77C09C0BB883E /* LongLivedTokenTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LongLivedTokenTests.swift; sourceTree = "<group>"; };
 		ECE13BA8065E4DEEDFE514DB /* TranscriptCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranscriptCache.swift; sourceTree = "<group>"; };
+		F066501B315CAB9CC892C599 /* PricingClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PricingClient.swift; sourceTree = "<group>"; };
 		F0D5655C4A8F69166856D5C8 /* TranscriptCacheModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranscriptCacheModels.swift; sourceTree = "<group>"; };
 		F7D4B436927D875C468C7EE0 /* WeeklyReportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeeklyReportView.swift; sourceTree = "<group>"; };
 		FB2642E8A08B809575073F98 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
@@ -282,6 +290,8 @@
 				213724CBD8658B1C8CA4E1E0 /* PaceDaySeriesTests.swift */,
 				3565AF781EB2D0F16EC9D3F9 /* PaceTests.swift */,
 				BC316D105650DAEF74416FB2 /* PeriodReportTests.swift */,
+				4EE25A8C80677A5C9C412D59 /* PricingClientTests.swift */,
+				7C2D118FF865D2FB3F724EE7 /* PricingTableTests.swift */,
 				6772A6AC85E2CC6A842CBB11 /* ProjectBreakdownTests.swift */,
 				8137041F7A6F5AED398C91AB /* ProjectFamilyTests.swift */,
 				8F53A9B591A91EBF57EB766A /* SegmentLabelingTests.swift */,
@@ -312,6 +322,7 @@
 				1AEFF3D8115EF35EAF713CD4 /* Models.swift */,
 				88B2B97B48D0A276A898A7DA /* Pace.swift */,
 				413E6223CCF026E3E2731016 /* PeriodReport.swift */,
+				9114624DC1DD0EDDB4ABAADE /* PricingTable.swift */,
 				53EE1D593320A6EDA9FD4F10 /* ProjectFamily.swift */,
 				3A2927AA5C9E74B2EF59DD2B /* StatsModels.swift */,
 				8227C3FD71A94C6C7A1FFD95 /* Theme.swift */,
@@ -326,6 +337,7 @@
 			children = (
 				BF78E655D9AB62828B52CF4F /* CLIVersionClient.swift */,
 				8E08CC7D6843B465A64E112E /* KeychainService.swift */,
+				F066501B315CAB9CC892C599 /* PricingClient.swift */,
 				1CA8E658AB6E8FC2B19EE223 /* SparkCredentialStore.swift */,
 				9ACF980668F9758E22A4C4F2 /* TranscriptFileWatcher.swift */,
 				C1FF02BEED49ADD5E98D7273 /* UsageClient.swift */,
@@ -447,6 +459,8 @@
 				B812C074D517A35B168134ED /* Pace.swift in Sources */,
 				DC92C49A8E33691424B97E61 /* PaceDaySeries.swift in Sources */,
 				E324EFE00547AEDA01AC5399 /* PeriodReport.swift in Sources */,
+				D5517A6402E6C75E16A63D07 /* PricingClient.swift in Sources */,
+				58B6989A66B8051CB6C0D114 /* PricingTable.swift in Sources */,
 				3F1A89DA07231B1D7A9792E0 /* ProjectFamily.swift in Sources */,
 				2B5482F401D35A0C693B441E /* RingComponents.swift in Sources */,
 				12966F355D1E8ED13F1EDBD3 /* SectionCard.swift in Sources */,
@@ -491,6 +505,8 @@
 				5E1ACEB65D7A3407F219B6B2 /* PaceDaySeriesTests.swift in Sources */,
 				F7BDC998401ADB90E47FD77E /* PaceTests.swift in Sources */,
 				1EC5961F3A1EFE04AAE33570 /* PeriodReportTests.swift in Sources */,
+				37F48EF817425026652B17E4 /* PricingClientTests.swift in Sources */,
+				1F489A5D9FE1C6DCD2569D01 /* PricingTableTests.swift in Sources */,
 				693801705E1CC3D02C37EC8B /* ProjectBreakdownTests.swift in Sources */,
 				6EAE2C80DA283D9F42E86707 /* ProjectFamilyTests.swift in Sources */,
 				C739509445C1BA2C5D099779 /* SegmentLabelingTests.swift in Sources */,
