@@ -21,9 +21,8 @@ struct ActiveSessionsView: View {
     private static let visibleLimit = 4
 
     /// Only the overflow beyond `visibleLimit` is gated behind a tap, not the whole section — the
-    /// common case stays fully glanceable with no interaction at all. No collapse-back-down
-    /// control: with this few extra rows, a second tap to hide them again isn't worth the
-    /// affordance.
+    /// common case stays fully glanceable with no interaction at all. The same line turns into
+    /// "Show less" once expanded, so the overflow can be hidden again.
     @State private var showAll = false
 
     private static let density = SectionDensity.compact
@@ -36,11 +35,11 @@ struct ActiveSessionsView: View {
                     ForEach(sessions.prefix(visibleCount)) { session in
                         ActiveSessionRow(session: session)
                     }
-                    if !showAll, sessions.count > Self.visibleLimit {
+                    if sessions.count > Self.visibleLimit {
                         Button {
-                            showAll = true
+                            showAll.toggle()
                         } label: {
-                            Text("+\(sessions.count - Self.visibleLimit) more")
+                            Text(showAll ? "Show less" : "+\(sessions.count - Self.visibleLimit) more")
                                 .font(.caption2)
                                 .foregroundColor(.secondary)
                         }
