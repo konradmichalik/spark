@@ -2,6 +2,16 @@ import Foundation
 
 // MARK: - Helpers
 
+/// USD with cents, in en_US grouping so the `$` amounts read the same in every system locale.
+func formatCost(_ dollars: Double) -> String {
+    if dollars > 0, dollars < 0.01 { return "<$0.01" }
+    let formatter = NumberFormatter()
+    formatter.locale = Locale(identifier: "en_US")
+    formatter.numberStyle = .currency
+    formatter.currencyCode = "USD"
+    return formatter.string(from: NSNumber(value: dollars)) ?? "$0.00"
+}
+
 func formatTokenCount(_ count: Int) -> String {
     if count >= 1_000_000_000 {
         return String(format: "%.1fB", Double(count) / 1_000_000_000)
@@ -56,6 +66,10 @@ struct LiveStats: Sendable {
     /// see `ProjectFamily`.
     let projectTotals: [String: Int]
     let projectDisplayNames: [String: String]
+    /// The full per-model split, cache reads included, which `modelTotals` leaves out. The cost
+    /// estimate needs it because cache reads are billed too.
+    let modelTokenTotals: [String: ModelTokenTotals]
+    let projectModelTotals: [String: [String: ModelTokenTotals]]
 
     init(
         period: StatsPeriod,
@@ -67,7 +81,9 @@ struct LiveStats: Sendable {
         cacheReadTokens: Int,
         modelTotals: [String: Int] = [:],
         projectTotals: [String: Int] = [:],
-        projectDisplayNames: [String: String] = [:]
+        projectDisplayNames: [String: String] = [:],
+        modelTokenTotals: [String: ModelTokenTotals] = [:],
+        projectModelTotals: [String: [String: ModelTokenTotals]] = [:]
     ) {
         self.period = period
         self.messageCount = messageCount
@@ -79,6 +95,8 @@ struct LiveStats: Sendable {
         self.modelTotals = modelTotals
         self.projectTotals = projectTotals
         self.projectDisplayNames = projectDisplayNames
+        self.modelTokenTotals = modelTokenTotals
+        self.projectModelTotals = projectModelTotals
     }
 
     var totalTokens: Int { inputTokens + outputTokens + cacheCreationTokens + cacheReadTokens }
@@ -200,7 +218,9 @@ enum LiveStatsParser {
             cacheReadTokens: transcripts.cacheRead,
             modelTotals: transcripts.modelTotals.mapValues { $0.real },
             projectTotals: transcripts.projectTotals.mapValues { $0.real },
-            projectDisplayNames: transcripts.projectDisplayNames
+            projectDisplayNames: transcripts.projectDisplayNames,
+            modelTokenTotals: transcripts.modelTotals,
+            projectModelTotals: transcripts.projectModelTotals
         )
     }
 

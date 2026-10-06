@@ -51,6 +51,16 @@ final class StatsModelsTests: XCTestCase {
         XCTAssertEqual(stats.totalTokens, 200)
     }
 
+    func testFormatCostShowsTwoDecimalsAndGroupsThousands() {
+        XCTAssertEqual(formatCost(12.346), "$12.35")
+        XCTAssertEqual(formatCost(1_234.5), "$1,234.50")
+    }
+
+    func testFormatCostShowsTinyAmountsAsBelowOneCent() {
+        XCTAssertEqual(formatCost(0.004), "<$0.01")
+        XCTAssertEqual(formatCost(0), "$0.00")
+    }
+
     func testFormattedTokensUsesCompactNotation() {
         let stats = LiveStats(
             period: .all,

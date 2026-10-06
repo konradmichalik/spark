@@ -168,9 +168,7 @@ enum TranscriptCache {
         totals.output += bucket.output
         totals.cacheCreation += bucket.cacheCreation
         totals.cacheRead += bucket.cacheRead
-        for (model, modelTotals) in bucket.perModel {
-            totals.modelTotals[model, default: ModelTokenTotals()].merge(modelTotals)
-        }
+        totals.addModels(bucket.perModel, project: project)
         if let project {
             totals.projectTotals[project, default: ProjectTokenTotals()].merge(ProjectTokenTotals(
                 input: bucket.input,

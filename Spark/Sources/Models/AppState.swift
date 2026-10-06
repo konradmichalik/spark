@@ -42,6 +42,8 @@ final class AppState: ObservableObject {
     @AppStorage("showFableUsage") var showFableUsage: Bool = true
     @AppStorage("showGraph") var showGraph: Bool = true
     @AppStorage("showProjection") var showProjection: Bool = true
+    /// Off by default: turning it on makes the report download the public price list.
+    @AppStorage("showApiCost") var showApiCost: Bool = false
     @AppStorage("refreshMode") var refreshMode: String = "smart"
     @AppStorage("refreshInterval") var refreshInterval: Double = 300
     @AppStorage("notificationsEnabled") var notificationsEnabled: Bool = true
@@ -949,10 +951,18 @@ final class AppState: ObservableObject {
         let cutoff = PeriodReport.windowStart(period: shownPeriod, periodOffset: shownOffset, rollups: rollups, now: now)
         let upperCutoff = PeriodReport.windowEnd(period: shownPeriod, periodOffset: shownOffset, rollups: rollups, now: now)
         let statsPeriodLabel: StatsPeriod = shownPeriod == .month ? .month : .week
+        let wantsCost = showApiCost
         Task.detached {
             let stats = await LiveStatsParser.parseStats(period: statsPeriodLabel, cutoffOverride: cutoff, upperCutoff: upperCutoff)
             let topProjects = stats?.topProjects(limit: 5) ?? []
             let modelTotals = stats?.modelTotals ?? [:]
+            var costSummary: CostSummary?
+            if wantsCost, let stats, let prices = await PricingClient.currentTable() {
+                costSummary = prices.summary(
+                    modelTotals: stats.modelTokenTotals,
+                    projectModelTotals: stats.projectModelTotals
+                )
+            }
             // Warms the rollup store with any newly-closed day the scan above just discovered,
             // the same way `refreshLiveStats` does — otherwise a report built right after launch
             // (or right after midnight) can be missing yesterday's rollup.
@@ -962,6 +972,7 @@ final class AppState: ObservableObject {
                     rollups: self.rollups,
                     modelTotals: modelTotals,
                     topProjects: topProjects,
+                    costSummary: costSummary,
                     period: shownPeriod,
                     periodOffset: shownOffset,
                     now: now

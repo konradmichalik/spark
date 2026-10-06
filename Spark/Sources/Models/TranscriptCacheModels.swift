@@ -118,7 +118,19 @@ struct TranscriptTotals: Equatable, Sendable {
     var cacheRead = 0
     var modelTotals: [String: ModelTokenTotals] = [:]
     var projectTotals: [String: ProjectTokenTotals] = [:]
+    /// Per project, then per raw model ID. Only the cost estimate needs it, since a price
+    /// belongs to a model, not to a project.
+    var projectModelTotals: [String: [String: ModelTokenTotals]] = [:]
     var projectDisplayNames: [String: String] = [:]
+
+    mutating func addModels(_ perModel: [String: ModelTokenTotals], project: String?) {
+        for (model, totals) in perModel {
+            modelTotals[model, default: ModelTokenTotals()].merge(totals)
+            if let project {
+                projectModelTotals[project, default: [:]][model, default: ModelTokenTotals()].merge(totals)
+            }
+        }
+    }
 }
 
 // MARK: - Store

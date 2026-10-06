@@ -49,6 +49,11 @@ actor LiveTranscriptCache {
             for (project, totals) in result.projectTotals {
                 combined.projectTotals[project, default: ProjectTokenTotals()].merge(totals)
             }
+            for (project, models) in result.projectModelTotals {
+                for (model, totals) in models {
+                    combined.projectModelTotals[project, default: [:]][model, default: ModelTokenTotals()].merge(totals)
+                }
+            }
             for (project, cwd) in result.projectDisplayNames where combined.projectDisplayNames[project] == nil {
                 combined.projectDisplayNames[project] = cwd
             }
