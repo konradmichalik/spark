@@ -221,6 +221,22 @@ final class StatsModelsTests: XCTestCase {
         XCTAssertEqual(stats.topProjects(limit: 2).map(\.key), ["-Users-b", "-Users-c"])
     }
 
+    func testTopProjectsOmitsProjectsWithoutTokens() {
+        let stats = LiveStats(
+            period: .today,
+            messageCount: 1,
+            sessionCount: 1,
+            inputTokens: 0,
+            outputTokens: 0,
+            cacheCreationTokens: 0,
+            cacheReadTokens: 0,
+            projectTotals: ["-Users-a": 10, "-Users-b": 0],
+            projectDisplayNames: [:]
+        )
+
+        XCTAssertEqual(stats.topProjects(limit: 5).map(\.key), ["-Users-a"])
+    }
+
     func testTopProjectsUsesResolvedDisplayNameWhenAvailable() {
         let stats = LiveStats(
             period: .today,
