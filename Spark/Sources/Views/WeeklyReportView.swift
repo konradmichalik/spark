@@ -91,7 +91,7 @@ struct WeeklyReportView: View {
             }
             .buttonStyle(.plain)
             .disabled(state.isLoadingWeeklyReport || !state.canGoToEarlierPeriod)
-            .help("Previous \(state.reportPeriod == .month ? "month" : "week")")
+            .tooltip("Previous \(state.reportPeriod == .month ? "month" : "week")")
             .accessibilityLabel("Previous \(state.reportPeriod == .month ? "month" : "week")")
 
             Spacer()
@@ -110,7 +110,7 @@ struct WeeklyReportView: View {
             }
             .buttonStyle(.plain)
             .disabled(state.isLoadingWeeklyReport || !state.canGoToLaterPeriod)
-            .help("Next \(state.reportPeriod == .month ? "month" : "week")")
+            .tooltip("Next \(state.reportPeriod == .month ? "month" : "week")")
             .accessibilityLabel("Next \(state.reportPeriod == .month ? "month" : "week")")
         }
     }

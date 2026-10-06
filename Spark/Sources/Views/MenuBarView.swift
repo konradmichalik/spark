@@ -82,14 +82,14 @@ struct MenuBarView: View {
                 TablerIconView(.calendarMonth, size: 13, color: .secondary)
             }
             .buttonStyle(.borderless)
-            .help("Usage Report")
+            .tooltip("Usage Report")
             .accessibilityLabel("Usage Report")
 
             SettingsLink {
                 TablerIconView(.settings, size: 13, color: .secondary, isDecorative: false)
             }
             .buttonStyle(.borderless)
-            .help("Settings")
+            .tooltip("Settings")
             .accessibilityLabel("Settings")
         }
     }
@@ -158,7 +158,7 @@ struct MenuBarView: View {
                 TablerIconView(.power, size: 12, color: .secondary, isDecorative: false)
             }
             .buttonStyle(.borderless)
-            .help("Quit")
+            .tooltip("Quit")
             .accessibilityLabel("Quit")
         }
     }
@@ -436,7 +436,8 @@ private struct StatsLine: View {
                 .font(.system(size: 11.5, design: .monospaced))
                 .foregroundColor(.primary)
         }
-        .help(tooltip ?? "")
+        .tooltip(tooltip)
+        .accessibilityHint(tooltip ?? "")
     }
 }
 
@@ -748,7 +749,7 @@ struct UsageRow: View {
                         TablerIconView(.chartLine, size: 10, color: projectionIconColor, isDecorative: false)
                     })
                     .buttonStyle(.plain)
-                    .help("Usage projection")
+                    .tooltip("Usage projection")
                     .accessibilityLabel("Usage projection")
                     .popover(isPresented: $showProjectionPopover, arrowEdge: .bottom) {
                         VStack(spacing: 6) {
@@ -812,7 +813,8 @@ struct UsageRow: View {
                     pace: pace
                 )
                 .frame(height: 6)
-                .help(paceDescription ?? "")
+                .tooltip(paceDescription)
+                .accessibilityHint(paceDescription ?? "")
 
                 Text("\(Int(utilization))%")
                     .font(.system(size: 13, weight: .semibold, design: .monospaced))
@@ -967,7 +969,7 @@ struct RefreshButton: View {
         .buttonStyle(.borderless)
         .disabled(isLoading)
         .opacity(isLoading ? 0.5 : 1)
-        .help(isLoading ? "Refreshing\u{2026}" : "Refresh")
+        .tooltip(isLoading ? "Refreshing\u{2026}" : "Refresh")
         .accessibilityLabel(isLoading ? "Refreshing" : "Refresh")
         .task(id: isLoading) {
             guard isLoading else { return }

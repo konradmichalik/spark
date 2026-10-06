@@ -62,7 +62,8 @@ struct ActiveSessionsView: View {
                 .fontWeight(.semibold)
                 .foregroundColor(.secondary)
         }
-        .help("Sessions with activity in the last 5 minutes")
+        .tooltip("Sessions with activity in the last 5 minutes")
+        .accessibilityHint("Sessions with activity in the last 5 minutes")
     }
 }
 
@@ -81,7 +82,8 @@ private struct ActiveSessionRow: View {
                 content
             }
             .buttonStyle(.plain)
-            .help("Reveal \(cwd) in Finder")
+            .tooltip("Reveal \(cwd) in Finder")
+            .accessibilityHint("Reveal \(cwd) in Finder")
             .contextMenu {
                 Button("Reveal in Finder") {
                     NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: cwd)])
