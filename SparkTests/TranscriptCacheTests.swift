@@ -406,6 +406,42 @@ final class TranscriptCacheTests: XCTestCase {
         XCTAssertEqual(result.modelTotals["claude-opus-5"]?.total, 1_017)
     }
 
+    func testPerModelTotalsKeepTheOneHourShareOfCacheWrites() throws {
+        let content = """
+        {"message":{"id":"a","role":"assistant","model":"claude-opus-5",\
+        "usage":{"input_tokens":10,"output_tokens":5,"cache_creation_input_tokens":300,"cache_read_input_tokens":0,\
+        "cache_creation":{"ephemeral_5m_input_tokens":100,"ephemeral_1h_input_tokens":200}}},\
+        "timestamp":"\(isoString(daysAgo: 0))","requestId":"req_a"}
+        {"message":{"id":"b","role":"assistant","model":"claude-opus-5",\
+        "usage":{"input_tokens":0,"output_tokens":0,"cache_creation_input_tokens":50,"cache_read_input_tokens":0}},\
+        "timestamp":"\(isoString(daysAgo: 0))","requestId":"req_b"}\n
+        """
+        try content.write(to: fileURL, atomically: false, encoding: .utf8)
+
+        var store = TranscriptCacheStore.empty
+        let result = TranscriptCache.aggregate(claudeDir: tempDir, cutoff: nil, store: &store)
+
+        let totals = try XCTUnwrap(result.modelTotals["claude-opus-5"])
+        XCTAssertEqual(totals.cacheCreation, 350, "the 1h share is a subset, not added on top")
+        XCTAssertEqual(totals.cacheCreation1h, 200, "an entry without the breakdown counts as 5m")
+        XCTAssertEqual(totals.total, 365)
+    }
+
+    func testOneHourShareNeverExceedsTheCacheWriteTotal() throws {
+        let content = """
+        {"message":{"id":"a","role":"assistant","model":"claude-opus-5",\
+        "usage":{"input_tokens":0,"output_tokens":0,"cache_read_input_tokens":0,\
+        "cache_creation":{"ephemeral_1h_input_tokens":200}}},\
+        "timestamp":"\(isoString(daysAgo: 0))","requestId":"req_a"}\n
+        """
+        try content.write(to: fileURL, atomically: false, encoding: .utf8)
+
+        var store = TranscriptCacheStore.empty
+        let result = TranscriptCache.aggregate(claudeDir: tempDir, cutoff: nil, store: &store)
+
+        XCTAssertEqual(result.modelTotals["claude-opus-5"]?.cacheCreation1h, 0)
+    }
+
     func testProjectModelTotalsSplitEachProjectByModel() throws {
         let content = line(input: 100, output: 0, isoDate: isoString(daysAgo: 0), messageId: "a", model: "claude-opus-5") + "\n" +
             line(input: 30, output: 0, isoDate: isoString(daysAgo: 0), messageId: "b", model: "claude-sonnet-5") + "\n"

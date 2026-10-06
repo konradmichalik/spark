@@ -6,10 +6,10 @@ final class PricingClientTests: XCTestCase {
 
     private let now = Date(timeIntervalSince1970: 1_800_000_000)
     private let fresh = PricingTable(prices: [
-        "claude-sonnet-5-5": ModelPrice(input: 3e-6, output: 15e-6, cacheCreation: 3.75e-6, cacheRead: 3e-7)
+        "claude-sonnet-5-5": ModelPrice(input: 3e-6, output: 15e-6, cacheCreation: 3.75e-6, cacheCreation1h: 6e-6, cacheRead: 3e-7)
     ])
     private let old = PricingTable(prices: [
-        "claude-sonnet-4-5": ModelPrice(input: 3e-6, output: 15e-6, cacheCreation: 3.75e-6, cacheRead: 3e-7)
+        "claude-sonnet-4-5": ModelPrice(input: 3e-6, output: 15e-6, cacheCreation: 3.75e-6, cacheCreation1h: 6e-6, cacheRead: 3e-7)
     ])
 
     override func setUpWithError() throws {

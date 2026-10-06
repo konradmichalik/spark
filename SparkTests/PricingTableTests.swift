@@ -11,6 +11,7 @@ final class PricingTableTests: XCTestCase {
         "input_cost_per_token": 0.000005,
         "output_cost_per_token": 0.000025,
         "cache_creation_input_token_cost": 0.00000625,
+        "cache_creation_input_token_cost_above_1hr": 0.00001,
         "cache_read_input_token_cost": 5e-7
       },
       "claude-sonnet-5-5": {
@@ -29,12 +30,13 @@ final class PricingTableTests: XCTestCase {
         XCTAssertEqual(Set(table.prices.keys), ["claude-opus-4-5-20251101", "claude-sonnet-5-5"])
     }
 
-    func testParseReadsAllFourTokenPrices() throws {
+    func testParseReadsAllTokenPrices() throws {
         let price = try XCTUnwrap(PricingTable.parse(sample).prices["claude-opus-4-5-20251101"])
 
         XCTAssertEqual(price.input, 0.000005, accuracy: 1e-12)
         XCTAssertEqual(price.output, 0.000025, accuracy: 1e-12)
         XCTAssertEqual(price.cacheCreation, 0.00000625, accuracy: 1e-12)
+        XCTAssertEqual(price.cacheCreation1h, 0.00001, accuracy: 1e-12)
         XCTAssertEqual(price.cacheRead, 5e-7, accuracy: 1e-12)
     }
 
@@ -42,6 +44,7 @@ final class PricingTableTests: XCTestCase {
         let price = try XCTUnwrap(PricingTable.parse(sample).prices["claude-sonnet-5-5"])
 
         XCTAssertEqual(price.cacheCreation, 0.000003 * 1.25, accuracy: 1e-12)
+        XCTAssertEqual(price.cacheCreation1h, 0.000003 * 2, accuracy: 1e-12)
         XCTAssertEqual(price.cacheRead, 0.000003 * 0.1, accuracy: 1e-12)
     }
 
@@ -93,6 +96,16 @@ final class PricingTableTests: XCTestCase {
         // 5 + 2.5 + 1.25 + 2.0
         XCTAssertEqual(cost.total, 10.75, accuracy: 1e-9)
         XCTAssertTrue(cost.unpricedModels.isEmpty)
+    }
+
+    func testCostPricesOneHourCacheWritesAtTheOneHourRate() throws {
+        let table = try PricingTable.parse(sample)
+        let totals = ModelTokenTotals(input: 0, output: 0, cacheCreation: 1_000_000, cacheRead: 0, cacheCreation1h: 800_000)
+
+        let cost = table.cost(forModelTotals: ["claude-opus-4-5-20251101": totals])
+
+        // 200k at 5m (1.25) + 800k at 1h (8.0)
+        XCTAssertEqual(cost.total, 9.25, accuracy: 1e-9)
     }
 
     func testCostReportsModelsWithoutPriceInsteadOfCountingThem() throws {

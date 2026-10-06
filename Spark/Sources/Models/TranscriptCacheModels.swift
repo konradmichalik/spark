@@ -1,5 +1,49 @@
 import Foundation
 
+// MARK: - Transcript lines
+
+extension TranscriptCache {
+    struct SessionEntry: Decodable {
+        let message: SessionMessage?
+        let timestamp: String?
+        let sessionId: String?
+        let requestId: String?
+        let cwd: String?
+    }
+
+    struct SessionMessage: Decodable {
+        let id: String?
+        let role: String?
+        let model: String?
+        let usage: TokenUsage?
+    }
+
+    struct TokenUsage: Decodable {
+        let inputTokens: Int?
+        let outputTokens: Int?
+        let cacheCreationTokens: Int?
+        let cacheReadTokens: Int?
+        /// Missing in older transcripts, whose cache writes then count as 5-minute writes.
+        let cacheCreation: CacheCreationBreakdown?
+        // swiftlint:disable:next nesting
+        enum CodingKeys: String, CodingKey {
+            case inputTokens = "input_tokens"
+            case outputTokens = "output_tokens"
+            case cacheCreationTokens = "cache_creation_input_tokens"
+            case cacheReadTokens = "cache_read_input_tokens"
+            case cacheCreation = "cache_creation"
+        }
+    }
+
+    struct CacheCreationBreakdown: Decodable {
+        let oneHourTokens: Int?
+        // swiftlint:disable:next nesting
+        enum CodingKeys: String, CodingKey {
+            case oneHourTokens = "ephemeral_1h_input_tokens"
+        }
+    }
+}
+
 // MARK: - Daily aggregate
 
 /// Token totals for one model on one day. Keyed by the raw model ID (e.g. `claude-opus-4-6`) —
@@ -10,6 +54,8 @@ struct ModelTokenTotals: Codable, Equatable, Sendable {
     var output = 0
     var cacheCreation = 0
     var cacheRead = 0
+    /// The part of `cacheCreation` written to the 1-hour cache, which is billed at a higher rate.
+    var cacheCreation1h = 0
 
     var total: Int { input + output + cacheCreation + cacheRead }
 
@@ -22,6 +68,7 @@ struct ModelTokenTotals: Codable, Equatable, Sendable {
         output += other.output
         cacheCreation += other.cacheCreation
         cacheRead += other.cacheRead
+        cacheCreation1h += other.cacheCreation1h
     }
 }
 
@@ -136,7 +183,7 @@ struct TranscriptTotals: Equatable, Sendable {
 // MARK: - Store
 
 struct TranscriptCacheStore: Codable, Equatable, Sendable {
-    static let currentSchemaVersion = 2
+    static let currentSchemaVersion = 3
     static let empty = TranscriptCacheStore(schemaVersion: currentSchemaVersion, files: [:])
 
     var schemaVersion: Int

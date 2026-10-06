@@ -19,21 +19,6 @@ import Foundation
 /// Day-bucket granularity means the `7d`/`30d` boundary rounds down to the cutoff's calendar day
 /// rather than the exact hour — widens the window slightly, never narrows it, for O(1) switching.
 enum TranscriptCache {
-    struct SessionEntry: Decodable {
-        let message: SessionMessage?
-        let timestamp: String?
-        let sessionId: String?
-        let requestId: String?
-        let cwd: String?
-    }
-
-    struct SessionMessage: Decodable {
-        let id: String?
-        let role: String?
-        let model: String?
-        let usage: TokenUsage?
-    }
-
     /// Locally generated messages (e.g. API error notices) rather than billable inference —
     /// must never appear as a model in the per-model breakdown.
     static let syntheticModelMarker = "<synthetic>"
@@ -42,20 +27,6 @@ enum TranscriptCache {
     /// scale, wide enough to absorb `Date`-to-`timespec` rounding noise, far too narrow for two
     /// genuinely separate writes to ever fall inside it.
     private static let mtimeTolerance: TimeInterval = 0.000_001
-
-    struct TokenUsage: Decodable {
-        let inputTokens: Int?
-        let outputTokens: Int?
-        let cacheCreationTokens: Int?
-        let cacheReadTokens: Int?
-        // swiftlint:disable:next nesting
-        enum CodingKeys: String, CodingKey {
-            case inputTokens = "input_tokens"
-            case outputTokens = "output_tokens"
-            case cacheCreationTokens = "cache_creation_input_tokens"
-            case cacheReadTokens = "cache_read_input_tokens"
-        }
-    }
 
     /// Skips assistant entries sharing a `(message.id, requestId)` pair already seen — Claude Code
     /// writes duplicate usage-bearing entries per response (one per streamed block, e.g. text +
@@ -375,7 +346,8 @@ enum TranscriptCache {
             input: usage.inputTokens ?? 0,
             output: usage.outputTokens ?? 0,
             cacheCreation: usage.cacheCreationTokens ?? 0,
-            cacheRead: usage.cacheReadTokens ?? 0
+            cacheRead: usage.cacheReadTokens ?? 0,
+            cacheCreation1h: min(usage.cacheCreation?.oneHourTokens ?? 0, usage.cacheCreationTokens ?? 0)
         ))
     }
 

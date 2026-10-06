@@ -4,13 +4,16 @@ import Foundation
 struct ModelPrice: Codable, Equatable, Sendable {
     let input: Double
     let output: Double
+    /// The 5-minute cache write rate.
     let cacheCreation: Double
+    let cacheCreation1h: Double
     let cacheRead: Double
 
     func cost(of totals: ModelTokenTotals) -> Double {
         Double(totals.input) * input
             + Double(totals.output) * output
-            + Double(totals.cacheCreation) * cacheCreation
+            + Double(totals.cacheCreation - totals.cacheCreation1h) * cacheCreation
+            + Double(totals.cacheCreation1h) * cacheCreation1h
             + Double(totals.cacheRead) * cacheRead
     }
 }
@@ -38,6 +41,7 @@ struct PricingTable: Codable, Equatable, Sendable {
     /// Cache write and cache read are billed as multiples of the input price, used when the
     /// source omits them.
     private static let cacheCreationMultiplier = 1.25
+    private static let cacheCreation1hMultiplier = 2.0
     private static let cacheReadMultiplier = 0.1
 
     static func parse(_ data: Data) throws -> PricingTable {
@@ -54,6 +58,8 @@ struct PricingTable: Codable, Equatable, Sendable {
                 output: output,
                 cacheCreation: entry["cache_creation_input_token_cost"] as? Double
                     ?? input * cacheCreationMultiplier,
+                cacheCreation1h: entry["cache_creation_input_token_cost_above_1hr"] as? Double
+                    ?? input * cacheCreation1hMultiplier,
                 cacheRead: entry["cache_read_input_token_cost"] as? Double
                     ?? input * cacheReadMultiplier
             )
