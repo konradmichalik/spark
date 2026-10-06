@@ -4,14 +4,40 @@ import Foundation
 struct ModelPrice: Codable, Equatable, Sendable {
     let input: Double
     let output: Double
+    /// The 5-minute cache write rate.
     let cacheCreation: Double
+    let cacheCreation1h: Double
     let cacheRead: Double
 
     func cost(of totals: ModelTokenTotals) -> Double {
         Double(totals.input) * input
             + Double(totals.output) * output
-            + Double(totals.cacheCreation) * cacheCreation
+            + Double(totals.cacheCreation - totals.cacheCreation1h) * cacheCreation
+            + Double(totals.cacheCreation1h) * cacheCreation1h
             + Double(totals.cacheRead) * cacheRead
+    }
+}
+
+extension ModelPrice {
+    static let cacheCreation1hMultiplier = 2.0
+
+    private enum CodingKeys: String, CodingKey {
+        case input, output, cacheCreation, cacheCreation1h, cacheRead
+    }
+
+    /// A `pricing.json` cached before the 1h rate existed has no `cacheCreation1h`. Deriving it
+    /// keeps that cache usable as the offline fallback instead of failing to decode.
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let input = try container.decode(Double.self, forKey: .input)
+        self.init(
+            input: input,
+            output: try container.decode(Double.self, forKey: .output),
+            cacheCreation: try container.decode(Double.self, forKey: .cacheCreation),
+            cacheCreation1h: try container.decodeIfPresent(Double.self, forKey: .cacheCreation1h)
+                ?? input * Self.cacheCreation1hMultiplier,
+            cacheRead: try container.decode(Double.self, forKey: .cacheRead)
+        )
     }
 }
 
@@ -54,6 +80,8 @@ struct PricingTable: Codable, Equatable, Sendable {
                 output: output,
                 cacheCreation: entry["cache_creation_input_token_cost"] as? Double
                     ?? input * cacheCreationMultiplier,
+                cacheCreation1h: entry["cache_creation_input_token_cost_above_1hr"] as? Double
+                    ?? input * ModelPrice.cacheCreation1hMultiplier,
                 cacheRead: entry["cache_read_input_token_cost"] as? Double
                     ?? input * cacheReadMultiplier
             )
