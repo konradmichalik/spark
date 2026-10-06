@@ -203,7 +203,8 @@ enum TranscriptCache {
                 dailyBuckets: mergedBuckets,
                 seenDedupKeys: appended.seenDedupKeys,
                 discoveredCwd: existing.discoveredCwd ?? appended.discoveredCwd,
-                lastContextTokens: appended.lastContextTokens
+                lastContextTokens: appended.lastContextTokens,
+                recentTurns: BurnRate.pruned(existing.recentTurns + appended.recentTurns)
             )
         }
 
@@ -216,7 +217,8 @@ enum TranscriptCache {
             dailyBuckets: full.buckets,
             seenDedupKeys: full.seenDedupKeys,
             discoveredCwd: full.discoveredCwd,
-            lastContextTokens: full.lastContextTokens
+            lastContextTokens: full.lastContextTokens,
+            recentTurns: BurnRate.pruned(full.recentTurns)
         )
     }
 
@@ -227,6 +229,7 @@ enum TranscriptCache {
         var seenDedupKeys: Set<DedupKey>
         var discoveredCwd: String?
         var lastContextTokens: Int?
+        var recentTurns: [TurnSample] = []
     }
 
     /// Parses only complete (newline-terminated) lines, leaving any unterminated trailing line
@@ -275,7 +278,8 @@ enum TranscriptCache {
             offset: byteOffset + Int64(complete.count),
             seenDedupKeys: state.dedup.seenKeys,
             discoveredCwd: state.discoveredCwd,
-            lastContextTokens: state.lastContextTokens
+            lastContextTokens: state.lastContextTokens,
+            recentTurns: state.recentTurns
         )
     }
 
@@ -285,6 +289,7 @@ enum TranscriptCache {
         var dedup: TokenDeduplicator
         var discoveredCwd: String?
         var lastContextTokens: Int?
+        var recentTurns: [TurnSample] = []
     }
 
     /// Decodes one line and folds it into `state.buckets`. Session-ID resolution must not be
@@ -332,6 +337,8 @@ enum TranscriptCache {
         bucket.output += usage.outputTokens ?? 0
         bucket.cacheCreation += usage.cacheCreationTokens ?? 0
         bucket.cacheRead += usage.cacheReadTokens ?? 0
+        let freshTokens = (usage.inputTokens ?? 0) + (usage.outputTokens ?? 0) + (usage.cacheCreationTokens ?? 0)
+        state.recentTurns.append(TurnSample(date: entryDate, tokens: freshTokens))
 
         applyModelAttribution(to: &bucket, entry: entry, usage: usage)
 

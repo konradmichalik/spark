@@ -73,6 +73,7 @@ final class AppState: ObservableObject {
     @AppStorage("statsPeriod") private(set) var statsPeriod: StatsPeriod = .today
     @Published var isLoadingStats: Bool = false
     @Published private(set) var activeSessions: [ActiveSession] = []
+    @Published private(set) var burnRate: BurnRate?
     @Published private(set) var weeklyReport: PeriodReport?
     @Published private(set) var isLoadingWeeklyReport: Bool = false
     @Published private(set) var reportPeriod: ReportPeriod = .week
@@ -909,14 +910,16 @@ final class AppState: ObservableObject {
         }
     }
 
-    /// Derives the active-sessions list from whatever the transcript cache currently holds — no
-    /// scan of its own, so this is cheap enough to also call from `activeSessionsTicker` purely to
-    /// let a session's activity expire with the passage of time.
+    /// Derives the active-sessions list and the burn rate from whatever the transcript cache
+    /// currently holds — no scan of its own, so this is cheap enough to also call from
+    /// `activeSessionsTicker` purely to let both expire with the passage of time.
     func refreshActiveSessions() async {
         let roots = ClaudeConfigDirectory.resolveCurrent().roots
         let sessions = await LiveTranscriptCache.shared.activeSessions(claudeDirs: roots)
+        let rate = await LiveTranscriptCache.shared.burnRate()
         await MainActor.run {
             self.activeSessions = sessions
+            self.burnRate = rate
         }
     }
 
@@ -924,7 +927,9 @@ final class AppState: ObservableObject {
     /// a stale session needs no filesystem scan, but it does need *something* to notice the clock
     /// moved on, since nothing else re-evaluates the active window once the popover is showing.
     func startActiveSessionTicker() {
-        guard showActiveSessions, activeSessionsTicker == nil else { return }
+        guard showActiveSessions || showProjection, activeSessionsTicker == nil else { return }
+        // The first tick is 30s away, and after a long idle the shown values may be far older.
+        Task { await refreshActiveSessions() }
         activeSessionsTicker = Timer.scheduledTimer(withTimeInterval: Self.activeSessionsTickInterval, repeats: true) { [weak self] _ in
             Task { @MainActor in
                 await self?.refreshActiveSessions()

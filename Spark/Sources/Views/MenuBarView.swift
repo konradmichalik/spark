@@ -239,7 +239,8 @@ extension MenuBarView {
                     utilization: session.utilization,
                     resetsAt: session.resetsAtDate,
                     windowLength: Self.fiveHours
-                )
+                ),
+                burnRate: state.showProjection ? state.burnRate : nil
             )
         }
     }
@@ -681,6 +682,15 @@ struct UsageRow: View {
     var localTokens: String?
     /// Pace for this bucket's window — see `Pace.calculate`. `nil` omits the marker entirely.
     var pace: Pace.Result?
+    /// Local burn rate, shown alongside the label — see `BurnRate`. `nil` renders nothing.
+    var burnRate: BurnRate?
+
+    private var burnRateDescription: String? {
+        guard let burnRate else { return nil }
+        let minutes = Int(BurnRate.window / 60)
+        return "Burn rate: \(burnRate.tier.label). \(formatTokenCount(burnRate.tokensPerMinute)) fresh tokens per minute "
+            + "across all sessions, averaged over the last \(minutes) minutes. Cache reads are not counted."
+    }
 
     private var paceDescription: String? {
         guard let pace else { return nil }
@@ -760,6 +770,14 @@ struct UsageRow: View {
                     Text("· \(localTokens) local")
                         .font(.caption2)
                         .foregroundColor(.secondary)
+                }
+
+                if let burnRate {
+                    Text("· \(formatTokenCount(burnRate.tokensPerMinute))/min")
+                        .font(.caption2)
+                        .foregroundColor(Theme.burnRateColor(for: burnRate.tier))
+                        .tooltip(burnRateDescription)
+                        .accessibilityLabel(burnRateDescription ?? "")
                 }
 
                 if projectionTitle != nil {

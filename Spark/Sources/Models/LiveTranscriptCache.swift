@@ -77,6 +77,13 @@ actor LiveTranscriptCache {
         return ActiveSessionResolver.resolve(files: current.files, projectsDirs: projectsDirs, now: now, window: window)
     }
 
+    /// Like `activeSessions`, reads whatever the cache currently holds, so the rate decays with
+    /// `now` without a rescan.
+    func burnRate(now: Date = Date()) -> BurnRate? {
+        let current = store ?? TranscriptCachePersistence.load()
+        return BurnRate.calculate(files: Array(current.files.values), now: now)
+    }
+
     /// Every calendar day strictly before today, merged across every cached file's day buckets —
     /// the source data for permanent rollups. Reads whatever the cache currently holds (loading
     /// from disk if this is the first call this launch) without triggering a fresh scan; call
