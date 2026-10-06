@@ -28,7 +28,7 @@ make build    # release build (runs xcodegen first)
 make clean    # remove build artifacts and the generated .xcodeproj
 ```
 
-- Never edit the generated `.xcodeproj` by hand and never commit changes to it
+- `Spark.xcodeproj` is generated and git-ignored: run `make xcode` after cloning and after adding or removing files, never edit it by hand
 - To add an icon: add the case to the `TablerIcon` enum, add the raw Tabler asset name (for example `adjustments-horizontal`, not the Swift case name) to the `ICONS` array in `scripts/fetch-tabler-icons.sh`, run the script, then `make xcode`. A missed step fails `TablerIconTests`
 
 ## Testing
