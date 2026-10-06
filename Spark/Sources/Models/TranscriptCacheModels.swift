@@ -150,6 +150,8 @@ struct FileParseCache: Codable, Equatable, Sendable {
     /// not "first seen wins": it's overwritten by every newer usage-bearing line, carrying
     /// forward unchanged across an incremental scan that finds no new one.
     var lastContextTokens: Int?
+    /// Counted turns of the last `BurnRate.window`, the input for `BurnRate.calculate`.
+    var recentTurns: [TurnSample] = []
 }
 
 // MARK: - Aggregated totals
@@ -183,7 +185,7 @@ struct TranscriptTotals: Equatable, Sendable {
 // MARK: - Store
 
 struct TranscriptCacheStore: Codable, Equatable, Sendable {
-    static let currentSchemaVersion = 3
+    static let currentSchemaVersion = 4
     static let empty = TranscriptCacheStore(schemaVersion: currentSchemaVersion, files: [:])
 
     var schemaVersion: Int

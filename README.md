@@ -24,7 +24,7 @@ Learn more at <a href="https://konradmichalik.github.io/spark/">konradmichalik.g
 - **Usage ring** in the menu bar that fills based on current usage: ring color shifts green → orange → red as you approach your limit
 - **Account tier badge** showing your plan (Pro, Max, Team, etc.) directly in the popover header
 - **Session, Weekly, Sonnet, Opus & Fable usage** with progress bars, countdown timers to the next reset, a six-tier color-coded pace marker (Comfortable → Runaway) showing whether you're tracking ahead of or behind an even-pace budget, and a pay-as-you-go extra-usage line when you exceed plan limits
-- **Session projection** that estimates whether you'll hit the limit before the reset window closes
+- **Session projection** that estimates whether you'll hit the limit before the reset window closes, plus a live **burn rate** (fresh tokens per minute over the last 15 minutes, read from your local transcripts) that reacts before the next API poll
 - **Usage history graph** with two modes: **Limits** (time-proportional utilization line chart, selectable 1h–30d) and **Volume** (daily token bar chart from permanent history, 7d/30d), both with hover tooltips
 - **Stats for any period** (Today / 7d / 30d / All): message count, session count, token totals, local per-model (Sonnet/Opus/Fable) attribution, and a collapsible **Top Projects** breakdown by token volume
 - **Active Sessions**: see which Claude Code sessions have had activity in the last 5 minutes, by project
