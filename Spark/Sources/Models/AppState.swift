@@ -68,6 +68,8 @@ final class AppState: ObservableObject {
     // MARK: - Stats
 
     @Published var liveStats: LiveStats?
+    /// The API cost estimate for `liveStats`. `nil` while the setting is off or no prices loaded.
+    @Published private(set) var liveCost: CostSummary?
     @AppStorage("statsPeriod") private(set) var statsPeriod: StatsPeriod = .today
     @Published var isLoadingStats: Bool = false
     @Published private(set) var activeSessions: [ActiveSession] = []
@@ -883,13 +885,19 @@ final class AppState: ObservableObject {
 
     func refreshLiveStats() {
         let period = statsPeriod
+        let wantsCost = showApiCost
         isLoadingStats = true
         Task.detached {
             let stats = await LiveStatsParser.parseStats(period: period)
+            var cost: CostSummary?
+            if wantsCost, let stats, let prices = await PricingClient.currentTable() {
+                cost = prices.summary(modelTotals: stats.modelTokenTotals, projectModelTotals: stats.projectModelTotals)
+            }
             await MainActor.run {
                 // Discard results from a stale request if the period changed while parsing ran.
                 guard period == self.statsPeriod else { return }
                 self.liveStats = stats
+                self.liveCost = cost
                 self.isLoadingStats = false
             }
             // Runs after parseStats has warmed the transcript cache for this launch, so this

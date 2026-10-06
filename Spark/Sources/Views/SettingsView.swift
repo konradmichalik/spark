@@ -398,10 +398,12 @@ struct GeneralTab: View {
 
                     Toggle(isOn: $state.showApiCost) {
                         SettingLabel(
-                            title: "API Cost in Report",
-                            subtitle: "Estimate the pay-as-you-go cost. Downloads the public price list from GitHub once a day."
+                            title: "API Cost Estimate",
+                            subtitle: "Estimate the pay-as-you-go cost in Stats and the report. "
+                                + "Downloads the public price list from GitHub once a day."
                         )
                     }
+                    .onChange(of: state.showApiCost) { state.refreshLiveStats() }
                 }
 
                 SectionHeader("Startup", icon: .power)

@@ -35,6 +35,7 @@ struct MenuBarView: View {
                     period: state.statsPeriod,
                     isLoading: state.isLoadingStats,
                     showProjectBreakdown: state.showProjectBreakdown,
+                    cost: state.showApiCost ? state.liveCost : nil,
                     onSelectPeriod: state.setStatsPeriod
                 )
             }
@@ -383,9 +384,16 @@ struct StatsRow: View {
     let period: StatsPeriod
     let isLoading: Bool
     let showProjectBreakdown: Bool
+    let cost: CostSummary?
     let onSelectPeriod: (StatsPeriod) -> Void
 
     private static let density = SectionDensity.compact
+
+    private static func costTooltip(_ cost: CostSummary) -> String {
+        let estimate = "Estimated at public pay-as-you-go API prices, not what the subscription costs."
+        guard !cost.unpricedModels.isEmpty else { return estimate }
+        return estimate + " No price for \(cost.unpricedModels.joined(separator: ", ")), not included."
+    }
 
     var body: some View {
         if liveStats != nil || isLoading {
@@ -396,9 +404,12 @@ struct StatsRow: View {
                         StatsLine(label: "Messages", value: "\(live.messageCount)")
                         StatsLine(label: "Sessions", value: "\(live.sessionCount)")
                         StatsLine(label: "Tokens", value: live.formattedTokens, tooltip: live.tokenBreakdown)
+                        if let cost {
+                            StatsLine(label: "API cost", value: "≈ \(formatCost(cost.total))", tooltip: Self.costTooltip(cost))
+                        }
 
                         if showProjectBreakdown {
-                            ProjectBreakdownDisclosure(liveStats: live)
+                            ProjectBreakdownDisclosure(liveStats: live, costByProject: cost?.byProject)
                         }
                     }
                 }
@@ -451,6 +462,7 @@ private struct StatsLine: View {
 /// breakdown is the kind of detail someone drills into occasionally, not on every glance.
 private struct ProjectBreakdownDisclosure: View {
     let liveStats: LiveStats
+    let costByProject: [String: Double]?
     @State private var isExpanded = false
     @State private var showAll = false
 
@@ -552,7 +564,7 @@ private struct ProjectBreakdownDisclosure: View {
     private func projectList(_ projects: [ProjectUsage]) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             ForEach(projects) { project in
-                ProjectLine(project: project, maxTokens: maxTokens)
+                ProjectLine(project: project, maxTokens: maxTokens, cost: costByProject?[project.key])
             }
         }
     }
@@ -561,6 +573,7 @@ private struct ProjectBreakdownDisclosure: View {
 private struct ProjectLine: View {
     let project: ProjectUsage
     let maxTokens: Int
+    let cost: Double?
 
     private var share: CGFloat {
         maxTokens > 0 ? CGFloat(project.tokens) / CGFloat(maxTokens) : 0
@@ -595,6 +608,11 @@ private struct ProjectLine: View {
                     .lineLimit(1)
                     .truncationMode(.middle)
                 Spacer()
+                if let cost {
+                    Text(formatCost(cost))
+                        .font(.system(.caption2, design: .monospaced))
+                        .foregroundColor(.secondary)
+                }
                 Text(formatTokenCount(project.tokens))
                     .font(.system(.caption2, design: .monospaced))
                     .foregroundColor(.secondary)
