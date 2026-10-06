@@ -70,6 +70,7 @@ struct LiveStats: Sendable {
     /// estimate needs it because cache reads are billed too.
     let modelTokenTotals: [String: ModelTokenTotals]
     let projectModelTotals: [String: [String: ModelTokenTotals]]
+    let sessionTotals: [String: SessionTotals]
 
     init(
         period: StatsPeriod,
@@ -83,7 +84,8 @@ struct LiveStats: Sendable {
         projectTotals: [String: Int] = [:],
         projectDisplayNames: [String: String] = [:],
         modelTokenTotals: [String: ModelTokenTotals] = [:],
-        projectModelTotals: [String: [String: ModelTokenTotals]] = [:]
+        projectModelTotals: [String: [String: ModelTokenTotals]] = [:],
+        sessionTotals: [String: SessionTotals] = [:]
     ) {
         self.period = period
         self.messageCount = messageCount
@@ -97,6 +99,7 @@ struct LiveStats: Sendable {
         self.projectDisplayNames = projectDisplayNames
         self.modelTokenTotals = modelTokenTotals
         self.projectModelTotals = projectModelTotals
+        self.sessionTotals = sessionTotals
     }
 
     var totalTokens: Int { inputTokens + outputTokens + cacheCreationTokens + cacheReadTokens }
@@ -128,7 +131,7 @@ struct LiveStats: Sendable {
     func topProjects(limit: Int) -> [ProjectUsage] {
         projectTotals
             .filter { $0.value > 0 }
-            .sorted { $0.value > $1.value }
+            .sorted { $0.value != $1.value ? $0.value > $1.value : $0.key < $1.key }
             .prefix(limit)
             .map { key, tokens in
                 ProjectUsage(
@@ -139,6 +142,32 @@ struct LiveStats: Sendable {
                 )
             }
     }
+
+    /// Top sessions by the same token measure as `topProjects`.
+    func topSessions(limit: Int) -> [SessionUsage] {
+        sessionTotals
+            .filter { $0.value.real > 0 }
+            .sorted { $0.value.real != $1.value.real ? $0.value.real > $1.value.real : $0.key < $1.key }
+            .prefix(limit)
+            .map { id, session in
+                SessionUsage(
+                    id: id,
+                    displayName: ProjectFamily.displayName(forKey: session.projectKey, cwd: projectDisplayNames[session.projectKey]),
+                    tokens: session.real,
+                    start: session.activity?.first,
+                    duration: session.activity?.duration
+                )
+            }
+    }
+}
+
+struct SessionUsage: Identifiable, Sendable {
+    /// The session ID, also the key into `CostSummary.bySession`.
+    let id: String
+    let displayName: String
+    let tokens: Int
+    let start: Date?
+    let duration: TimeInterval?
 }
 
 struct ProjectUsage: Identifiable, Sendable {
@@ -220,7 +249,8 @@ enum LiveStatsParser {
             projectTotals: transcripts.projectTotals.mapValues { $0.real },
             projectDisplayNames: transcripts.projectDisplayNames,
             modelTokenTotals: transcripts.modelTotals,
-            projectModelTotals: transcripts.projectModelTotals
+            projectModelTotals: transcripts.projectModelTotals,
+            sessionTotals: transcripts.sessionTotals
         )
     }
 

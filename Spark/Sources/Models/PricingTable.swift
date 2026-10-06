@@ -25,12 +25,14 @@ struct CostEstimate: Equatable, Sendable {
 }
 
 /// The estimate shown in the usage report. Models without a price are in `unpricedModels` and
-/// missing from `total`, `byModel` and `byProject`.
+/// missing from `total` and every breakdown.
 struct CostSummary: Equatable, Sendable {
     let total: Double
     let byModel: [String: Double]
     /// Keyed by the encoded project directory name, like `LiveStats.projectTotals`.
     let byProject: [String: Double]
+    /// Keyed by session ID, like `LiveStats.sessionTotals`.
+    let bySession: [String: Double]
     let unpricedModels: [String]
 }
 
@@ -93,7 +95,8 @@ struct PricingTable: Codable, Equatable, Sendable {
 
     func summary(
         modelTotals: [String: ModelTokenTotals],
-        projectModelTotals: [String: [String: ModelTokenTotals]]
+        projectModelTotals: [String: [String: ModelTokenTotals]],
+        sessionModelTotals: [String: [String: ModelTokenTotals]] = [:]
     ) -> CostSummary {
         let estimate = cost(forModelTotals: modelTotals)
         let byModel = modelTotals.reduce(into: [String: Double]()) { result, entry in
@@ -106,6 +109,7 @@ struct PricingTable: Codable, Equatable, Sendable {
             total: estimate.total,
             byModel: byModel,
             byProject: byProject,
+            bySession: sessionModelTotals.mapValues { cost(forModelTotals: $0).total },
             unpricedModels: estimate.unpricedModels
         )
     }

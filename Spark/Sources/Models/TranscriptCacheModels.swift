@@ -108,6 +108,9 @@ struct DayAggregate: Codable, Equatable, Sendable {
     var cacheRead = 0
     var perModel: [String: ModelTokenTotals] = [:]
 
+    /// Excludes cache reads — see `ModelTokenTotals.real`.
+    var real: Int { input + output + cacheCreation }
+
     mutating func merge(_ other: DayAggregate) {
         sessionIds.formUnion(other.sessionIds)
         input += other.input
@@ -152,6 +155,31 @@ struct FileParseCache: Codable, Equatable, Sendable {
     var lastContextTokens: Int?
     /// Counted turns of the last `BurnRate.window`, the input for `BurnRate.calculate`.
     var recentTurns: [TurnSample] = []
+    /// The earliest and latest timestamp of any line in this file.
+    var activity: ActivitySpan?
+}
+
+/// The first and last moment something was written, for a file or a whole session.
+struct ActivitySpan: Codable, Equatable, Sendable {
+    var first: Date
+    var last: Date
+
+    var duration: TimeInterval { last.timeIntervalSince(first) }
+
+    func including(_ other: ActivitySpan?) -> ActivitySpan {
+        guard let other else { return self }
+        return ActivitySpan(first: min(first, other.first), last: max(last, other.last))
+    }
+}
+
+/// One session's share of a period, its subagent transcripts included. Tokens are clipped to the
+/// period by day like `projectTotals`; `activity` spans the whole session, but only of the files
+/// with a day inside the period, so a root file entirely outside it adds no span.
+struct SessionTotals: Equatable, Sendable {
+    let projectKey: String
+    var real = 0
+    var modelTotals: [String: ModelTokenTotals] = [:]
+    var activity: ActivitySpan?
 }
 
 // MARK: - Aggregated totals
@@ -171,6 +199,18 @@ struct TranscriptTotals: Equatable, Sendable {
     /// belongs to a model, not to a project.
     var projectModelTotals: [String: [String: ModelTokenTotals]] = [:]
     var projectDisplayNames: [String: String] = [:]
+    /// Keyed by session ID. Only sessions with a day inside the period.
+    var sessionTotals: [String: SessionTotals] = [:]
+
+    mutating func addSession(_ sessionId: String, project: String, bucket: DayAggregate, activity: ActivitySpan?) {
+        var session = sessionTotals[sessionId] ?? SessionTotals(projectKey: project)
+        session.real += bucket.real
+        for (model, totals) in bucket.perModel {
+            session.modelTotals[model, default: ModelTokenTotals()].merge(totals)
+        }
+        session.activity = activity?.including(session.activity) ?? session.activity
+        sessionTotals[sessionId] = session
+    }
 
     mutating func addModels(_ perModel: [String: ModelTokenTotals], project: String?) {
         for (model, totals) in perModel {
@@ -185,7 +225,7 @@ struct TranscriptTotals: Equatable, Sendable {
 // MARK: - Store
 
 struct TranscriptCacheStore: Codable, Equatable, Sendable {
-    static let currentSchemaVersion = 4
+    static let currentSchemaVersion = 5
     static let empty = TranscriptCacheStore(schemaVersion: currentSchemaVersion, files: [:])
 
     var schemaVersion: Int
