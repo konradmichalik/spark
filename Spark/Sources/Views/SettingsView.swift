@@ -1001,7 +1001,7 @@ struct StatusTab: View {
                             TablerIconView(.externalLink, size: 11, isDecorative: false)
                         }
                         .buttonStyle(.borderless)
-                        .help("Open status.claude.com")
+                        .tooltip("Open status.claude.com")
                         .accessibilityLabel("Open Claude status page")
                     }
                 }

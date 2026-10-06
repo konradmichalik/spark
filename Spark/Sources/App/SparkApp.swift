@@ -76,6 +76,7 @@ struct SparkApp: App {
                 hasLaunched = true
                 state.onLaunch()
             }
+            .tooltipHost()
             .background(MenuBarWindowTopPinner())
         } label: {
             MenuBarLabel(state: state)
@@ -91,11 +92,13 @@ struct SparkApp: App {
         Settings {
             SettingsView()
                 .environmentObject(state)
+                .tooltipHost()
         }
 
         Window("Usage Report", id: WeeklyReportView.windowID) {
             WeeklyReportView()
                 .environmentObject(state)
+                .tooltipHost()
         }
         .windowResizability(.contentMinSize)
     }

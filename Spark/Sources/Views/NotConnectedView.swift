@@ -15,7 +15,7 @@ struct NotConnectedView: View {
                     TablerIconView(.settings, size: 12, isDecorative: false)
                 }
                 .buttonStyle(.borderless)
-                .help("Settings")
+                .tooltip("Settings")
                 .accessibilityLabel("Settings")
             }
 
@@ -62,7 +62,7 @@ struct NotConnectedView: View {
                     TablerIconView(.power, size: 12, isDecorative: false)
                 }
                 .buttonStyle(.borderless)
-                .help("Quit")
+                .tooltip("Quit")
                 .accessibilityLabel("Quit")
             }
         }
