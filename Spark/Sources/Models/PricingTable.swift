@@ -18,29 +18,6 @@ struct ModelPrice: Codable, Equatable, Sendable {
     }
 }
 
-extension ModelPrice {
-    static let cacheCreation1hMultiplier = 2.0
-
-    private enum CodingKeys: String, CodingKey {
-        case input, output, cacheCreation, cacheCreation1h, cacheRead
-    }
-
-    /// A `pricing.json` cached before the 1h rate existed has no `cacheCreation1h`. Deriving it
-    /// keeps that cache usable as the offline fallback instead of failing to decode.
-    init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        let input = try container.decode(Double.self, forKey: .input)
-        self.init(
-            input: input,
-            output: try container.decode(Double.self, forKey: .output),
-            cacheCreation: try container.decode(Double.self, forKey: .cacheCreation),
-            cacheCreation1h: try container.decodeIfPresent(Double.self, forKey: .cacheCreation1h)
-                ?? input * Self.cacheCreation1hMultiplier,
-            cacheRead: try container.decode(Double.self, forKey: .cacheRead)
-        )
-    }
-}
-
 struct CostEstimate: Equatable, Sendable {
     let total: Double
     /// Raw model IDs that consumed tokens but have no price — their cost is missing from `total`.
@@ -64,6 +41,7 @@ struct PricingTable: Codable, Equatable, Sendable {
     /// Cache write and cache read are billed as multiples of the input price, used when the
     /// source omits them.
     private static let cacheCreationMultiplier = 1.25
+    private static let cacheCreation1hMultiplier = 2.0
     private static let cacheReadMultiplier = 0.1
 
     static func parse(_ data: Data) throws -> PricingTable {
@@ -81,7 +59,7 @@ struct PricingTable: Codable, Equatable, Sendable {
                 cacheCreation: entry["cache_creation_input_token_cost"] as? Double
                     ?? input * cacheCreationMultiplier,
                 cacheCreation1h: entry["cache_creation_input_token_cost_above_1hr"] as? Double
-                    ?? input * ModelPrice.cacheCreation1hMultiplier,
+                    ?? input * cacheCreation1hMultiplier,
                 cacheRead: entry["cache_read_input_token_cost"] as? Double
                     ?? input * cacheReadMultiplier
             )

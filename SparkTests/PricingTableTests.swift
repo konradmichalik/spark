@@ -48,14 +48,6 @@ final class PricingTableTests: XCTestCase {
         XCTAssertEqual(price.cacheRead, 0.000003 * 0.1, accuracy: 1e-12)
     }
 
-    func testDecodingAPriceCachedBeforeTheOneHourRateDerivesIt() throws {
-        let cached = Data(#"{"input":0.000003,"output":0.000015,"cacheCreation":0.00000375,"cacheRead":3e-7}"#.utf8)
-
-        let price = try JSONDecoder().decode(ModelPrice.self, from: cached)
-
-        XCTAssertEqual(price.cacheCreation1h, 0.000003 * 2, accuracy: 1e-12)
-    }
-
     func testParseThrowsOnInvalidJSON() {
         XCTAssertThrowsError(try PricingTable.parse(Data("nope".utf8)))
     }
