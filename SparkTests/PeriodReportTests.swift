@@ -481,7 +481,7 @@ final class PeriodReportTests: XCTestCase {
     // MARK: - Cost summary
 
     func testBuildCarriesTheCostSummaryThrough() {
-        let summary = CostSummary(total: 12.5, byModel: [:], byProject: [:], unpricedModels: [])
+        let summary = CostSummary(total: 12.5, byModel: [:], byProject: [:], bySession: [:], unpricedModels: [])
 
         let report = PeriodReport.build(
             rollups: [:],

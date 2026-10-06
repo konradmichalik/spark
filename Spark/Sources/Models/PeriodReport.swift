@@ -32,6 +32,7 @@ struct PeriodReport {
     /// matching `currentPeriodTokens`.
     let modelTotals: [String: Int]
     let topProjects: [ProjectUsage]
+    let topSessions: [SessionUsage]
     /// What the current period's usage would cost at API prices. `nil` when the cost view is off
     /// or no prices could be loaded.
     let costSummary: CostSummary?
@@ -57,6 +58,7 @@ struct PeriodReport {
         rollups: [String: DailyRollup],
         modelTotals: [String: Int] = [:],
         topProjects: [ProjectUsage] = [],
+        topSessions: [SessionUsage] = [],
         costSummary: CostSummary? = nil,
         period: ReportPeriod = .week,
         periodOffset: Int = 0,
@@ -82,6 +84,7 @@ struct PeriodReport {
             cacheHitRate: cacheHitRate,
             modelTotals: modelTotals,
             topProjects: topProjects,
+            topSessions: topSessions,
             costSummary: costSummary,
             period: period,
             periodOffset: periodOffset,

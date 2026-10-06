@@ -28,6 +28,9 @@ struct WeeklyReportView: View {
                         if !report.topProjects.isEmpty {
                             topProjectsSection(report)
                         }
+                        if !report.topSessions.isEmpty {
+                            topSessionsSection(report)
+                        }
                     } else if state.weeklyReport == nil {
                         // Covers both the gap before `.task` fires and the load itself — the
                         // request never resolves to an empty report, only to nil-until-loaded or
@@ -288,5 +291,44 @@ struct WeeklyReportView: View {
                 }
             }
         }
+    }
+
+    private func topSessionsSection(_ report: PeriodReport) -> some View {
+        VStack(alignment: .leading, spacing: density.headerGap) {
+            SectionHeader("Top Sessions", icon: .clock, density: density)
+            SectionCard(density: density) {
+                ForEach(report.topSessions) { session in
+                    HStack {
+                        VStack(alignment: .leading, spacing: 1) {
+                            Text(session.displayName)
+                                .font(.caption)
+                                .lineLimit(1)
+                                .truncationMode(.middle)
+                            if let start = session.start {
+                                Text(Self.sessionTiming(start: start, duration: session.duration))
+                                    .font(.caption2)
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                        Spacer()
+                        if let cost = report.costSummary?.bySession[session.id] {
+                            Text(formatCost(cost))
+                                .font(.system(.caption, design: .monospaced))
+                                .foregroundColor(.secondary)
+                        }
+                        Text(formatTokenCount(session.tokens))
+                            .font(.system(.caption, design: .monospaced))
+                            .foregroundColor(.secondary)
+                    }
+                }
+            }
+        }
+    }
+
+    /// "Mon 14:20 · 2h 5m". The duration is left out below a minute, where it says nothing.
+    private static func sessionTiming(start: Date, duration: TimeInterval?) -> String {
+        let startText = start.formatted(.dateTime.weekday(.abbreviated).hour().minute())
+        guard let duration, duration >= 60 else { return startText }
+        return "\(startText) · \(duration.shortDuration)"
     }
 }

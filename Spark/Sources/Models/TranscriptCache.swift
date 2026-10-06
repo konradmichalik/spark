@@ -111,12 +111,13 @@ enum TranscriptCache {
 
             let path = fileURL.path
             let project = projectKey(forTranscriptAt: fileURL, projectsDir: projectsDir)
+            let pathSessionId = sessionId(forTranscriptAt: fileURL, projectsDir: projectsDir)
             let updated = updatedCache(
                 existing: store.files[path],
                 fileURL: fileURL,
                 mtime: mtime,
                 size: Int64(size),
-                pathSessionId: sessionId(forTranscriptAt: fileURL, projectsDir: projectsDir)
+                pathSessionId: pathSessionId
             )
             store.files[path] = updated
 
@@ -127,6 +128,9 @@ enum TranscriptCache {
             for (day, bucket) in updated.dailyBuckets
             where isWithin(day: day, cutoffDayKey: cutoffDayKey, upperCutoffDayKey: upperCutoffDayKey) {
                 accumulate(bucket: bucket, project: project, into: &totals)
+                if let pathSessionId, let project {
+                    totals.addSession(pathSessionId, project: project, bucket: bucket, activity: updated.activity)
+                }
             }
         }
 
@@ -204,7 +208,8 @@ enum TranscriptCache {
                 seenDedupKeys: appended.seenDedupKeys,
                 discoveredCwd: existing.discoveredCwd ?? appended.discoveredCwd,
                 lastContextTokens: appended.lastContextTokens,
-                recentTurns: BurnRate.pruned(existing.recentTurns + appended.recentTurns)
+                recentTurns: BurnRate.pruned(existing.recentTurns + appended.recentTurns),
+                activity: appended.activity?.including(existing.activity) ?? existing.activity
             )
         }
 
@@ -218,7 +223,8 @@ enum TranscriptCache {
             seenDedupKeys: full.seenDedupKeys,
             discoveredCwd: full.discoveredCwd,
             lastContextTokens: full.lastContextTokens,
-            recentTurns: BurnRate.pruned(full.recentTurns)
+            recentTurns: BurnRate.pruned(full.recentTurns),
+            activity: full.activity
         )
     }
 
@@ -230,6 +236,7 @@ enum TranscriptCache {
         var discoveredCwd: String?
         var lastContextTokens: Int?
         var recentTurns: [TurnSample] = []
+        var activity: ActivitySpan?
     }
 
     /// Parses only complete (newline-terminated) lines, leaving any unterminated trailing line
@@ -279,7 +286,8 @@ enum TranscriptCache {
             seenDedupKeys: state.dedup.seenKeys,
             discoveredCwd: state.discoveredCwd,
             lastContextTokens: state.lastContextTokens,
-            recentTurns: state.recentTurns
+            recentTurns: state.recentTurns,
+            activity: state.activity
         )
     }
 
@@ -290,6 +298,7 @@ enum TranscriptCache {
         var discoveredCwd: String?
         var lastContextTokens: Int?
         var recentTurns: [TurnSample] = []
+        var activity: ActivitySpan?
     }
 
     /// Decodes one line and folds it into `state.buckets`. Session-ID resolution must not be
@@ -307,6 +316,11 @@ enum TranscriptCache {
             state.discoveredCwd = cwd
         }
 
+        let timestamp = entry.timestamp.flatMap(parseISO8601)
+        if let timestamp {
+            state.activity = ActivitySpan(first: timestamp, last: timestamp).including(state.activity)
+        }
+
         guard let resolvedSessionId = pathSessionId ?? entry.sessionId else {
             return
         }
@@ -314,7 +328,7 @@ enum TranscriptCache {
         // Entries with no parsable timestamp fall back to the file's own mtime's day rather
         // than being dropped — matches the "don't silently lose tokens" stance elsewhere in
         // this parser, adapted to a model that needs a concrete day to bucket into.
-        let entryDate = entry.timestamp.flatMap(parseISO8601) ?? mtimeFallback(for: fileURL)
+        let entryDate = timestamp ?? mtimeFallback(for: fileURL)
         let key = dayKey(for: entryDate)
 
         var bucket = state.buckets[key] ?? DayAggregate()

@@ -968,12 +968,14 @@ final class AppState: ObservableObject {
         Task.detached {
             let stats = await LiveStatsParser.parseStats(period: statsPeriodLabel, cutoffOverride: cutoff, upperCutoff: upperCutoff)
             let topProjects = stats?.topProjects(limit: 5) ?? []
+            let topSessions = stats?.topSessions(limit: 5) ?? []
             let modelTotals = stats?.modelTotals ?? [:]
             var costSummary: CostSummary?
             if wantsCost, let stats, let prices = await PricingClient.currentTable() {
                 costSummary = prices.summary(
                     modelTotals: stats.modelTokenTotals,
-                    projectModelTotals: stats.projectModelTotals
+                    projectModelTotals: stats.projectModelTotals,
+                    sessionModelTotals: stats.sessionTotals.mapValues(\.modelTotals)
                 )
             }
             // Warms the rollup store with any newly-closed day the scan above just discovered,
@@ -985,6 +987,7 @@ final class AppState: ObservableObject {
                     rollups: self.rollups,
                     modelTotals: modelTotals,
                     topProjects: topProjects,
+                    topSessions: topSessions,
                     costSummary: costSummary,
                     period: shownPeriod,
                     periodOffset: shownOffset,
