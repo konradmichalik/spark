@@ -73,8 +73,11 @@ private struct TooltipRequestKey: PreferenceKey {
 private struct TooltipSizeKey: PreferenceKey {
     static let defaultValue: CGSize = .zero
 
+    /// Skips `.zero`: subtrees that never set the key (the border overlay, for one) report the
+    /// default, and taking it last-wins would hide the bubble forever.
     static func reduce(value: inout CGSize, nextValue: () -> CGSize) {
-        value = nextValue()
+        let next = nextValue()
+        if next != .zero { value = next }
     }
 }
 
