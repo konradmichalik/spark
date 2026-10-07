@@ -65,9 +65,9 @@ struct MenuBarView: View {
 
     private var headerRow: some View {
         HStack(spacing: 6) {
-            SparkLogoView(size: 20, isLoading: isLoading)
-            Text("Spark")
-                .font(.custom("InstrumentSerif-Regular", size: 15))
+            SparkMark(size: 18, isLoading: isLoading)
+            Text("spark")
+                .font(.doto(size: 19, weight: 800))
 
             Text(planBadge)
                 .font(.caption2)

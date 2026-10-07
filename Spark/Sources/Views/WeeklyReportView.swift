@@ -70,7 +70,7 @@ struct WeeklyReportView: View {
             HStack(spacing: 6) {
                 TablerIconView(.calendarMonth, color: .secondary)
                 Text("Usage Report")
-                    .font(.custom("InstrumentSerif-Regular", size: 15))
+                    .font(.system(size: 13, weight: .semibold))
                 Spacer()
                 SegmentPicker(selection: periodBinding, options: ReportPeriod.allCases)
                     .disabled(state.isLoadingWeeklyReport)

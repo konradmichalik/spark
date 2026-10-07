@@ -7,9 +7,9 @@ struct NotConnectedView: View {
         VStack(alignment: .leading, spacing: 12) {
             // Header — matches MenuBarView
             HStack(spacing: 6) {
-                SparkLogoView(size: 20)
-                Text("Spark")
-                    .font(.custom("InstrumentSerif-Regular", size: 15))
+                SparkMark(size: 18)
+                Text("spark")
+                    .font(.doto(size: 19, weight: 800))
                 Spacer()
                 SettingsLink {
                     TablerIconView(.settings, size: 12, isDecorative: false)

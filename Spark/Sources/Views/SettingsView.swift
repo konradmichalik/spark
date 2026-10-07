@@ -1032,10 +1032,10 @@ struct AboutTab: View {
         VStack(spacing: 16) {
             Spacer()
 
-            SparkLogoView(size: 80, style: .icon)
+            SparkMark(size: 80, style: .tile)
 
-            Text("Spark")
-                .font(.custom("InstrumentSerif-Regular", size: 28))
+            Text("spark")
+                .font(.doto(size: 34, weight: 800))
 
             Text("Version \(appVersion)")
                 .font(.caption)
