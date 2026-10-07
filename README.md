@@ -108,6 +108,8 @@ Please have a look at [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
 Icons by [Tabler Icons](https://tabler.io/icons), licensed under the MIT License.
 
+Numbers and wordmark set in [Doto](https://fonts.google.com/specimen/Doto) by The Doto Project Authors, licensed under the SIL Open Font License 1.1.
+
 ## ⭐ License
 
 This project is licensed under [MIT](LICENSE).
