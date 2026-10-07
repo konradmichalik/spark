@@ -8,6 +8,7 @@ struct CodexUsageView: View {
     let warningThreshold: Double
     let criticalThreshold: Double
     let displayStyle: String
+    let showStats: Bool
 
     private static let fiveHours: TimeInterval = 5 * 3600
     private static let sevenDays: TimeInterval = 7 * 24 * 3600
@@ -19,6 +20,10 @@ struct CodexUsageView: View {
             signInPrompt
             if let error = codex.lastError {
                 WarningBanner(message: error)
+            }
+            // Hidden entirely when Codex never ran locally (only cloud or IDE use).
+            if showStats, let stats = codex.stats, stats.fileCount > 0 {
+                CodexStatsCard(stats: stats, period: codex.statsPeriod, onSelectPeriod: codex.setStatsPeriod)
             }
         }
     }
@@ -130,5 +135,48 @@ struct CodexUsageView: View {
                 .accessibilityLabel("Copy codex login command")
             }
         }
+    }
+}
+
+/// Local Codex activity from the rollout files, laid out like the Claude Stats card.
+private struct CodexStatsCard: View {
+    let stats: CodexSessionStats
+    let period: StatsPeriod
+    let onSelectPeriod: (StatsPeriod) -> Void
+
+    private static let density = SectionDensity.compact
+
+    private var tokenBreakdown: String {
+        "Input: \(formatTokenCount(stats.inputTokens)) · Cached: \(formatTokenCount(stats.cachedInputTokens)) · "
+            + "Output: \(formatTokenCount(stats.outputTokens)) (Reasoning: \(formatTokenCount(stats.reasoningTokens)))"
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: Self.density.headerGap) {
+            SectionHeader("Stats", icon: .reportAnalytics, density: Self.density) {
+                SegmentPicker(
+                    selection: Binding(get: { period }, set: { onSelectPeriod($0) }),
+                    options: StatsPeriod.allCases
+                )
+            }
+            SectionCard(density: Self.density) {
+                line("Messages", "\(stats.messageCount)")
+                line("Sessions", "\(stats.sessionCount)")
+                line("Tokens", formatTokenCount(stats.totalTokens), tooltip: tokenBreakdown)
+            }
+        }
+    }
+
+    private func line(_ label: String, _ value: String, tooltip: String? = nil) -> some View {
+        HStack {
+            Text(label)
+                .font(.system(size: 11))
+            Spacer()
+            Text(value)
+                .font(.system(size: 11.5, design: .monospaced))
+        }
+        .tooltip(tooltip)
+        .accessibilityElement(children: .combine)
+        .accessibilityHint(tooltip ?? "")
     }
 }

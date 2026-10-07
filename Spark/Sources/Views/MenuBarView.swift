@@ -38,7 +38,8 @@ struct MenuBarView: View {
                     codex: codex,
                     warningThreshold: state.warningThreshold,
                     criticalThreshold: state.criticalThreshold,
-                    displayStyle: state.usageDisplayStyle
+                    displayStyle: state.usageDisplayStyle,
+                    showStats: state.showStats
                 )
             }
 

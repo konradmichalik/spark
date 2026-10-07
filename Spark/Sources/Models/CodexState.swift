@@ -14,7 +14,12 @@ final class CodexState: ObservableObject {
     @Published private(set) var isLoading = false
     @Published private(set) var lastError: String?
 
+    @Published private(set) var stats: CodexSessionStats?
+
     @AppStorage("codexEnabled") var isEnabled: Bool = true
+    /// Separate from Claude's `statsPeriod`: switching one tab's period must not leave the
+    /// other tab's numbers computed for a period it no longer shows.
+    @AppStorage("codexStatsPeriod") private(set) var statsPeriod: StatsPeriod = .today
 
     /// Shown in tabs, the menu bar and notifications only when this is true.
     var isActive: Bool { isEnabled && isAvailable }
@@ -38,6 +43,7 @@ final class CodexState: ObservableObject {
     func onLaunch() {
         refreshAvailability()
         guard isActive else { return }
+        refreshStats()
         Task { await fetchUsage() }
     }
 
@@ -49,6 +55,7 @@ final class CodexState: ObservableObject {
         } else {
             stopPolling()
             usage = nil
+            stats = nil
             lastError = nil
         }
     }
@@ -94,6 +101,7 @@ final class CodexState: ObservableObject {
         lastError = nil
         consecutiveRateLimits = 0
         startPolling(interval: Self.pollInterval)
+        refreshStats()
     }
 
     /// The CLI refreshes its own token and rewrites `auth.json`. A 401 usually means Spark read
@@ -134,6 +142,28 @@ final class CodexState: ObservableObject {
     private func stopPolling() {
         pollCancellable?.cancel()
         pollCancellable = nil
+    }
+
+    // MARK: - Local Stats
+
+    func setStatsPeriod(_ period: StatsPeriod) {
+        guard period != statsPeriod else { return }
+        statsPeriod = period
+        refreshStats()
+    }
+
+    /// Re-reads the rollout files on every usage poll. Unlike Claude there is no transcript cache
+    /// yet: the files are only scanned past the cutoff and only matching lines are decoded.
+    func refreshStats() {
+        let period = statsPeriod
+        let directories = [CodexHome.sessionsDirectory, CodexHome.current.appendingPathComponent("archived_sessions")]
+        Task.detached {
+            let stats = CodexSessionStats.parse(directories: directories, since: period.startDate)
+            await MainActor.run {
+                guard period == self.statsPeriod else { return }
+                self.stats = stats
+            }
+        }
     }
 
     // MARK: - Notifications
