@@ -26,11 +26,13 @@ final class CodexState: ObservableObject {
 
     private static let log = Logger(subsystem: "com.konradmichalik.spark", category: "codex")
     private static let pollInterval: TimeInterval = 300
+    private static let signInRecheckInterval: TimeInterval = 900
 
     private var pollCancellable: AnyCancellable?
     private var lastFetchTime: Date = .distantPast
     private var consecutiveRateLimits = 0
     private var lastLevels: [String: UsageLevel] = [:]
+    private var statsTask: Task<Void, Never>?
 
     /// Arguments only seed state for tests; the app starts empty and fills in via `onLaunch()`.
     init(usage: CodexUsage? = nil, isAvailable: Bool = false) {
@@ -54,9 +56,11 @@ final class CodexState: ObservableObject {
             Task { await fetchUsage(force: true) }
         } else {
             stopPolling()
+            statsTask?.cancel()
             usage = nil
             stats = nil
             lastError = nil
+            needsSignIn = false
         }
     }
 
@@ -89,6 +93,8 @@ final class CodexState: ObservableObject {
         } catch {
             Self.log.error("fetchUsage failed: \(error.localizedDescription, privacy: .public)")
             lastError = "Codex: \(error.localizedDescription)"
+            // A launch before the network is up must not leave Codex without a timer.
+            if pollCancellable == nil { startPolling(interval: Self.pollInterval) }
         }
     }
 
@@ -96,6 +102,8 @@ final class CodexState: ObservableObject {
         let response = try await Task.detached {
             try await CodexUsageClient.fetchUsage(credentials: credentials)
         }.value
+        // Codex may have been switched off while the request was in flight.
+        guard isEnabled else { return }
         usage = CodexUsage(response: response)
         needsSignIn = false
         lastError = nil
@@ -119,7 +127,8 @@ final class CodexState: ObservableObject {
         Self.log.notice("Codex token rejected, asking for sign-in")
         needsSignIn = true
         lastError = nil
-        stopPolling()
+        // Each poll re-reads auth.json, so a slow poll notices a `codex login` on its own.
+        startPolling(interval: Self.signInRecheckInterval)
     }
 
     private func handleRateLimited() {
@@ -153,12 +162,16 @@ final class CodexState: ObservableObject {
     }
 
     /// Re-reads the rollout files on every usage poll. Unlike Claude there is no transcript cache
-    /// yet: the files are only scanned past the cutoff and only matching lines are decoded.
+    /// yet: the files are only scanned past the cutoff and only matching lines are decoded. A new
+    /// refresh cancels the previous scan, so a slow "All" scan can neither pile up nor finish
+    /// last and overwrite newer numbers.
     func refreshStats() {
         let period = statsPeriod
         let directories = [CodexHome.sessionsDirectory, CodexHome.current.appendingPathComponent("archived_sessions")]
-        Task.detached {
+        statsTask?.cancel()
+        statsTask = Task.detached {
             let stats = CodexSessionStats.parse(directories: directories, since: period.startDate)
+            guard !Task.isCancelled else { return }
             await MainActor.run {
                 guard period == self.statsPeriod else { return }
                 self.stats = stats

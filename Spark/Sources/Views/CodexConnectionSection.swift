@@ -48,6 +48,9 @@ struct CodexConnectionSection: View {
                     .foregroundColor(.secondary)
             }
             Spacer()
+            if codex.needsSignIn {
+                Button("Check Again") { codex.applySettingsChange() }
+            }
         }
     }
 
