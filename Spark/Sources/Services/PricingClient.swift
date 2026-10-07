@@ -11,8 +11,8 @@ enum PricingClient {
     private static let log = Logger(subsystem: "com.konradmichalik.spark", category: "pricing")
 
     private static let sourceURL = URL(
-        string: "https://raw.githubusercontent.com/BerriAI/litellm/main/model_prices_and_context_window.json"
-    )!
+        staticString: "https://raw.githubusercontent.com/BerriAI/litellm/main/model_prices_and_context_window.json"
+    )
 
     private static let maxCacheAge: TimeInterval = 24 * 60 * 60
 
