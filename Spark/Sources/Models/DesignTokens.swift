@@ -27,7 +27,7 @@ extension Theme {
     static let cardNS = NSColor.adaptive(light: NSColor(hex: 0xFAFAF8), dark: NSColor(hex: 0x262625))
     static let inkNS = NSColor.adaptive(light: NSColor(hex: 0x111111), dark: NSColor(hex: 0xEDEDE8))
     static let inkSecondaryNS = NSColor.adaptive(light: NSColor(hex: 0x5C5C58), dark: NSColor(hex: 0xA3A39D))
-    static let inkTertiaryNS = NSColor.adaptive(light: NSColor(hex: 0x6E6E69), dark: NSColor(hex: 0x8A8A85))
+    static let inkTertiaryNS = NSColor.adaptive(light: NSColor(hex: 0x6E6E69), dark: NSColor(hex: 0x8F8F8A))
     static let hairlineNS = NSColor.adaptive(light: NSColor(hex: 0xE4E4DF), dark: NSColor(hex: 0x333331))
     static let dotTrackNS = NSColor.adaptive(
         light: NSColor(hex: 0x111111, alpha: 0.15),

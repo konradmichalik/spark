@@ -13,7 +13,7 @@ enum Doto {
         nsFont(named: fontName, size: size, weight: weight)
     }
 
-    /// Falls back to the monospaced digit system font when `named` is not registered, so a
+    /// Falls back to the monospaced system font when `named` is not registered, so a
     /// broken bundle degrades to readable numbers instead of an unstyled glyph run.
     static func nsFont(named: String, size: CGFloat, weight: CGFloat) -> NSFont {
         guard let base = NSFont(name: named, size: size) else {

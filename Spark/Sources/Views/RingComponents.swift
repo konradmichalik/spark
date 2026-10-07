@@ -91,7 +91,7 @@ struct RingTooltip: View {
         case .limitReached(let seconds):
             return "Limit in ~\(seconds.shortDuration)"
         case .safe(let projected):
-            return "~\(Int(projected))% at reset"
+            return "~\(UsageFormat.percent(projected)) at reset"
         case .insufficientData:
             return nil
         }

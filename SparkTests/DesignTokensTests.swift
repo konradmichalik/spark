@@ -27,6 +27,8 @@ final class DesignTokensTests: XCTestCase {
         assertHex(resolved(Theme.accentNS, in: .darkAqua), 0xFF5A5F)
         assertHex(resolved(Theme.warningNS, in: .aqua), 0xB07800)
         assertHex(resolved(Theme.warningNS, in: .darkAqua), 0xF0B429)
+        assertHex(resolved(Theme.inkTertiaryNS, in: .aqua), 0x6E6E69)
+        assertHex(resolved(Theme.inkTertiaryNS, in: .darkAqua), 0x8F8F8A)
     }
 
     func testDotTrackIsTranslucentInk() {

@@ -594,7 +594,7 @@ private struct ProjectBreakdownDisclosure: View {
     /// the label text still lands on the same left edge as the `StatsLine` rows above it (no
     /// layout shift), while the highlight itself bleeds ~6pt past that edge on each side, the way
     /// a resting selection highlight surrounds its label rather than displacing it. That bleed is
-    /// horizontal only: the card's 10pt vertical clearance is untouched, so the 8pt corner curve
+    /// horizontal only: the card's 10pt vertical clearance is untouched, so the 10pt corner curve
     /// is never entered.
     private var header: some View {
         Button {

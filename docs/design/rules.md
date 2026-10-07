@@ -22,7 +22,7 @@ All colours come from `Theme` tokens with a light and a dark value. No literal c
 | `card` | `#FAFAF8` | `#262625` | Cards and row groups |
 | `ink` | `#111111` | `#EDEDE8` | Text, filled dots, primary marks |
 | `inkSecondary` | `#5C5C58` | `#A3A39D` | Secondary text, labels |
-| `inkTertiary` | `#6E6E69` | `#8A8A85` | Axis labels, chevrons |
+| `inkTertiary` | `#6E6E69` | `#8F8F8A` | Axis labels, chevrons |
 | `hairline` | `#E4E4DF` | `#333331` | Card outlines, separators |
 | `dotTrack` | ink at 15 % | ink at 16 % | Unfilled dots |
 | `accent` | `#D71921` | `#FF5A5F` | Brand red |
@@ -32,6 +32,7 @@ All colours come from `Theme` tokens with a light and a dark value. No literal c
 - **Ochre marks values between the warning and the critical threshold.** Nothing else is ochre.
 - **No provider colour in data.** Bars, rings, graphs and numbers are ink, ochre or red, whichever provider they belong to. A provider's colour appears only in its logo in the tab and as a faint tint of the selected tab, and the user can switch it off.
 - Status colours must differ from ink in lightness, not only in hue.
+- `warning` reaches 3:1 on `card`, so it colours large numbers and graphics only; small warning text also needs an icon or the word.
 
 ```swift
 // Colour state is derived in one place, never per view.

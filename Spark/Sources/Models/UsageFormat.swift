@@ -12,7 +12,7 @@ enum UsageFormat {
     private static let enUS = Locale(identifier: "en_US")
     private static let units: [(size: Double, suffix: String)] = [(1e9, "B"), (1e6, "M"), (1e3, "K")]
 
-    /// API cost with at most five characters of digits, so a stat tile never overflows.
+    /// API cost with at most five characters, so a stat tile never overflows.
     /// The tier is chosen after rounding, so 99.996 becomes "100" rather than "100.00".
     static func cost(_ dollars: Double) -> NumberParts {
         let value = dollars.isFinite ? max(dollars, 0) : 0
