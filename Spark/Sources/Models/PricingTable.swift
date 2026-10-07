@@ -73,9 +73,9 @@ struct PricingTable: Codable, Equatable, Sendable {
     /// (`claude-opus-4-5` against `claude-opus-4-5-20251101`). A different version never matches.
     func price(forRawModelId rawId: String) -> ModelPrice? {
         if let exact = prices[rawId] { return exact }
-        let base = Self.withoutDateSuffix(rawId)
+        let base = ModelFamily.withoutDateSuffix(rawId)
         return prices
-            .filter { Self.withoutDateSuffix($0.key) == base }
+            .filter { ModelFamily.withoutDateSuffix($0.key) == base }
             .min { $0.key < $1.key }?
             .value
     }
@@ -118,10 +118,5 @@ struct PricingTable: Codable, Equatable, Sendable {
     /// of the same models.
     private static func isClaudeModelKey(_ key: String) -> Bool {
         key.hasPrefix("claude-") && !key.contains("/") && !key.contains(":")
-    }
-
-    private static func withoutDateSuffix(_ id: String) -> String {
-        guard let range = id.range(of: #"-\d{8}$"#, options: .regularExpression) else { return id }
-        return String(id[..<range.lowerBound])
     }
 }

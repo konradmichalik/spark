@@ -260,6 +260,10 @@ struct WeeklyReportView: View {
                                         .font(.system(.caption, design: .monospaced))
                                         .fontWeight(.medium)
                                 }
+                                .contentShape(Rectangle())
+                                .tooltip(row.versionSummary)
+                                .accessibilityElement(children: .combine)
+                                .accessibilityHint(row.versionSummary)
                             }
                         }
                     }

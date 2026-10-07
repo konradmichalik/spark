@@ -22,7 +22,7 @@ enum ModelFamily: Sendable, Equatable {
     /// than mangled or dropped.
     static func displayName(forRawModelId rawId: String) -> String {
         guard rawId.hasPrefix("claude-") else { return rawId }
-        let parts = rawId.dropFirst("claude-".count).split(separator: "-").map(String.init)
+        let parts = withoutDateSuffix(rawId).dropFirst("claude-".count).split(separator: "-").map(String.init)
         guard let familyPart = parts.first, parts.count >= 2,
               parts.dropFirst().allSatisfy({ !$0.isEmpty && $0.allSatisfy(\.isNumber) }) else {
             return rawId
@@ -30,5 +30,12 @@ enum ModelFamily: Sendable, Equatable {
         let family = familyPart.prefix(1).uppercased() + familyPart.dropFirst()
         let version = parts.dropFirst().joined(separator: ".")
         return "\(family) \(version)"
+    }
+
+    /// `claude-opus-4-5-20251101` -> `claude-opus-4-5`: the dated snapshot of a model, not a
+    /// different version of it.
+    static func withoutDateSuffix(_ id: String) -> String {
+        guard let range = id.range(of: #"-\d{8}$"#, options: .regularExpression) else { return id }
+        return String(id[..<range.lowerBound])
     }
 }
