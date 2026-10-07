@@ -72,6 +72,8 @@ final class AppState: ObservableObject {
     @Published private(set) var liveCost: CostSummary?
     @AppStorage("statsPeriod") private(set) var statsPeriod: StatsPeriod = .today
     @Published var isLoadingStats: Bool = false
+    /// True while the first scan after an install or cache schema change reads every transcript.
+    @Published private(set) var isBuildingTranscriptCache = false
     @Published private(set) var activeSessions: [ActiveSession] = []
     @Published private(set) var burnRate: BurnRate?
     @Published private(set) var weeklyReport: PeriodReport?
@@ -888,12 +890,17 @@ final class AppState: ObservableObject {
         let wantsCost = showApiCost
         isLoadingStats = true
         Task.detached {
+            if await LiveTranscriptCache.shared.needsFullScan() {
+                await MainActor.run { self.isBuildingTranscriptCache = true }
+            }
             let stats = await LiveStatsParser.parseStats(period: period)
             var cost: CostSummary?
             if wantsCost, let stats, let prices = await PricingClient.currentTable() {
                 cost = prices.summary(modelTotals: stats.modelTokenTotals, projectModelTotals: stats.projectModelTotals)
             }
             await MainActor.run {
+                // The scan above filled the cache, whichever period it was for.
+                self.isBuildingTranscriptCache = false
                 // Discard results from a stale request if the period changed while parsing ran.
                 guard period == self.statsPeriod else { return }
                 self.liveStats = stats

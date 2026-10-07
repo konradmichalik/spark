@@ -32,6 +32,15 @@ actor LiveTranscriptCache {
 
     private var store: TranscriptCacheStore?
 
+    /// Whether the next `aggregate` has to parse every transcript: nothing cached yet, or the
+    /// cache was dropped for a schema change. Keeps what it loaded, so `aggregate` doesn't load
+    /// it a second time.
+    func needsFullScan() -> Bool {
+        let current = store ?? TranscriptCachePersistence.load()
+        store = current
+        return current.files.isEmpty
+    }
+
     func aggregate(claudeDirs: [URL], cutoff: Date?, upperCutoff: Date? = nil) -> TranscriptTotals {
         var current = store ?? TranscriptCachePersistence.load()
         var combined = TranscriptTotals()
