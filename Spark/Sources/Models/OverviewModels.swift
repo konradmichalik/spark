@@ -84,3 +84,39 @@ enum ProviderTabSummary {
         return parts.isEmpty ? nil : parts.joined(separator: " · ")
     }
 }
+
+/// The forecast tooltip on the session bar: projection and its rate, burn rate, and what the
+/// time marker means. One to three lines (docs/design/rules.md, "Tooltips").
+enum ForecastDetail {
+    static func text(
+        projection: ProjectionResult,
+        utilization: Double,
+        secondsToReset: TimeInterval?,
+        tokensPerMinute: Int?,
+        elapsed: Double?
+    ) -> String? {
+        var lines: [String] = []
+        switch projection {
+        case .safe(let projected):
+            let rate = secondsToReset.flatMap { $0 > 0 ? (projected - utilization) / ($0 / 3600) : nil }
+            lines.append("~\(Int(projected.rounded()))% at reset" + rateSuffix(rate))
+        case .limitReached(let seconds):
+            let rate = seconds > 0 ? (100 - utilization) / (seconds / 3600) : nil
+            lines.append("Limit in ~\(seconds.shortDuration)" + rateSuffix(rate))
+        case .insufficientData:
+            break
+        }
+        if let tokensPerMinute {
+            lines.append("\(formatTokenCount(tokensPerMinute)) tokens per minute, last \(Int(BurnRate.window / 60)) min")
+        }
+        if !lines.isEmpty, let elapsed {
+            lines.append("Marker: \(Int((elapsed * 100).rounded()))% of the 5h window has passed")
+        }
+        return lines.isEmpty ? nil : lines.joined(separator: "\n")
+    }
+
+    private static func rateSuffix(_ rate: Double?) -> String {
+        guard let rate, rate > 0.5 else { return "" }
+        return ", rising ~\(Int(rate.rounded()))%/h"
+    }
+}

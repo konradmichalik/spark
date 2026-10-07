@@ -66,14 +66,10 @@ struct NotConnectedView: View {
                 .accessibilityLabel("Quit")
             }
         }
-        .padding(12)
-        .frame(width: 300)
+        .padding(14)
+        .frame(width: 320)
         .fixedSize(horizontal: false, vertical: true)
-        .background {
-            if state.reduceTransparency {
-                Color(nsColor: .windowBackgroundColor)
-            }
-        }
+        .background(Theme.paper)
         .background(WindowResizer())
         .onAppear {
             state.selectedSettingsTab = .connection
