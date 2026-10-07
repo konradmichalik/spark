@@ -4,46 +4,42 @@ import SwiftUI
 
 struct MenuBarView: View {
     @EnvironmentObject var state: AppState
+    @EnvironmentObject var codex: CodexState
     @Environment(\.openWindow) private var openWindow
+    @AppStorage("selectedProvider") private var selectedProviderRaw = UsageProvider.claude.rawValue
 
     private static let fiveHours: TimeInterval = 5 * 3600
     private static let sevenDays: TimeInterval = 7 * 24 * 3600
+
+    /// Falls back to Claude whenever Codex is switched off or its sign-in disappears, so a
+    /// remembered Codex selection never leaves the popover on an empty tab.
+    private var provider: UsageProvider {
+        guard codex.isActive else { return .claude }
+        return UsageProvider(rawValue: selectedProviderRaw) ?? .claude
+    }
+
+    private var providerBinding: Binding<UsageProvider> {
+        Binding(get: { provider }, set: { selectedProviderRaw = $0.rawValue })
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             headerRow
 
-            // Status - only show when there's a problem
-            if !state.status.isHealthy {
-                StatusRow(state: state)
+            if codex.isActive {
+                SegmentPicker(selection: providerBinding, options: UsageProvider.allCases)
             }
 
-            usageSection
-            extraUsageRow
-            reconnectPrompt
-            errorRow
-
-            // Active Sessions
-            if state.showActiveSessions {
-                ActiveSessionsView(sessions: state.activeSessions)
-            }
-
-            // Stats
-            if state.showStats {
-                StatsRow(
-                    liveStats: state.liveStats,
-                    period: state.statsPeriod,
-                    isLoading: state.isLoadingStats,
-                    isBuildingCache: state.isBuildingTranscriptCache,
-                    showProjectBreakdown: state.showProjectBreakdown,
-                    cost: state.showApiCost ? state.liveCost : nil,
-                    onSelectPeriod: state.setStatsPeriod
+            switch provider {
+            case .claude:
+                claudeContent
+            case .codex:
+                CodexUsageView(
+                    codex: codex,
+                    warningThreshold: state.warningThreshold,
+                    criticalThreshold: state.criticalThreshold,
+                    displayStyle: state.usageDisplayStyle
                 )
-            }
-
-            // Mini Graph
-            if state.showGraph, !state.history.isEmpty {
-                UsageGraphView(history: state.history, rollups: state.rollups)
             }
 
             footerRow
@@ -63,11 +59,11 @@ struct MenuBarView: View {
 
     private var headerRow: some View {
         HStack(spacing: 6) {
-            SparkLogoView(size: 20, isLoading: state.isLoading)
+            SparkLogoView(size: 20, isLoading: isLoading)
             Text("Spark")
                 .font(.custom("InstrumentSerif-Regular", size: 15))
 
-            Text(state.accountTier.displayName)
+            Text(planBadge)
                 .font(.caption2)
                 .fontWeight(.medium)
                 .padding(.horizontal, 6)
@@ -145,11 +141,14 @@ struct MenuBarView: View {
 
     private var footerRow: some View {
         HStack {
-            RefreshButton(isLoading: state.isLoading) {
-                Task { await state.fetchUsage() }
+            RefreshButton(isLoading: isLoading) {
+                switch provider {
+                case .claude: Task { await state.fetchUsage() }
+                case .codex: Task { await codex.fetchUsage(force: true) }
+                }
             }
 
-            Text("Updated: \(timeAgo(state.usageData.lastUpdated))")
+            Text("Updated: \(timeAgo(lastUpdated))")
                 .font(.caption2)
                 .foregroundColor(.secondary)
             Spacer()
@@ -191,6 +190,54 @@ struct MenuBarView: View {
 /// body under SwiftLint's `type_body_length` limit — these still read and drive `state` exactly
 /// as if they lived inline.
 extension MenuBarView {
+    /// Everything between the header and the footer on the Claude tab.
+    @ViewBuilder
+    fileprivate var claudeContent: some View {
+        // Status - only show when there's a problem
+        if !state.status.isHealthy {
+            StatusRow(state: state)
+        }
+
+        usageSection
+        extraUsageRow
+        reconnectPrompt
+        errorRow
+
+        if state.showActiveSessions {
+            ActiveSessionsView(sessions: state.activeSessions)
+        }
+
+        if state.showStats {
+            StatsRow(
+                liveStats: state.liveStats,
+                period: state.statsPeriod,
+                isLoading: state.isLoadingStats,
+                isBuildingCache: state.isBuildingTranscriptCache,
+                showProjectBreakdown: state.showProjectBreakdown,
+                cost: state.showApiCost ? state.liveCost : nil,
+                onSelectPeriod: state.setStatsPeriod
+            )
+        }
+
+        if state.showGraph, !state.history.isEmpty {
+            UsageGraphView(history: state.history, rollups: state.rollups)
+        }
+    }
+
+    fileprivate var isLoading: Bool {
+        provider == .codex ? codex.isLoading : state.isLoading
+    }
+
+    fileprivate var planBadge: String {
+        guard provider == .codex else { return state.accountTier.displayName }
+        return codex.usage?.planDisplayName ?? "Codex"
+    }
+
+    fileprivate var lastUpdated: Date {
+        guard provider == .codex else { return state.usageData.lastUpdated }
+        return codex.usage?.usageData.lastUpdated ?? .distantPast
+    }
+
     /// The Usage section: bars or rings, whichever `state.usageDisplayStyle` selects, sharing one
     /// header and card — a card is a container and does not care which display style fills it.
     fileprivate var usageSection: some View {

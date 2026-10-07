@@ -27,6 +27,12 @@ final class CodexState: ObservableObject {
     private var consecutiveRateLimits = 0
     private var lastLevels: [String: UsageLevel] = [:]
 
+    /// Arguments only seed state for tests; the app starts empty and fills in via `onLaunch()`.
+    init(usage: CodexUsage? = nil, isAvailable: Bool = false) {
+        self.usage = usage
+        self.isAvailable = isAvailable
+    }
+
     // MARK: - Lifecycle
 
     func onLaunch() {
