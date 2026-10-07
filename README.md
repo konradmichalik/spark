@@ -32,6 +32,7 @@ Learn more at <a href="https://konradmichalik.github.io/spark/">konradmichalik.g
 - **Claude service status** pulled from `status.anthropic.com`, surfacing only when there's an active incident
 - **Native notifications** for warning thresholds, critical levels, limit resets, and service incidents
 - **Smart refresh** that reacts to your actual Claude Code activity: watches your transcripts directly and snaps back to active polling the moment you start working, instead of waiting for the next scheduled check
+- **Codex usage** _(automatic when available)_: if the [Codex CLI](https://github.com/openai/codex) is signed in with ChatGPT, a Claude | Codex switch appears in the popover with Codex's plan limits, credits and local session stats, and the menu bar can show the busier provider, either one, or both
 - **Customizable icon**: Minimal, Dot, or Logo style; colored or monochrome
 - **Auto-connect** via Claude Code CLI credentials from macOS Keychain
 - **Data export** _(opt-in)_: write live usage state to a local JSON file for external consumers such as a Stream Deck plugin, enabled in **Settings → General**
@@ -81,6 +82,13 @@ claude auth login
 > [!NOTE]
 > Spark reads the OAuth token stored by Claude Code CLI in the macOS Keychain: no browser session cookies, no web scraping, no extra setup beyond a working `claude auth login`. On first launch, macOS asks for your login password to grant Spark access to it; this is a one-time prompt, and Spark remembers the permission afterward.
 
+### Codex
+
+Codex needs no setup in Spark. Once `codex login` has stored a ChatGPT sign-in in `~/.codex/auth.json` (or `$CODEX_HOME/auth.json`), Spark shows Codex next to Claude. Choose what the menu bar shows under **Settings → Menu Bar → Provider**, or turn Codex off under **Settings → Connection**.
+
+> [!NOTE]
+> Spark only reads `auth.json` and never refreshes or rewrites the Codex token, so it cannot sign the CLI out. Sign-ins stored in the Keychain (`cli_auth_credentials_store = keyring`) are not supported yet.
+
 ## 🐛 Troubleshooting
 
 **No data / "Not connected" state**
@@ -88,6 +96,9 @@ Run `claude auth login` to ensure valid credentials exist, then use **Settings �
 
 **Usage figures look stale**
 Check the refresh mode in **Settings → General**. In Smart mode, the interval can stretch to 30 min during idle periods. Switch to a fixed interval if you need more frequent updates.
+
+**No Codex tab**
+Run `codex login` and sign in with ChatGPT (API-key sign-ins have no plan limits to show), then use **Settings → Connection → Check Again**.
 
 ## 🧑‍💻 Contributing
 

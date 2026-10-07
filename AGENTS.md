@@ -2,13 +2,13 @@
 
 ## Project overview
 
-Spark is a native macOS menu bar app (SwiftUI, Swift 6) that displays Claude Code usage metrics. It reads the OAuth token from the macOS Keychain, fetches usage from `api.anthropic.com/api/oauth/usage` and shows a fill-ring icon with the percentage in the menu bar. Requires macOS 14+ and Xcode 16+. The repository is `konradmichalik/spark`.
+Spark is a native macOS menu bar app (SwiftUI, Swift 6) that displays Claude Code usage metrics. It reads the OAuth token from the macOS Keychain, fetches usage from `api.anthropic.com/api/oauth/usage` and shows a fill-ring icon with the percentage in the menu bar. If the OpenAI Codex CLI is signed in with ChatGPT, it also shows Codex usage behind a Claude | Codex switch. Requires macOS 14+ and Xcode 16+. The repository is `konradmichalik/spark`.
 
 ## Structure
 
 - `Spark/Sources/App/`: app entry (`SparkApp.swift`)
-- `Spark/Sources/Models/`: `AppState` (`@MainActor`, `@Observable`, single source of truth), usage and stats models, transcript caches, persistence
-- `Spark/Sources/Services/`: `KeychainService`, `UsageClient`, `CLIVersionClient`, `TranscriptFileWatcher`, `SparkCredentialStore`
+- `Spark/Sources/Models/`: `AppState` (`@MainActor`, `ObservableObject`, the Claude provider), `CodexState` (the Codex provider), `MenuBarReading` (what the menu bar shows across both), usage and stats models, transcript caches, persistence
+- `Spark/Sources/Services/`: `KeychainService`, `UsageClient`, `CLIVersionClient`, `TranscriptFileWatcher`, `SparkCredentialStore`, `CodexAuthReader`, `CodexUsageClient`
 - `Spark/Sources/Views/`: `MenuBarView` (main popover), usage graphs, `SettingsView`, `WeeklyReportView`, `Views/Components/` (`SectionHeader`, `SectionCard`, `SegmentPicker`, `TablerIcon`)
 - `Spark/Assets.xcassets/Icons/`: bundled Tabler outline SVG icon set
 - `SparkTests/`: unit tests
@@ -18,6 +18,8 @@ Spark is a native macOS menu bar app (SwiftUI, Swift 6) that displays Claude Cod
 - `.githooks/pre-commit`: SwiftLint on staged Swift files
 
 Data flow: timer-based polling, `UsageClient` fetches the API, `AppState` updates, SwiftUI re-renders. Backoff runs from 5 minutes (active) to 30 minutes (idle) and snaps back on usage change. Local stats come from `~/.claude/history.jsonl` and per-project JSONL files. Active sessions are sessions with a transcript write in the last 5 minutes.
+
+Codex: `CodexState` reads `$CODEX_HOME/auth.json` (default `~/.codex`) before every poll and calls `chatgpt.com/backend-api/wham/usage` every 5 minutes. Never write `auth.json` or refresh the Codex token: Codex rotates refresh tokens and a refresh by Spark signs the CLI out. Classify Codex windows by `limit_window_seconds`, never by primary/secondary position. Local Codex stats come from `sessions/**/rollout-*.jsonl`.
 
 ## Development commands
 

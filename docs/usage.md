@@ -12,6 +12,19 @@ The icon reflects your highest current usage level:
 
 Click the icon to open the detailed popover with usage stats, the history graph, and service status. The icon style (Minimal, Dot, or Logo; colored or monochrome) is set in **Settings → Menu Bar**.
 
+## Claude and Codex
+
+With a Codex ChatGPT sign-in present, the popover gets a **Claude | Codex** switch and **Settings → Menu Bar → Provider** decides what the icon reports:
+
+| Provider | Menu bar shows |
+|----------|----------------|
+| Highest (default) | Whichever of Claude and Codex is closer to its limit |
+| Claude | Claude only |
+| Codex | Codex only |
+| Both | `Claude% \| Codex%`, ring and color follow the higher one |
+
+If a Codex plan lacks the window picked under **Displayed Value** (Pro has no 5-hour window, Free only a 30-day one), Spark uses that plan's highest window instead of showing 0%.
+
 ## Smart refresh
 
 | Tier | Interval | Trigger |

@@ -5,14 +5,26 @@ Spark queries `api.anthropic.com/api/oauth/usage` using the OAuth token Claude C
 > [!WARNING]
 > Spark relies on an undocumented internal API endpoint. Anthropic may change or remove it without notice. If data stops loading after a CLI update, check for a new Spark release.
 
+## Codex
+
+`CodexState` runs next to `AppState` and stays inert until `CodexAuthReader` finds a ChatGPT sign-in in `$CODEX_HOME/auth.json` (default `~/.codex`). It then polls `chatgpt.com/backend-api/wham/usage`, the endpoint the Codex CLI uses for `/status`, every 5 minutes. The file is re-read before every poll and never written: Codex rotates refresh tokens, so a refresh by Spark would sign the CLI out. A 401 triggers one re-read and retry, then a "run `codex login`" prompt.
+
+Codex windows are classified by length, not by position: up to 6 hours is the session window, 6 to 8 days the weekly one, anything else (the Free plan's 30-day window, per-model limits) gets its own row. `CodexUsage` maps them onto the existing `UsageData`, so the Claude rows and rings render them unchanged.
+
+Local stats come from the rollout files in `sessions/` and `archived_sessions/`. `token_count` events hold cumulative totals, so `CodexSessionStats` counts the delta between consecutive events at each event's timestamp. `input_tokens` includes cached tokens, which are split out.
+
+> [!WARNING]
+> The Codex usage endpoint is undocumented as well and has changed shape before. Decoding is lenient: unknown fields are ignored and missing windows are hidden.
+
 ## Project structure
 
 ```text
 Spark/Sources/
   App/        SparkApp.swift — entry point, menu bar controller
-  Models/     Models.swift, AppState.swift, StatsModels.swift, Theme.swift
-  Services/   UsageClient.swift, KeychainService.swift
-  Views/      MenuBarView, UsageGraphView, SettingsView, ClaudeLogoShape
+  Models/     Models.swift, AppState.swift, StatsModels.swift, Theme.swift,
+              CodexState.swift, CodexUsage.swift, CodexSessionStats.swift, MenuBarReading.swift
+  Services/   UsageClient.swift, KeychainService.swift, CodexAuthReader.swift, CodexUsageClient.swift
+  Views/      MenuBarView, CodexUsageView, UsageGraphView, SettingsView, ClaudeLogoShape
   Views/Components/  SectionHeader, SectionCard, SegmentPicker, TablerIcon — shared across the
               popover and settings window
 ```
