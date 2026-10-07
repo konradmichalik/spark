@@ -83,7 +83,7 @@ struct RingTooltip: View {
         }
         .font(.caption2)
         .padding(6)
-        .adaptiveBackground(reduceTransparency: reduceTransparency, in: RoundedRectangle(cornerRadius: 6))
+        .tooltipChrome(reduceTransparency: reduceTransparency)
     }
 
     private var projectionText: String? {
@@ -103,7 +103,6 @@ struct RingTooltip: View {
 struct RingLegendRow: View {
     let ring: RingData
     let color: Color
-    @State private var showResetPopover = false
 
     var body: some View {
         HStack(spacing: 6) {
@@ -119,41 +118,19 @@ struct RingLegendRow: View {
             Spacer()
 
             if let resetTime = ring.resetTime {
-                Button {
-                    showResetPopover.toggle()
-                } label: {
-                    HStack(spacing: 4) {
-                        TablerIconView(.history, size: 11)
-                            .frame(width: 18, height: 18)
-                            .background(Color.secondary.opacity(0.12))
-                            .clipShape(Circle())
-                        Text(resetTime)
-                            .font(.caption2)
-                            .foregroundColor(.secondary)
-                    }
+                HStack(spacing: 4) {
+                    TablerIconView(.history, size: 11)
+                        .frame(width: 18, height: 18)
+                        .background(Color.secondary.opacity(0.12))
+                        .clipShape(Circle())
+                    Text(resetTime)
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
                 }
-                .buttonStyle(.plain)
-                .popover(isPresented: $showResetPopover, arrowEdge: .bottom) {
-                    VStack(spacing: 6) {
-                        HStack(spacing: 4) {
-                            TablerIconView(.history, size: 11)
-                            Text("Reset in \(resetTime)")
-                                .fontWeight(.medium)
-                        }
-                        .font(.caption)
-
-                        if let resetDate = ring.resetDate {
-                            Text(
-                                resetDate,
-                                format: .dateTime.weekday(.wide).day().month(.wide).hour().minute()
-                            )
-                            .font(.caption2)
-                            .foregroundColor(.secondary)
-                        }
-                    }
-                    .padding(10)
-                    .frame(width: 220)
-                }
+                .contentShape(Rectangle())
+                .tooltip(ring.resetDate?.resetDescription, title: "Reset in \(resetTime)")
+                .accessibilityElement(children: .combine)
+                .accessibilityHint(ring.resetDate?.resetDescription ?? "")
             }
         }
     }

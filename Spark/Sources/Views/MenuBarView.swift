@@ -685,11 +685,9 @@ struct UsageRow: View {
     /// Local burn rate, shown alongside the label — see `BurnRate`. `nil` renders nothing.
     var burnRate: BurnRate?
 
-    private var burnRateDescription: String? {
-        guard let burnRate else { return nil }
-        let minutes = Int(BurnRate.window / 60)
-        return "Burn rate: \(burnRate.tier.label). \(formatTokenCount(burnRate.tokensPerMinute)) fresh tokens per minute "
-            + "across all sessions, averaged over the last \(minutes) minutes. Cache reads are not counted."
+    private static func burnRateDetail(_ burnRate: BurnRate) -> String {
+        "\(formatTokenCount(burnRate.tokensPerMinute)) fresh tokens per minute across all sessions, "
+            + "averaged over the last \(Int(BurnRate.window / 60)) minutes. Cache reads are not counted."
     }
 
     private var paceDescription: String? {
@@ -704,9 +702,6 @@ struct UsageRow: View {
         if utilization >= warningThreshold { return .orange }
         return .green
     }
-
-    @State private var showProjectionPopover = false
-    @State private var showResetPopover = false
 
     private var projectionTitle: String? {
         switch projection {
@@ -759,6 +754,53 @@ struct UsageRow: View {
         seconds.shortDuration
     }
 
+    private var insightAccessibilityLabel: String {
+        var parts: [String] = []
+        if let burnRate {
+            parts.append("Burn rate \(burnRate.tier.label), \(formatTokenCount(burnRate.tokensPerMinute)) tokens per minute")
+        }
+        if projectionTitle != nil { parts.append("Usage projection") }
+        return parts.joined(separator: ", ")
+    }
+
+    private var insightTooltipTitle: String? {
+        projectionTitle ?? burnRate.map { "Burn rate: \($0.tier.label)" }
+    }
+
+    private var insightTooltipText: String? {
+        var paragraphs: [String] = []
+        if let projectionDetail { paragraphs.append(projectionDetail) }
+        if let burnRate {
+            let detail = Self.burnRateDetail(burnRate)
+            paragraphs.append(projectionTitle == nil ? detail : "Burn rate: \(burnRate.tier.label). \(detail)")
+        }
+        return paragraphs.isEmpty ? nil : paragraphs.joined(separator: "\n\n")
+    }
+
+    /// Burn rate and projection share one hover target and one tooltip.
+    @ViewBuilder
+    private var insight: some View {
+        if projectionTitle != nil || burnRate != nil {
+            HStack(spacing: 4) {
+                // Neutral in the row: red there belongs to the projection, which says whether
+                // the session limit is actually at risk. The tier is named in the tooltip.
+                if let burnRate {
+                    Text("· \(formatTokenCount(burnRate.tokensPerMinute))/min")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                }
+                if projectionTitle != nil {
+                    TablerIconView(.chartLine, size: 10, color: projectionIconColor)
+                }
+            }
+            .contentShape(Rectangle())
+            .tooltip(insightTooltipText, title: insightTooltipTitle)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(insightAccessibilityLabel)
+            .accessibilityHint(insightTooltipText ?? "")
+        }
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack {
@@ -772,72 +814,20 @@ struct UsageRow: View {
                         .foregroundColor(.secondary)
                 }
 
-                if let burnRate {
-                    Text("· \(formatTokenCount(burnRate.tokensPerMinute))/min")
-                        .font(.caption2)
-                        .foregroundColor(Theme.burnRateColor(for: burnRate.tier))
-                        .tooltip(burnRateDescription)
-                        .accessibilityLabel(burnRateDescription ?? "")
-                }
-
-                if projectionTitle != nil {
-                    Button(action: { showProjectionPopover.toggle() }, label: {
-                        TablerIconView(.chartLine, size: 10, color: projectionIconColor, isDecorative: false)
-                    })
-                    .buttonStyle(.plain)
-                    .tooltip("Usage projection")
-                    .accessibilityLabel("Usage projection")
-                    .popover(isPresented: $showProjectionPopover, arrowEdge: .bottom) {
-                        VStack(spacing: 6) {
-                            if let title = projectionTitle {
-                                HStack(spacing: 4) {
-                                    TablerIconView(.chartLine, size: 9, color: projectionIconColor)
-                                    Text(title)
-                                        .fontWeight(.medium)
-                                }
-                                .font(.caption)
-                            }
-                            if let detail = projectionDetail {
-                                Text(detail)
-                                    .font(.system(size: 10))
-                                    .foregroundStyle(.tertiary)
-                                    .fixedSize(horizontal: false, vertical: true)
-                            }
-                        }
-                        .padding(10)
-                        .frame(width: 220)
-                    }
-                }
+                insight
 
                 Spacer()
                 if let resetTime {
-                    Button(action: { showResetPopover.toggle() }, label: {
-                        HStack(spacing: 4) {
-                            TablerIconView(.history, size: 10, color: .secondary)
-                            Text("\(resetTime) left")
-                                .font(.system(size: 10))
-                                .foregroundStyle(.tertiary)
-                        }
-                    })
-                    .buttonStyle(.plain)
-                    .popover(isPresented: $showResetPopover, arrowEdge: .bottom) {
-                        VStack(spacing: 6) {
-                            HStack(spacing: 4) {
-                                TablerIconView(.history, size: 11)
-                                Text("Reset in \(resetTime)")
-                                    .fontWeight(.medium)
-                            }
-                            .font(.caption)
-
-                            if let resetDate {
-                                Text(resetDate, format: .dateTime.weekday(.wide).day().month(.wide).hour().minute())
-                                    .font(.system(size: 10))
-                                    .foregroundStyle(.tertiary)
-                            }
-                        }
-                        .padding(10)
-                        .frame(width: 220)
+                    HStack(spacing: 4) {
+                        TablerIconView(.history, size: 10, color: .secondary)
+                        Text("\(resetTime) left")
+                            .font(.system(size: 10))
+                            .foregroundStyle(.tertiary)
                     }
+                    .contentShape(Rectangle())
+                    .tooltip(resetDate?.resetDescription, title: "Reset in \(resetTime)")
+                    .accessibilityElement(children: .combine)
+                    .accessibilityHint(resetDate?.resetDescription ?? "")
                 }
             }
 
