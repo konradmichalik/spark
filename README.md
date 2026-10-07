@@ -87,7 +87,7 @@ claude auth login
 Codex needs no setup in Spark. Once `codex login` has stored a ChatGPT sign-in in `~/.codex/auth.json` (or `$CODEX_HOME/auth.json`), Spark shows Codex next to Claude. Choose what the menu bar shows under **Settings → Menu Bar → Provider**, or turn Codex off under **Settings → Connection**.
 
 > [!NOTE]
-> Spark only reads `auth.json` and never refreshes or rewrites the Codex token, so it cannot sign the CLI out. Sign-ins stored in the Keychain (`cli_auth_credentials_store = keyring`) are not supported yet.
+> Spark only reads `auth.json` and never refreshes or rewrites the Codex token, so it cannot sign the CLI out. Not supported yet: sign-ins stored in the Keychain (`cli_auth_credentials_store = keyring`), using Codex without a Claude Code connection, and a `CODEX_HOME` set only in your shell profile (apps started from Finder or as a login item don't see it, so Spark falls back to `~/.codex`).
 
 ## 🐛 Troubleshooting
 

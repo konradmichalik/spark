@@ -25,6 +25,8 @@ struct CodexSessionStats: Equatable, Sendable {
     static func parse(directories: [URL], since: Date?) -> CodexSessionStats {
         var result = CodexSessionStats()
         for file in directories.flatMap(rolloutFiles) {
+            // `CodexState.refreshStats` cancels a scan that a newer one superseded.
+            if Task.isCancelled { break }
             result.fileCount += 1
             // A file untouched since the cutoff cannot hold activity inside the period.
             if let since, let modified = modificationDate(of: file), modified < since { continue }
@@ -72,6 +74,8 @@ struct CodexSessionStats: Equatable, Sendable {
 private struct RolloutAccumulator {
     let since: Date?
     var stats = CodexSessionStats()
+    /// One decoder per file instead of one per line: rollouts hold thousands of matching lines.
+    private let decoder = JSONDecoder()
     private var previous = RolloutTokenUsage()
     private var model: String?
     private var hasActivity = false
@@ -84,7 +88,7 @@ private struct RolloutAccumulator {
         // Most lines are model output or tool calls. Skip them before paying for JSON decoding.
         guard line.contains("\"token_count\"") || line.contains("\"user_message\"") || line.contains("\"turn_context\"")
         else { return }
-        guard let entry = try? JSONDecoder().decode(RolloutLine.self, from: Data(line.utf8)) else { return }
+        guard let entry = try? decoder.decode(RolloutLine.self, from: Data(line.utf8)) else { return }
 
         switch (entry.type, entry.payload?.type) {
         case ("turn_context", _):
@@ -102,9 +106,12 @@ private struct RolloutAccumulator {
     }
 
     private mutating func countDelta(to total: RolloutTokenUsage, inPeriod: Bool) {
+        // A lower total means a fresh counter (e.g. after a fork): count it from zero.
+        if total.input < previous.input || total.output < previous.output {
+            previous = RolloutTokenUsage()
+        }
         defer { previous = total }
-        // A lower total means a different counter (e.g. after a fork). Restart from it.
-        guard total.input >= previous.input, total.output >= previous.output, inPeriod else { return }
+        guard inPeriod else { return }
         let cached = max(total.cached - previous.cached, 0)
         let input = total.input - previous.input
         let output = total.output - previous.output
@@ -131,12 +138,12 @@ private struct RolloutAccumulator {
         return date >= since
     }
 
+    /// Value-type format styles: cheap to reuse, unlike a fresh `ISO8601DateFormatter` per line.
+    private static let fractionalStyle = Date.ISO8601FormatStyle(includingFractionalSeconds: true)
+    private static let plainStyle = Date.ISO8601FormatStyle()
+
     private static func parseDate(_ string: String) -> Date? {
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        if let date = formatter.date(from: string) { return date }
-        formatter.formatOptions = [.withInternetDateTime]
-        return formatter.date(from: string)
+        (try? fractionalStyle.parse(string)) ?? (try? plainStyle.parse(string))
     }
 }
 

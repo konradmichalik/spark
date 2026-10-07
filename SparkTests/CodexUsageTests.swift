@@ -136,6 +136,18 @@ final class CodexUsageTests: XCTestCase {
         XCTAssertEqual(usage.additionalLimits.first?.bucket.utilization, 33)
     }
 
+    /// Same name and window twice must still give distinct `ForEach` ids.
+    func testAdditionalLimitIdsAreUnique() throws {
+        let window = #"{ "used_percent": 1, "limit_window_seconds": 18000 }"#
+        let limit = #"{ "limit_name": "Max", "rate_limit": { "primary_window": \#(window) } }"#
+        let response = try decode(#"{ "plan_type": "pro", "additional_rate_limits": [\#(limit), \#(limit)] }"#)
+
+        let ids = CodexUsage(response: response).additionalLimits.map(\.id)
+
+        XCTAssertEqual(ids.count, 2)
+        XCTAssertEqual(Set(ids).count, 2)
+    }
+
     func testCreditsBalanceShownOnlyWhenLimited() throws {
         let limited = try decode("""
         { "plan_type": "business", "credits": { "has_credits": true, "unlimited": false, "balance": "12.50" } }

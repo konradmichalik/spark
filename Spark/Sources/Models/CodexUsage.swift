@@ -83,8 +83,10 @@ struct CodexNamedLimit: Sendable, Identifiable {
     let label: String
     let bucket: UsageBucket
     let windowSeconds: Int
+    /// Index in `CodexUsage.additionalLimits`. Labels can repeat (same name and window twice).
+    let position: Int
 
-    var id: String { label }
+    var id: String { "\(position)-\(label)" }
 }
 
 /// Codex usage normalized onto Spark's existing `UsageData`, so the Claude rows, rings and
@@ -118,7 +120,8 @@ struct CodexUsage: Sendable {
                 additional.append(CodexNamedLimit(
                     label: Self.windowName(window.limitWindowSeconds),
                     bucket: bucket,
-                    windowSeconds: window.limitWindowSeconds
+                    windowSeconds: window.limitWindowSeconds,
+                    position: additional.count
                 ))
             }
         }
@@ -128,7 +131,8 @@ struct CodexUsage: Sendable {
                 additional.append(CodexNamedLimit(
                     label: "\(extra.limitName) (\(Self.windowName(window.limitWindowSeconds)))",
                     bucket: Self.bucket(for: window),
-                    windowSeconds: window.limitWindowSeconds
+                    windowSeconds: window.limitWindowSeconds,
+                    position: additional.count
                 ))
             }
         }

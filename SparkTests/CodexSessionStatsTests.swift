@@ -111,6 +111,19 @@ final class CodexSessionStatsTests: XCTestCase {
         XCTAssertEqual(stats.modelTokens, ["gpt-5.5": 110, "gpt-5.5-mini": 210])
     }
 
+    /// A total lower than the previous one is a fresh counter: count it from zero, not drop it.
+    func testCounterResetCountsFromZero() throws {
+        _ = try writeRollout("rollout-r.jsonl", lines: [
+            tokenCount("2026-10-07T08:00:10.000Z", input: 1000, cached: 0, output: 100),
+            tokenCount("2026-10-07T08:01:10.000Z", input: 300, cached: 0, output: 30)
+        ])
+
+        let stats = CodexSessionStats.parse(directories: [tempDir], since: nil)
+
+        XCTAssertEqual(stats.inputTokens, 1300)
+        XCTAssertEqual(stats.outputTokens, 130)
+    }
+
     func testSkipsMalformedLinesCompressedAndForeignFiles() throws {
         _ = try writeRollout("rollout-d.jsonl", lines: [
             "not json at all",
