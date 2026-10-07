@@ -18,7 +18,7 @@ open Spark.xcodeproj
 ```
 
 > [!IMPORTANT]
-> `project.yml` is the source of truth for project configuration. Never edit the generated `.xcodeproj` by hand, and never commit changes to it.
+> `project.yml` is the source of truth for project configuration. The generated `Spark.xcodeproj` is git-ignored, so run `make xcode` again after adding or removing files. Never edit it by hand.
 
 ## Build, lint, and test
 
@@ -33,7 +33,7 @@ Or in Xcode: select your development team under **Signing & Capabilities**, then
 xcodebuild -scheme Spark -configuration Debug test
 ```
 
-`make setup` installs a pre-commit hook (`.githooks/pre-commit`) that runs SwiftLint on staged Swift files.
+`make setup` installs a pre-commit hook (`.githooks/pre-commit`) that runs SwiftLint on staged Swift files and blocks the commit on any violation.
 
 ## Commit messages
 
