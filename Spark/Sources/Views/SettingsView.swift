@@ -783,6 +783,11 @@ struct ConnectionTab: View {
                         }
                     }
                 }
+
+                Divider()
+                    .padding(.vertical, 4)
+
+                CodexConnectionSection()
             }
             .padding()
         }
