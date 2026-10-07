@@ -72,4 +72,12 @@ final class OverviewModelsTests: XCTestCase {
         XCTAssertEqual(ProviderTabSummary.tooltip(plan: "Plus", signIn: nil), "Plus")
         XCTAssertNil(ProviderTabSummary.tooltip(plan: nil, signIn: ""))
     }
+
+    func testFooterRelativeTime() {
+        let now = Date()
+        XCTAssertEqual(PopoverFooter.relative(now.addingTimeInterval(-2), now: now), "just now")
+        XCTAssertEqual(PopoverFooter.relative(now.addingTimeInterval(-30), now: now), "30s ago")
+        XCTAssertEqual(PopoverFooter.relative(now.addingTimeInterval(-150), now: now), "2m ago")
+        XCTAssertEqual(PopoverFooter.relative(now.addingTimeInterval(-7300), now: now), "2h ago")
+    }
 }

@@ -63,7 +63,7 @@ enum OverviewSummary {
 }
 
 /// The popover's two navigation levels: the overview and one detail screen at a time.
-enum PopoverScreen: Equatable {
+enum PopoverScreen: Hashable {
     case overview, history, sessions, statistics, limits
 
     var title: String {
