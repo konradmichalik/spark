@@ -37,8 +37,6 @@ final class AppState: ObservableObject {
 
     @AppStorage("iconStyle") var iconStyle: String = "logo"
     @AppStorage("menuBarValue") var menuBarValue: String = "max"
-    /// A `MenuBarProviderMode` raw value. Only consulted once Codex is connected.
-    @AppStorage("menuBarProvider") var menuBarProvider: String = MenuBarProviderMode.highest.rawValue
     @AppStorage("showSonnetUsage") var showSonnetUsage: Bool = true
     @AppStorage("showOpusUsage") var showOpusUsage: Bool = true
     @AppStorage("showFableUsage") var showFableUsage: Bool = true

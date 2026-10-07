@@ -18,52 +18,32 @@ enum UsageProvider: String, CaseIterable, SegmentLabeled {
     }
 }
 
-/// Which provider the menu bar label reports once Codex is connected. Stored as its raw value in
-/// `@AppStorage("menuBarProvider")`, so the raw values are persistence keys and must not change.
-enum MenuBarProviderMode: String, CaseIterable {
-    case highest, claude, codex, both
-
-    var displayName: String {
-        switch self {
-        case .highest: "Highest"
-        case .claude: "Claude"
-        case .codex: "Codex"
-        case .both: "Both"
-        }
-    }
+extension UsageProvider {
+    /// The `@AppStorage` key of the popover tab the user opened last. The menu bar shows the
+    /// same provider, so switching tabs is how a user picks what the menu bar reports.
+    static let selectionKey = "selectedProvider"
 }
 
-/// What the menu bar label shows: `value` drives the ring or bar and its color, `text` is the
-/// percentage next to it. `provider` is nil when both providers are shown at once.
+/// What the menu bar label shows: `value` drives the ring and its tone, `text` is the
+/// percentage next to it, `provider` the tab the value belongs to.
 struct MenuBarReading: Equatable {
     let value: Double
     let text: String
-    let provider: UsageProvider?
+    let provider: UsageProvider
 
+    /// The selected provider's value. Falls back to Claude when Codex is selected but not
+    /// connected, so the label never goes blank after Codex is signed out.
     static func resolve(
         claude: UsageData,
         codex: CodexUsage?,
         value valueMode: String,
-        mode: MenuBarProviderMode
+        provider: UsageProvider,
+        locale: Locale = .current
     ) -> MenuBarReading {
-        let claudeValue = Self.claudeValue(claude, mode: valueMode)
-        guard let codex else { return single(claudeValue, .claude) }
-        let codexValue = Self.codexValue(codex, mode: valueMode)
-
-        switch mode {
-        case .claude:
-            return single(claudeValue, .claude)
-        case .codex:
-            return single(codexValue, .codex)
-        case .highest:
-            return codexValue > claudeValue ? single(codexValue, .codex) : single(claudeValue, .claude)
-        case .both:
-            return MenuBarReading(
-                value: max(claudeValue, codexValue),
-                text: "\(Int(claudeValue))% | \(Int(codexValue))%",
-                provider: nil
-            )
+        if provider == .codex, let codex {
+            return single(codexValue(codex, mode: valueMode), .codex, locale: locale)
         }
+        return single(claudeValue(claude, mode: valueMode), .claude, locale: locale)
     }
 
     /// One provider's value for a `menuBarValue` mode, or nil when that provider has no data.
@@ -80,8 +60,8 @@ struct MenuBarReading: Equatable {
         return .ok
     }
 
-    private static func single(_ value: Double, _ provider: UsageProvider) -> MenuBarReading {
-        MenuBarReading(value: value, text: "\(Int(value))%", provider: provider)
+    private static func single(_ value: Double, _ provider: UsageProvider, locale: Locale) -> MenuBarReading {
+        MenuBarReading(value: value, text: UsageFormat.percent(value, locale: locale), provider: provider)
     }
 
     private static func claudeValue(_ data: UsageData, mode: String) -> Double {

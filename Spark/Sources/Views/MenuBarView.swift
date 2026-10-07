@@ -6,7 +6,7 @@ struct MenuBarView: View {
     @EnvironmentObject var state: AppState
     @EnvironmentObject var codex: CodexState
     @Environment(\.openWindow) private var openWindow
-    @AppStorage("selectedProvider") private var selectedProviderRaw = UsageProvider.claude.rawValue
+    @AppStorage(UsageProvider.selectionKey) private var selectedProviderRaw = UsageProvider.claude.rawValue
     @AppStorage("showProviderTabValues") private var showProviderTabValues = true
 
     private static let fiveHours: TimeInterval = 5 * 3600

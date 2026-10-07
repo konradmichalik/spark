@@ -26,48 +26,33 @@ final class MenuBarReadingTests: XCTestCase {
         return CodexUsage(response: try JSONDecoder().decode(CodexUsageResponse.self, from: Data(json.utf8)))
     }
 
+    private let enUS = Locale(identifier: "en_US")
+
     func testWithoutCodexAlwaysShowsClaude() {
-        for mode in MenuBarProviderMode.allCases {
-            let reading = MenuBarReading.resolve(claude: claude, codex: nil, value: "max", mode: mode)
+        for provider in UsageProvider.allCases {
+            let reading = MenuBarReading.resolve(claude: claude, codex: nil, value: "max", provider: provider, locale: enUS)
             XCTAssertEqual(reading.value, 42)
             XCTAssertEqual(reading.text, "42%")
+            XCTAssertEqual(reading.provider, .claude)
         }
     }
 
-    func testHighestPicksTheBusierProvider() throws {
-        let codex = try codex(session: 71, weekly: 10)
-
-        let reading = MenuBarReading.resolve(claude: claude, codex: codex, value: "max", mode: .highest)
-
-        XCTAssertEqual(reading.value, 71)
-        XCTAssertEqual(reading.text, "71%")
-    }
-
-    func testHighestPrefersClaudeOnTie() throws {
-        let codex = try codex(session: 42, weekly: nil)
-
-        let reading = MenuBarReading.resolve(claude: claude, codex: codex, value: "max", mode: .highest)
-
-        XCTAssertEqual(reading.provider, .claude)
-    }
-
-    func testFixedProviderModes() throws {
+    func testFollowsTheSelectedProvider() throws {
         let codex = try codex(session: 5, weekly: 60)
 
-        XCTAssertEqual(MenuBarReading.resolve(claude: claude, codex: codex, value: "max", mode: .claude).value, 42)
-        XCTAssertEqual(MenuBarReading.resolve(claude: claude, codex: codex, value: "max", mode: .codex).value, 60)
-        XCTAssertEqual(MenuBarReading.resolve(claude: claude, codex: codex, value: "session", mode: .codex).value, 5)
-        XCTAssertEqual(MenuBarReading.resolve(claude: claude, codex: codex, value: "weekly", mode: .claude).value, 20)
+        XCTAssertEqual(MenuBarReading.resolve(claude: claude, codex: codex, value: "max", provider: .claude, locale: enUS).value, 42)
+        XCTAssertEqual(MenuBarReading.resolve(claude: claude, codex: codex, value: "max", provider: .codex, locale: enUS).value, 60)
+        XCTAssertEqual(MenuBarReading.resolve(claude: claude, codex: codex, value: "session", provider: .codex, locale: enUS).value, 5)
+        XCTAssertEqual(MenuBarReading.resolve(claude: claude, codex: codex, value: "weekly", provider: .claude, locale: enUS).value, 20)
+        XCTAssertEqual(MenuBarReading.resolve(claude: claude, codex: codex, value: "max", provider: .codex, locale: enUS).provider, .codex)
     }
 
-    func testBothShowsClaudeThenCodexAndRingFollowsTheMax() throws {
-        let codex = try codex(session: 71, weekly: 10)
-
-        let reading = MenuBarReading.resolve(claude: claude, codex: codex, value: "max", mode: .both)
-
-        XCTAssertEqual(reading.text, "42% | 71%")
-        XCTAssertEqual(reading.value, 71)
-        XCTAssertNil(reading.provider)
+    func testTextFollowsTheLocale() {
+        let german = MenuBarReading.resolve(claude: claude, codex: nil, value: "max", provider: .claude, locale: Locale(identifier: "de_DE"))
+            .text
+            .replacingOccurrences(of: "\u{00A0}", with: " ")
+            .replacingOccurrences(of: "\u{202F}", with: " ")
+        XCTAssertEqual(german, "42 %")
     }
 
     /// A plan without the requested window (Pro has no 5h window, Free only a 30-day one) must
@@ -75,8 +60,8 @@ final class MenuBarReadingTests: XCTestCase {
     func testMissingCodexWindowFallsBackToHighest() throws {
         let codex = try codex(session: nil, weekly: 30, extra: 80)
 
-        XCTAssertEqual(MenuBarReading.resolve(claude: claude, codex: codex, value: "session", mode: .codex).value, 80)
-        XCTAssertEqual(MenuBarReading.resolve(claude: claude, codex: codex, value: "max", mode: .codex).value, 80)
+        XCTAssertEqual(MenuBarReading.resolve(claude: claude, codex: codex, value: "session", provider: .codex, locale: enUS).value, 80)
+        XCTAssertEqual(MenuBarReading.resolve(claude: claude, codex: codex, value: "max", provider: .codex, locale: enUS).value, 80)
     }
 
     /// The provider tabs show each provider's session value, with the same fallback as the

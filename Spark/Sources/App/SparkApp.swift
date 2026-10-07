@@ -118,13 +118,14 @@ struct SparkApp: App {
 struct MenuBarLabel: View {
     @ObservedObject var state: AppState
     @ObservedObject var codex: CodexState
+    @AppStorage(UsageProvider.selectionKey) private var selectedProviderRaw = UsageProvider.claude.rawValue
 
     private var reading: MenuBarReading {
         MenuBarReading.resolve(
             claude: state.usageData,
             codex: codex.isActive ? codex.usage : nil,
             value: state.menuBarValue,
-            mode: MenuBarProviderMode(rawValue: state.menuBarProvider) ?? .highest
+            provider: UsageProvider(rawValue: selectedProviderRaw) ?? .claude
         )
     }
 
