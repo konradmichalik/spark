@@ -479,6 +479,7 @@ struct RefreshTier: View {
 
 struct MenuBarTab: View {
     @EnvironmentObject var state: AppState
+    @EnvironmentObject var codex: CodexState
 
     var body: some View {
         ScrollView {
@@ -541,6 +542,10 @@ struct MenuBarTab: View {
                     )
                 }
 
+                if codex.isActive {
+                    providerSection
+                }
+
                 SectionHeader("Options", icon: .adjustmentsHorizontal)
 
                 SectionCard {
@@ -553,6 +558,26 @@ struct MenuBarTab: View {
                 }
             }
             .padding()
+        }
+    }
+
+    @ViewBuilder
+    private var providerSection: some View {
+        SectionHeader("Provider", icon: .terminal2)
+
+        SectionCard {
+            Picker("Provider", selection: $state.menuBarProvider) {
+                ForEach(MenuBarProviderMode.allCases, id: \.rawValue) { mode in
+                    Text(mode.displayName).tag(mode.rawValue)
+                }
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+
+            Text("Highest shows whichever of Claude and Codex is closer to its limit. Both shows Claude | Codex.")
+                .font(.caption2)
+                .foregroundColor(.secondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 }

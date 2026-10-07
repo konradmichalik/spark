@@ -117,19 +117,23 @@ struct MenuBarLabel: View {
     @ObservedObject var state: AppState
     @ObservedObject var codex: CodexState
 
-    private var displayValue: Double {
-        switch state.menuBarValue {
-        case "session": state.usageData.sessionUtilization
-        case "weekly": state.usageData.weeklyUtilization
-        default: state.usageData.maxUtilization
-        }
+    private var reading: MenuBarReading {
+        MenuBarReading.resolve(
+            claude: state.usageData,
+            codex: codex.isActive ? codex.usage : nil,
+            value: state.menuBarValue,
+            mode: MenuBarProviderMode(rawValue: state.menuBarProvider) ?? .highest
+        )
     }
 
+    private var displayValue: Double { reading.value }
+
     private var iconColor: NSColor {
-        if !state.status.isHealthy && state.status != .unknown {
+        // The Anthropic status page says nothing about Codex, so it only tints a Claude reading.
+        if reading.provider != .codex, !state.status.isHealthy && state.status != .unknown {
             return .systemOrange
         }
-        switch state.usageData.level {
+        switch reading.level(warning: state.warningThreshold, critical: state.criticalThreshold) {
         case .ok: return .systemGreen
         case .warning: return .systemOrange
         case .critical: return .systemRed
@@ -253,7 +257,7 @@ struct MenuBarLabel: View {
 
     @ViewBuilder
     private var percentageText: some View {
-        Text("\(Int(displayValue))%")
+        Text(reading.text)
             .font(.system(.caption, design: .monospaced))
             .foregroundColor(percentageColor)
     }
