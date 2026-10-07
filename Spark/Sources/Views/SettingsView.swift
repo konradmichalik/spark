@@ -1006,7 +1006,7 @@ struct StatusTab: View {
                         .buttonStyle(.borderless)
                         .accessibilityLabel("Refresh Claude service status")
 
-                        Link(destination: URL(string: "https://status.claude.com")!) {
+                        Link(destination: URL(staticString: "https://status.claude.com")) {
                             TablerIconView(.externalLink, size: 11, isDecorative: false)
                         }
                         .buttonStyle(.borderless)
@@ -1135,7 +1135,7 @@ struct AboutTab: View {
                 .font(.caption2)
                 .foregroundColor(.secondary)
 
-            Link("Icons by Tabler Icons (MIT)", destination: URL(string: "https://tabler.io/icons")!)
+            Link("Icons by Tabler Icons (MIT)", destination: URL(staticString: "https://tabler.io/icons"))
                 .font(.caption2)
                 .foregroundColor(.secondary)
         }

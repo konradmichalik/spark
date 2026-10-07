@@ -11,7 +11,7 @@ enum CLIVersionClient {
         let version: String
     }
 
-    private static let registryURL = URL(string: "https://registry.npmjs.org/@anthropic-ai/claude-code/latest")!
+    private static let registryURL = URL(staticString: "https://registry.npmjs.org/@anthropic-ai/claude-code/latest")
 
     static func fetchLatestVersion() async throws -> String {
         var request = URLRequest(url: registryURL)
@@ -32,7 +32,7 @@ enum CLIVersionClient {
         let version: String
     }
 
-    private static let brewCaskURL = URL(string: "https://formulae.brew.sh/api/cask/claude-code.json")!
+    private static let brewCaskURL = URL(staticString: "https://formulae.brew.sh/api/cask/claude-code.json")
 
     static func fetchLatestVersion(for method: ClaudeCodeInstallMethod) async throws -> String {
         switch method {

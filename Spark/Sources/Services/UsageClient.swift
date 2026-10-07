@@ -34,9 +34,9 @@ enum UsageClient {
 
     // MARK: - API
 
-    private static let usageURL = URL(string: "https://api.anthropic.com/api/oauth/usage")!
-    private static let statusURL = URL(string: "https://status.claude.com/api/v2/summary.json")!
-    private static let refreshURL = URL(string: "https://console.anthropic.com/v1/oauth/token")!
+    private static let usageURL = URL(staticString: "https://api.anthropic.com/api/oauth/usage")
+    private static let statusURL = URL(staticString: "https://status.claude.com/api/v2/summary.json")
+    private static let refreshURL = URL(staticString: "https://console.anthropic.com/v1/oauth/token")
 
     /// Claude Code's public OAuth client ID (extracted from the CLI binary)
     static let oauthClientID = "9d1c250a-e61b-44d9-88ed-5944d1962f5e"
