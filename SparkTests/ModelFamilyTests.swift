@@ -39,6 +39,10 @@ final class ModelFamilyTests: XCTestCase {
         XCTAssertEqual(ModelFamily.displayName(forRawModelId: "claude-sonnet-5"), "Sonnet 5")
     }
 
+    func testDisplayNameDropsTheDateSuffix() {
+        XCTAssertEqual(ModelFamily.displayName(forRawModelId: "claude-opus-4-5-20251101"), "Opus 4.5")
+    }
+
     func testDisplayNameFallsBackToRawIdWhenNotClaudePrefixed() {
         XCTAssertEqual(ModelFamily.displayName(forRawModelId: "some-future-model"), "some-future-model")
     }
