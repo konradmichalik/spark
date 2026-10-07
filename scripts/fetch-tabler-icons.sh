@@ -13,7 +13,7 @@ DEST="$(cd "$(dirname "$0")/.." && pwd)/Spark/Assets.xcassets/Icons"
 
 ICONS=(
   activity adjustments-horizontal alert-triangle arrow-down arrow-right arrow-up
-  bell-bolt bell-ringing calendar-month chart-bar chart-line chevron-left
+  bell-bolt bell-ringing brand-openai calendar-month chart-bar chart-line chevron-left
   chevron-right circle-arrow-up circle-check circle-plus circle-x clock download
   external-link eye eye-off help-circle heart history key
   layout-grid link link-plus moon numbers palette power refresh refresh-alert

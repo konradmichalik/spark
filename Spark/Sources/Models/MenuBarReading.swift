@@ -9,6 +9,13 @@ enum UsageProvider: String, CaseIterable, SegmentLabeled {
         case .codex: "Codex"
         }
     }
+
+    var segmentIcon: SegmentIcon? {
+        switch self {
+        case .claude: .claudeLogo
+        case .codex: .tabler(.brandOpenai)
+        }
+    }
 }
 
 /// Which provider the menu bar label reports once Codex is connected. Stored as its raw value in

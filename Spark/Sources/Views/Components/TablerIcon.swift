@@ -14,6 +14,7 @@ enum TablerIcon: String, CaseIterable {
     case arrowUp = "arrow-up"
     case bellBolt = "bell-bolt"
     case bellRinging = "bell-ringing"
+    case brandOpenai = "brand-openai"
     case calendarMonth = "calendar-month"
     case chartBar = "chart-bar"
     case chartLine = "chart-line"

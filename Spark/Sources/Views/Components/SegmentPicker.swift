@@ -7,6 +7,32 @@ import SwiftUI
 /// every user's stored preference. This protocol is the seam that keeps the two separable.
 protocol SegmentLabeled: Hashable {
     var segmentLabel: String { get }
+    var segmentIcon: SegmentIcon? { get }
+}
+
+extension SegmentLabeled {
+    var segmentIcon: SegmentIcon? { nil }
+}
+
+/// A small mark in front of a segment's label. The Claude mark is a vector shape rather than a
+/// Tabler asset, so it gets its own case.
+enum SegmentIcon {
+    case tabler(TablerIcon)
+    case claudeLogo
+
+    @ViewBuilder
+    func view(isSelected: Bool) -> some View {
+        switch self {
+        case .tabler(let icon):
+            TablerIconView(icon, size: 10, color: isSelected ? .primary : .secondary)
+        case .claudeLogo:
+            ClaudeLogoShape()
+                .fill(Theme.sparkOrange)
+                .frame(width: 9, height: 9)
+                .opacity(isSelected ? 1 : 0.7)
+                .accessibilityHidden(true)
+        }
+    }
 }
 
 /// The one segmented control in the app.
@@ -27,18 +53,21 @@ struct SegmentPicker<T: SegmentLabeled>: View {
                 Button {
                     selection = option
                 } label: {
-                    Text(option.segmentLabel)
-                        .font(.system(size: 9.5, weight: isSelected ? .semibold : .medium))
-                        .foregroundColor(isSelected ? .primary : .secondary)
-                        .padding(.horizontal, 5.5)
-                        .padding(.vertical, 3)
-                        .background {
-                            if isSelected {
-                                RoundedRectangle(cornerRadius: 4)
-                                    .fill(Color(nsColor: .controlColor))
-                                    .shadow(color: .black.opacity(0.16), radius: 0.75, y: 0.5)
-                            }
+                    HStack(spacing: 3) {
+                        option.segmentIcon?.view(isSelected: isSelected)
+                        Text(option.segmentLabel)
+                            .font(.system(size: 9.5, weight: isSelected ? .semibold : .medium))
+                            .foregroundColor(isSelected ? .primary : .secondary)
+                    }
+                    .padding(.horizontal, 5.5)
+                    .padding(.vertical, 3)
+                    .background {
+                        if isSelected {
+                            RoundedRectangle(cornerRadius: 4)
+                                .fill(Color(nsColor: .controlColor))
+                                .shadow(color: .black.opacity(0.16), radius: 0.75, y: 0.5)
                         }
+                    }
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel(option.segmentLabel)
