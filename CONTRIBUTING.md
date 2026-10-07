@@ -43,4 +43,6 @@ Conventional commits: `feat:`, `fix:`, `refactor:`, `docs:`, `test:`, `chore:`, 
 
 Open an issue first for anything beyond a small fix, to agree on the approach before writing code. Every push runs SwiftLint and an Xcode build + test in CI ([`.github/workflows/lint.yml`](.github/workflows/lint.yml), [`.github/workflows/build.yml`](.github/workflows/build.yml)); a pull request merges once both are green.
 
+UI changes follow the [design rules](docs/design/rules.md) and carry a light and a dark screenshot in the pull request.
+
 See [`docs/how-it-works.md`](docs/how-it-works.md) for the architecture and project structure, and [`docs/release.md`](docs/release.md) for how releases are cut.

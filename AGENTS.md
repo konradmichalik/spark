@@ -14,7 +14,7 @@ Spark is a native macOS menu bar app (SwiftUI, Swift 6) that displays Claude Cod
 - `SparkTests/`: unit tests
 - `project.yml`: XcodeGen project definition, the source of truth for project config
 - `scripts/fetch-tabler-icons.sh`: downloads Tabler icons
-- `site/`: landing page, `docs/`: how-it-works, usage and release docs
+- `site/`: landing page, `docs/`: how-it-works, usage and release docs, `docs/design/`: design rules and screen designs
 - `.githooks/pre-commit`: SwiftLint on staged Swift files
 
 Data flow: timer-based polling, `UsageClient` fetches the API, `AppState` updates, SwiftUI re-renders. Backoff runs from 5 minutes (active) to 30 minutes (idle) and snaps back on usage change. Local stats come from `~/.claude/history.jsonl` and per-project JSONL files. Active sessions are sessions with a transcript write in the last 5 minutes.
@@ -52,6 +52,11 @@ make lint     # swiftlint lint --strict
 - Swift 6 strict concurrency: `@MainActor` for UI, `Task.detached` for background network calls
 - No external dependencies, only Apple frameworks (SwiftUI, Combine, AppKit, Security, UserNotifications)
 - User preferences persist via `@AppStorage`
+
+## Design
+
+- Every change to the UI, the app icon, notifications or `site/` follows [`docs/design/rules.md`](docs/design/rules.md). The target screens are listed in [`docs/design/screens.md`](docs/design/screens.md)
+- A change that needs to break a rule updates `rules.md` in the same pull request
 
 ## Git workflow
 
