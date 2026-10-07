@@ -115,6 +115,12 @@ enum ForecastDetail {
         return lines.isEmpty ? nil : lines.joined(separator: "\n")
     }
 
+    /// The one forecast fact that stays on screen: when the limit will be hit before the reset.
+    static func limitWarning(_ projection: ProjectionResult) -> String? {
+        guard case .limitReached(let seconds) = projection else { return nil }
+        return "Limit in ~\(seconds.shortDuration)"
+    }
+
     private static func rateSuffix(_ rate: Double?) -> String {
         guard let rate, rate > 0.5 else { return "" }
         return ", rising ~\(Int(rate.rounded()))%/h"
@@ -124,9 +130,15 @@ enum ForecastDetail {
 /// What the overview leads with when a provider reports no session window: Codex Pro sends only
 /// the weekly window, Free a single 30-day one that lands among the other limits.
 enum HeadlineLimit {
-    static func withoutSession(weekly: UsageBucket?, others: [CodexNamedLimit]) -> (label: String, bucket: UsageBucket)? {
-        if let weekly { return ("WEEK", weekly) }
-        return others.first.map { ($0.label.uppercased(), $0.bucket) }
+    struct Headline {
+        let label: String
+        let bucket: UsageBucket
+        let window: TimeInterval
+    }
+
+    static func withoutSession(weekly: UsageBucket?, others: [CodexNamedLimit]) -> Headline? {
+        if let weekly { return Headline(label: "WEEK", bucket: weekly, window: 7 * 86_400) }
+        return others.first.map { Headline(label: $0.label.uppercased(), bucket: $0.bucket, window: TimeInterval($0.windowSeconds)) }
     }
 
     static func emptyText(limitReached: Bool) -> String {

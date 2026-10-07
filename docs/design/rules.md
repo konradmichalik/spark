@@ -89,14 +89,14 @@ HStack(alignment: .firstTextBaseline, spacing: 3) {
 | Element | Shape | Used for |
 | --- | --- | --- |
 | Dot bar | One row of dots, 6pt pitch (session) or 4pt (week and limits) | Usage on level 1 and in All Limits |
-| Dot ring | 44 dots outside (session), 32 inside (week) | Display style "Rings" |
+| Dot ring | 40 dots for the session with a two-dot gap at twelve o'clock, so start and end stay visible | Display style "Ring". The week stays a dot bar beside it |
 | Menu bar ring | 12 dots, the last partial dot at proportional opacity | Menu bar glyph |
 | Hollow dots | Outline only, from current value to projected value | Session projection |
-| Time marker | 2pt vertical stroke, or an enlarged hollow dot on a ring | Share of the window already elapsed |
+| Time marker | 2pt vertical stroke, or a short radial tick outside a ring | Share of the window already elapsed, on the session and the week |
 | Dot columns | Vertical stacks of dots | Session history in graphs |
 
 - Filled dots are `ink`, or `warning` or `accent` by threshold. Unfilled dots are `dotTrack`.
-- Projection dots are ink at 55 %, and `accent` when the limit will be reached before the reset.
+- Projection dots are always ink at 55 %. When the limit will be reached before the reset, the overview says so in text ("Limit in ~20m") in `accent`, so red never means two things on one mark.
 - The weekly series in graphs is always a solid `accent` line over grey dot columns. The two series are told apart by shape, not by a second colour.
 
 ## Layout

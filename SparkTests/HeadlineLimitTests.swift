@@ -14,12 +14,14 @@ final class HeadlineLimitTests: XCTestCase {
         let headline = HeadlineLimit.withoutSession(weekly: bucket(40), others: [named("30 days", 10)])
         XCTAssertEqual(headline?.label, "WEEK")
         XCTAssertEqual(headline?.bucket.utilization, 40)
+        XCTAssertEqual(headline?.window, 7 * 86_400)
     }
 
     func testFirstOtherLimitLeadsWithoutWeek() {
         let headline = HeadlineLimit.withoutSession(weekly: nil, others: [named("30 days", 12), named("Daily", 3)])
         XCTAssertEqual(headline?.label, "30 DAYS")
         XCTAssertEqual(headline?.bucket.utilization, 12)
+        XCTAssertEqual(headline?.window, 30 * 86_400)
     }
 
     func testNothingLeadsWithoutAnyLimit() {

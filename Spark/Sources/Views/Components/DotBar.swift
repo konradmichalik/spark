@@ -34,8 +34,6 @@ struct DotBar: View {
     var projected: Double?
     var marker: Double?
     var tone: UsageTone = .normal
-    /// Projection reaches the limit before the reset: hollow dots turn brand red.
-    var projectionReachesLimit = false
     var pitch: CGFloat = 6
     var dotSize: CGFloat = 3.8
 
@@ -53,8 +51,7 @@ struct DotBar: View {
                 case .filled:
                     context.fill(Path(ellipseIn: rect), with: .color(tone.color))
                 case .projected:
-                    let stroke = projectionReachesLimit ? Theme.accent : Theme.ink.opacity(0.55)
-                    context.stroke(Path(ellipseIn: rect.insetBy(dx: 0.6, dy: 0.6)), with: .color(stroke), lineWidth: 1.2)
+                    context.stroke(Path(ellipseIn: rect.insetBy(dx: 0.6, dy: 0.6)), with: .color(Theme.ink.opacity(0.55)), lineWidth: 1.2)
                 case .track:
                     context.fill(Path(ellipseIn: rect), with: .color(Theme.dotTrack))
                 }

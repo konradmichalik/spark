@@ -17,7 +17,7 @@ private func toneColor(_ tone: UsageTone) -> Color {
 }
 
 /// Session on the overview: the one Doto number, the dot bar with projection and time marker,
-/// and the forecast in a tooltip.
+/// and the forecast in a tooltip. Only a limit warning stays on screen, beside the number.
 struct SessionBlock: View {
     let value: Double
     let resetIn: String?
@@ -25,6 +25,7 @@ struct SessionBlock: View {
     let forecast: SessionForecast
     let elapsed: Double?
     let tone: UsageTone
+    var warning: String?
     let detail: String?
 
     var body: some View {
@@ -45,17 +46,17 @@ struct SessionBlock: View {
                     .font(.doto(size: 60))
                 Text("%")
                     .font(.system(size: 20, weight: .semibold))
+                Spacer(minLength: 8)
+                if let warning {
+                    LimitWarning(text: warning)
+                }
             }
             .foregroundStyle(toneColor(tone))
             .lineLimit(1)
             .minimumScaleFactor(0.6)
-            DotBar(
-                value: value, projected: forecast.projected, marker: elapsed.map { $0 * 100 },
-                tone: tone, projectionReachesLimit: forecast.reachesLimit
-            )
-            .frame(height: 10)
-            .accessibilityHidden(true)
-            .tooltip(detail, title: "Forecast")
+            DotBar(value: value, projected: forecast.projected, marker: elapsed.map { $0 * 100 }, tone: tone)
+                .frame(height: 10)
+                .tooltip(detail, title: "Forecast")
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Session")
@@ -64,12 +65,24 @@ struct SessionBlock: View {
     }
 }
 
-/// Week on the overview: label and value on one line, a thin dot bar below.
+private struct LimitWarning: View {
+    let text: String
+
+    var body: some View {
+        Text(text)
+            .font(.system(size: 12, weight: .semibold))
+            .monospacedDigit()
+            .foregroundStyle(Theme.accent)
+    }
+}
+
+/// Week on the overview: label and value on one line, a thin dot bar with the time marker below.
 struct WeekBlock: View {
     var label = "WEEK"
     let value: Double
     let resetIn: String?
     let resetDate: Date?
+    var elapsed: Double?
     let tone: UsageTone
 
     var body: some View {
@@ -82,8 +95,8 @@ struct WeekBlock: View {
                     .monospacedDigit()
                     .foregroundStyle(toneColor(tone))
             }
-            DotBar(value: value, tone: tone, pitch: 4, dotSize: 2.6)
-                .frame(height: 6)
+            DotBar(value: value, marker: elapsed.map { $0 * 100 }, tone: tone, pitch: 4, dotSize: 2.6)
+                .frame(height: 8)
         }
         .tooltip(resetDescription, title: label.capitalized)
         .accessibilityElement(children: .ignore)
@@ -97,69 +110,58 @@ struct WeekBlock: View {
     }
 }
 
-/// The "Rings" display style: session on the outer ring, week on the inner one, the session
-/// value in the centre and the reset times beside it.
+/// The "Ring" display style: the session as one dot ring with the number inside, the reset and
+/// any limit warning beside it, and the week as the same block the bars style uses.
 struct RingsBlock: View {
-    let session: Double
-    let week: Double
-    let sessionResetIn: String?
-    let weekResetIn: String?
+    let value: Double
+    let resetIn: String?
     let forecast: SessionForecast
     let elapsed: Double?
-    let sessionTone: UsageTone
-    let weekTone: UsageTone
+    let tone: UsageTone
+    var warning: String?
     let detail: String?
+    let week: WeekBlock?
 
     var body: some View {
-        HStack(spacing: 18) {
-            rings
+        HStack(alignment: .center, spacing: 16) {
+            ring
             VStack(alignment: .leading, spacing: 14) {
                 VStack(alignment: .leading, spacing: 3) {
                     MicroLabel(text: "SESSION")
-                    Text(sessionResetIn.map { "Reset in \($0)" } ?? " ")
-                        .font(.system(size: 12))
-                        .monospacedDigit()
-                        .foregroundStyle(Theme.ink)
-                }
-                VStack(alignment: .leading, spacing: 3) {
-                    MicroLabel(text: "WEEK")
-                    Text(UsageFormat.percent(week))
-                        .font(.system(size: 12, weight: .semibold))
-                        .monospacedDigit()
-                        .foregroundStyle(toneColor(weekTone))
-                    if let weekResetIn {
-                        Text("Reset in \(weekResetIn)")
+                    if let warning {
+                        LimitWarning(text: warning)
+                    }
+                    if let resetIn {
+                        Text("Reset in \(resetIn)")
                             .font(.system(size: 12))
                             .monospacedDigit()
-                            .foregroundStyle(Theme.ink)
+                            .foregroundStyle(Theme.inkSecondary)
                     }
                 }
+                .accessibilityElement(children: .combine)
+                week
             }
-            Spacer(minLength: 0)
         }
     }
 
-    private var rings: some View {
+    private var ring: some View {
         ZStack {
-            DotRing(
-                value: session, projected: forecast.projected, marker: elapsed.map { $0 * 100 },
-                tone: sessionTone, projectionReachesLimit: forecast.reachesLimit, count: 44, dotSize: 6
-            )
-            DotRing(value: week, tone: weekTone, count: 32, dotSize: 4)
-                .padding(30)
+            DotRing(value: value, projected: forecast.projected, marker: elapsed.map { $0 * 100 }, tone: tone)
             HStack(alignment: .firstTextBaseline, spacing: 1) {
-                Text(String(Int(session.rounded())))
-                    .font(.doto(size: 30))
+                Text(String(Int(value.rounded())))
+                    .font(.doto(size: 38))
                 Text("%")
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(.system(size: 13, weight: .semibold))
             }
-            .foregroundStyle(toneColor(sessionTone))
-            .accessibilityHidden(true)
+            .foregroundStyle(toneColor(tone))
+            .lineLimit(1)
+            .minimumScaleFactor(0.6)
+            .padding(24)
         }
-        .frame(width: 136, height: 136)
+        .frame(width: 132, height: 132)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Session and week")
-        .accessibilityValue(HeadlineLimit.accessibilityValue(session, detail: detail) + ". Week \(UsageFormat.percent(week))")
+        .accessibilityLabel("Session")
+        .accessibilityValue(HeadlineLimit.accessibilityValue(value, detail: detail))
         .tooltip(detail, title: "Forecast")
     }
 }
@@ -170,10 +172,10 @@ struct RingsBlock: View {
             value: 45, resetIn: "1h 49m", resetDate: nil, forecast: SessionForecast(.safe(79)),
             elapsed: 0.54, tone: .normal, detail: "~79% at reset"
         )
-        WeekBlock(value: 48, resetIn: "3d 18h", resetDate: nil, tone: .normal)
+        WeekBlock(value: 48, resetIn: "3d 18h", resetDate: nil, elapsed: 0.5, tone: .normal)
         SessionBlock(
-            value: 82, resetIn: "40m", resetDate: nil, forecast: SessionForecast(.limitReached(1200)),
-            elapsed: 0.7, tone: .warning, detail: "Limit in ~20m"
+            value: 92, resetIn: "1h 5m", resetDate: nil, forecast: SessionForecast(.limitReached(1200)),
+            elapsed: 0.78, tone: .critical, warning: "Limit in ~20m", detail: "Limit in ~20m"
         )
     }
     .padding(14)
@@ -181,10 +183,11 @@ struct RingsBlock: View {
     .background(Theme.paper)
 }
 
-#Preview("Rings") {
+#Preview("Ring") {
     RingsBlock(
-        session: 45, week: 48, sessionResetIn: "1h 49m", weekResetIn: "3d", forecast: SessionForecast(.safe(79)),
-        elapsed: 0.54, sessionTone: .normal, weekTone: .normal, detail: nil
+        value: 92, resetIn: "1h 5m", forecast: SessionForecast(.limitReached(1200)), elapsed: 0.78,
+        tone: .critical, warning: "Limit in ~20m", detail: nil,
+        week: WeekBlock(value: 65, resetIn: "3d 12h", resetDate: nil, elapsed: 0.5, tone: .normal)
     )
     .padding(14)
     .frame(width: 320)

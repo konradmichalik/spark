@@ -3,49 +3,49 @@ import SwiftUI
 private let fiveHours: TimeInterval = 5 * 3600
 private let sevenDays: TimeInterval = 7 * 24 * 3600
 
-/// Session and week for one provider in the user's display style (bars or rings).
+/// Session and week for one provider in the user's display style (bars or ring).
 private struct UsageSection: View {
     let session: UsageBucket?
     let week: UsageBucket?
     let forecast: SessionForecast
+    var limitWarning: String?
     let detail: String?
     let warning: Double
     let critical: Double
     let style: String
 
     var body: some View {
-        if session == nil, let week {
-            WeekBlock(
-                value: week.utilization, resetIn: week.timeUntilReset, resetDate: week.resetsAtDate,
-                tone: UsageTone(value: week.utilization, warning: warning, critical: critical)
-            )
-        }
         if let session {
             let elapsed = Pace.calculate(utilization: session.utilization, resetsAt: session.resetsAtDate, windowLength: fiveHours)?
                 .elapsedFraction
-            let sessionTone = UsageTone(value: session.utilization, warning: warning, critical: critical)
+            let tone = UsageTone(value: session.utilization, warning: warning, critical: critical)
             if style == "bars" {
                 VStack(alignment: .leading, spacing: 16) {
                     SessionBlock(
                         value: session.utilization, resetIn: session.timeUntilReset, resetDate: session.resetsAtDate,
-                        forecast: forecast, elapsed: elapsed, tone: sessionTone, detail: detail
+                        forecast: forecast, elapsed: elapsed, tone: tone, warning: limitWarning, detail: detail
                     )
-                    if let week {
-                        WeekBlock(
-                            value: week.utilization, resetIn: week.timeUntilReset, resetDate: week.resetsAtDate,
-                            tone: UsageTone(value: week.utilization, warning: warning, critical: critical)
-                        )
-                    }
+                    weekBlock
                 }
             } else {
                 RingsBlock(
-                    session: session.utilization, week: week?.utilization ?? 0,
-                    sessionResetIn: session.timeUntilReset, weekResetIn: week?.timeUntilReset,
-                    forecast: forecast, elapsed: elapsed, sessionTone: sessionTone,
-                    weekTone: UsageTone(value: week?.utilization ?? 0, warning: warning, critical: critical),
-                    detail: detail
+                    value: session.utilization, resetIn: session.timeUntilReset, forecast: forecast, elapsed: elapsed,
+                    tone: tone, warning: limitWarning, detail: detail, week: weekBlock
                 )
             }
+        } else {
+            weekBlock
+        }
+    }
+
+    private var weekBlock: WeekBlock? {
+        week.map { week in
+            WeekBlock(
+                value: week.utilization, resetIn: week.timeUntilReset, resetDate: week.resetsAtDate,
+                elapsed: Pace.calculate(utilization: week.utilization, resetsAt: week.resetsAtDate, windowLength: sevenDays)?
+                    .elapsedFraction,
+                tone: UsageTone(value: week.utilization, warning: warning, critical: critical)
+            )
         }
     }
 }
@@ -78,8 +78,8 @@ struct ClaudeOverview: View {
         } else {
             UsageSection(
                 session: state.usageData.session, week: state.usageData.weekly, forecast: SessionForecast(projection),
-                detail: forecastDetail, warning: state.warningThreshold, critical: state.criticalThreshold,
-                style: state.usageDisplayStyle
+                limitWarning: ForecastDetail.limitWarning(projection), detail: forecastDetail,
+                warning: state.warningThreshold, critical: state.criticalThreshold, style: state.usageDisplayStyle
             )
         }
         if state.showGraph, !state.history.isEmpty {
@@ -163,6 +163,9 @@ struct CodexOverview: View {
             WeekBlock(
                 label: headline.label, value: headline.bucket.utilization, resetIn: headline.bucket.timeUntilReset,
                 resetDate: headline.bucket.resetsAtDate,
+                elapsed: Pace.calculate(
+                    utilization: headline.bucket.utilization, resetsAt: headline.bucket.resetsAtDate, windowLength: headline.window
+                )?.elapsedFraction,
                 tone: UsageTone(value: headline.bucket.utilization, warning: warning, critical: critical)
             )
         } else if let usage = codex.usage {

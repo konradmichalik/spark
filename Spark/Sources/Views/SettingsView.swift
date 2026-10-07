@@ -142,70 +142,22 @@ private struct OptionCard<Preview: View>: View {
 
 private struct BarsPreviewThumb: View {
     var body: some View {
-        VStack(spacing: 4) {
-            BarLine(fill: 0.72, color: .green)
-            BarLine(fill: 0.48, color: .green)
-            BarLine(fill: 0.30, color: .green)
+        VStack(spacing: 6) {
+            DotBar(value: 72, projected: 85, marker: 60, pitch: 4, dotSize: 3)
+                .frame(height: 8)
+            DotBar(value: 48, pitch: 4, dotSize: 2.4)
+                .frame(height: 6)
         }
+        .frame(width: 56)
+        .accessibilityHidden(true)
     }
 }
 
-private struct BarLine: View {
-    let fill: Double
-    let color: Color
-
+private struct RingThumb: View {
     var body: some View {
-        GeometryReader { geo in
-            ZStack(alignment: .leading) {
-                RoundedRectangle(cornerRadius: 2)
-                    .fill(Color.secondary.opacity(0.12))
-                RoundedRectangle(cornerRadius: 2)
-                    .fill(color)
-                    .frame(width: geo.size.width * fill)
-            }
-        }
-        .frame(height: 6)
-    }
-}
-
-private struct RingsConcentricThumb: View {
-    var body: some View {
-        ZStack {
-            MiniRing(progress: 0.72, color: Color(hue: 0.35, saturation: 0.7, brightness: 0.7), lineWidth: 4, radius: 16)
-            MiniRing(progress: 0.48, color: Color(hue: 0.55, saturation: 0.55, brightness: 0.75), lineWidth: 4, radius: 10.5)
-        }
-        .frame(width: 36, height: 36)
-    }
-}
-
-private struct RingsSeparateThumb: View {
-    var body: some View {
-        HStack(spacing: 4) {
-            MiniRing(progress: 0.72, color: Color(hue: 0.35, saturation: 0.7, brightness: 0.7), lineWidth: 3, radius: 8)
-                .frame(width: 20, height: 20)
-            MiniRing(progress: 0.48, color: Color(hue: 0.55, saturation: 0.55, brightness: 0.75), lineWidth: 3, radius: 8)
-                .frame(width: 20, height: 20)
-        }
-    }
-}
-
-private struct MiniRing: View {
-    let progress: Double
-    let color: Color
-    let lineWidth: CGFloat
-    let radius: CGFloat
-
-    var body: some View {
-        ZStack {
-            Circle()
-                .stroke(Color.secondary.opacity(0.12), lineWidth: lineWidth)
-                .frame(width: radius * 2, height: radius * 2)
-            Circle()
-                .trim(from: 0, to: progress)
-                .stroke(color, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
-                .frame(width: radius * 2, height: radius * 2)
-                .rotationEffect(.degrees(-90))
-        }
+        DotRing(value: 72, projected: 85, count: 20, gap: 1, dotSize: 3)
+            .frame(width: 40, height: 40)
+            .accessibilityHidden(true)
     }
 }
 
@@ -531,16 +483,10 @@ struct DisplayTab: View {
                         action: { state.usageDisplayStyle = "bars" }
                     )
                     OptionCard(
-                        label: "Rings",
-                        isSelected: state.usageDisplayStyle == "rings_concentric",
-                        preview: { RingsConcentricThumb() },
-                        action: { state.usageDisplayStyle = "rings_concentric" }
-                    )
-                    OptionCard(
-                        label: "Side by Side",
-                        isSelected: state.usageDisplayStyle == "rings_separate",
-                        preview: { RingsSeparateThumb() },
-                        action: { state.usageDisplayStyle = "rings_separate" }
+                        label: "Ring",
+                        isSelected: state.usageDisplayStyle != "bars",
+                        preview: { RingThumb() },
+                        action: { state.usageDisplayStyle = "ring" }
                     )
                 }
 

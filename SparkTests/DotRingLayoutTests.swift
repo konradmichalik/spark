@@ -12,6 +12,16 @@ final class DotRingLayoutTests: XCTestCase {
         XCTAssertTrue(DotRingLayout.points(count: 0, radius: 10, center: .zero).isEmpty)
     }
 
+    func testGapLeavesSlotsFreeAroundTwelveOClock() {
+        let points = DotRingLayout.points(count: 10, radius: 10, center: CGPoint(x: 50, y: 50), gap: 2)
+        XCTAssertEqual(points.count, 10)
+        let first = 1.5 / 12 * Double.pi * 2 - .pi / 2
+        XCTAssertEqual(points[0].x, 50 + 10 * cos(first), accuracy: 0.001)
+        XCTAssertEqual(points[0].y, 50 + 10 * sin(first), accuracy: 0.001)
+        XCTAssertEqual(points[9].x, 50 - 10 * cos(first), accuracy: 0.001)
+        XCTAssertEqual(points[9].y, points[0].y, accuracy: 0.001)
+    }
+
     func testPartialDotIsProportional() {
         let opacities = DotRingLayout.partialOpacities(count: 12, value: 45)
         XCTAssertEqual(Array(opacities.prefix(5)), Array(repeating: 1, count: 5))
