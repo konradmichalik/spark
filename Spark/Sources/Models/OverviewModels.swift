@@ -61,3 +61,26 @@ enum OverviewSummary {
         return plan
     }
 }
+
+/// The popover's two navigation levels: the overview and one detail screen at a time.
+enum PopoverScreen: Equatable {
+    case overview, history, sessions, statistics, limits
+
+    var title: String {
+        switch self {
+        case .overview: ""
+        case .history: "History"
+        case .sessions: "Active sessions"
+        case .statistics: "Statistics"
+        case .limits: "All limits"
+        }
+    }
+}
+
+/// The tooltip of a provider tab: plan and sign-in path, whichever is known.
+enum ProviderTabSummary {
+    static func tooltip(plan: String?, signIn: String?) -> String? {
+        let parts = [plan, signIn].compactMap { $0 }.filter { !$0.isEmpty }
+        return parts.isEmpty ? nil : parts.joined(separator: " · ")
+    }
+}

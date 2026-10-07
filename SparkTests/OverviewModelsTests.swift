@@ -59,4 +59,17 @@ final class OverviewModelsTests: XCTestCase {
         XCTAssertEqual(OverviewSummary.limitsValue(extraLimits: 0, plan: "Plus"), "Plus")
         XCTAssertNil(OverviewSummary.limitsValue(extraLimits: 0, plan: nil))
     }
+
+    func testScreenTitles() {
+        XCTAssertEqual(PopoverScreen.history.title, "History")
+        XCTAssertEqual(PopoverScreen.sessions.title, "Active sessions")
+        XCTAssertEqual(PopoverScreen.statistics.title, "Statistics")
+        XCTAssertEqual(PopoverScreen.limits.title, "All limits")
+    }
+
+    func testTabTooltip() {
+        XCTAssertEqual(ProviderTabSummary.tooltip(plan: "Max 5x", signIn: "via Keychain"), "Max 5x · via Keychain")
+        XCTAssertEqual(ProviderTabSummary.tooltip(plan: "Plus", signIn: nil), "Plus")
+        XCTAssertNil(ProviderTabSummary.tooltip(plan: nil, signIn: ""))
+    }
 }
