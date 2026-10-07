@@ -39,7 +39,7 @@ let tone = UsageTone(value: 78, warning: state.warningThreshold, critical: state
 tone.color // Theme.warning
 ```
 
-`UsageTone` and the token names are introduced in phase 1 of the redesign. Until then `Theme` still holds the old orange palette.
+`UsageTone` and the tokens live in `Spark/Sources/Models/DesignTokens.swift`. The old orange values in `Theme` are removed as the screens move over.
 
 ## Typography
 
@@ -66,7 +66,7 @@ HStack(alignment: .firstTextBaseline, spacing: 3) {
 .minimumScaleFactor(0.6)
 ```
 
-`Font.doto(size:)` is added together with the bundled font in phase 1.
+`Font.doto(size:weight:)` lives in `Spark/Sources/Views/Components/DotoFont.swift`.
 
 ## Numbers and units
 
