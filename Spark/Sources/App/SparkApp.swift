@@ -58,6 +58,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDele
 struct SparkApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @StateObject private var state = AppState()
+    @StateObject private var codex = CodexState()
     @State private var hasLaunched = false
 
     var body: some Scene {
@@ -66,6 +67,7 @@ struct SparkApp: App {
                 if state.isAuthenticated {
                     MenuBarView()
                         .environmentObject(state)
+                        .environmentObject(codex)
                 } else {
                     NotConnectedView()
                         .environmentObject(state)
@@ -75,11 +77,12 @@ struct SparkApp: App {
                 guard !hasLaunched else { return }
                 hasLaunched = true
                 state.onLaunch()
+                codex.onLaunch()
             }
             .tooltipHost()
             .background(MenuBarWindowTopPinner())
         } label: {
-            MenuBarLabel(state: state)
+            MenuBarLabel(state: state, codex: codex)
         }
         .menuBarExtraStyle(.window)
         .onChange(of: state.usageData.maxUtilization) {
@@ -88,10 +91,14 @@ struct SparkApp: App {
         .onChange(of: state.status) {
             state.checkAndNotify()
         }
+        .onChange(of: codex.usage?.maxUtilization) {
+            codex.checkAndNotify()
+        }
 
         Settings {
             SettingsView()
                 .environmentObject(state)
+                .environmentObject(codex)
                 .tooltipHost()
         }
 
@@ -108,6 +115,7 @@ struct SparkApp: App {
 
 struct MenuBarLabel: View {
     @ObservedObject var state: AppState
+    @ObservedObject var codex: CodexState
 
     private var displayValue: Double {
         switch state.menuBarValue {
