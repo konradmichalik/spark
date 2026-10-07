@@ -31,18 +31,20 @@ struct MenuBarGlyph: Equatable {
         return CGSize(width: Self.logoWidth + Self.logoGap + Self.ringSize.width, height: Self.ringSize.height)
     }
 
-    func image(logo: MenuBarLogo?) -> NSImage {
+    /// `alpha` dims the whole glyph for stale or failed data. It is drawn into the image because
+    /// a menu bar label can drop view-level opacity.
+    func image(logo: MenuBarLogo?, alpha: CGFloat = 1) -> NSImage {
         let base: NSColor = isTemplate ? .black : tone.nsColor
         let opacities = opacities
         let image = NSImage(size: size(logo: logo), flipped: true) { rect in
             let ringOriginX = rect.width - Self.ringSize.width
             if let logo {
-                Self.drawLogo(logo, in: CGRect(x: 0, y: 2, width: Self.logoWidth, height: Self.logoWidth), color: base)
+                Self.drawLogo(logo, in: CGRect(x: 0, y: 2, width: Self.logoWidth, height: Self.logoWidth), color: base, alpha: alpha)
             }
             let center = CGPoint(x: ringOriginX + Self.ringSize.width / 2, y: Self.ringSize.height / 2)
             let radius = Self.ringSize.width / 2 - Self.dotDiameter / 2 - 0.4
             for (point, opacity) in zip(DotRingLayout.points(count: Self.dotCount, radius: radius, center: center), opacities) {
-                base.withAlphaComponent(opacity).setFill()
+                base.withAlphaComponent(opacity * alpha).setFill()
                 let half = Self.dotDiameter / 2
                 NSBezierPath(ovalIn: CGRect(x: point.x - half, y: point.y - half, width: Self.dotDiameter, height: Self.dotDiameter)).fill()
             }
@@ -52,15 +54,15 @@ struct MenuBarGlyph: Equatable {
         return image
     }
 
-    private static func drawLogo(_ logo: MenuBarLogo, in rect: CGRect, color: NSColor) {
+    private static func drawLogo(_ logo: MenuBarLogo, in rect: CGRect, color: NSColor, alpha: CGFloat) {
         switch logo {
         case .claude:
             let path = NSBezierPath(cgPath: ClaudeLogoShape().path(in: rect).cgPath)
-            color.setFill()
+            color.withAlphaComponent(alpha).setFill()
             path.fill()
         case .codex:
             guard let symbol = NSImage(named: TablerIcon.brandOpenai.assetName) else { return }
-            symbol.draw(in: rect, from: .zero, operation: .sourceOver, fraction: 1, respectFlipped: true, hints: nil)
+            symbol.draw(in: rect, from: .zero, operation: .sourceOver, fraction: alpha, respectFlipped: true, hints: nil)
             color.setFill()
             rect.fill(using: .sourceAtop)
         }

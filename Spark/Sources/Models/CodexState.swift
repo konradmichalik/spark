@@ -12,7 +12,10 @@ final class CodexState: ObservableObject {
     @Published private(set) var isAvailable = false
     @Published private(set) var needsSignIn = false
     @Published private(set) var isLoading = false
-    @Published private(set) var lastError: String?
+    /// Every new error clears `isRateLimited`; the rate-limit path sets it again after the message.
+    @Published private(set) var lastError: String? { didSet { isRateLimited = false } }
+    /// The last error is the API rate limit, which the backoff handles: the data is not stale yet.
+    @Published private(set) var isRateLimited = false
 
     @Published private(set) var stats: CodexSessionStats?
 
@@ -135,6 +138,7 @@ final class CodexState: ObservableObject {
         consecutiveRateLimits += 1
         let backoff = min(600 * pow(2.0, Double(consecutiveRateLimits - 1)), 3600)
         lastError = "Codex rate limited. Retrying in \(Int(backoff / 60)) min."
+        isRateLimited = true
         startPolling(interval: backoff)
     }
 

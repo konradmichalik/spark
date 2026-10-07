@@ -16,7 +16,10 @@ final class AppState: ObservableObject {
     @Published var history: [UsageSnapshot] = []
     @Published var rollups: [String: DailyRollup] = [:]
     @Published var isLoading = false
-    @Published var lastError: String?
+    /// Every new error clears `isRateLimited`; the rate-limit path sets it again after the message.
+    @Published var lastError: String? { didSet { isRateLimited = false } }
+    /// The last error is the API rate limit, which the backoff handles: the data is not stale yet.
+    @Published private(set) var isRateLimited = false
     @Published var isAuthenticated = false
     @Published var needsReconnect = false
     @Published var authMethod: AuthMethod = .none
@@ -374,6 +377,7 @@ final class AppState: ObservableObject {
         let backoffMinutes = Int(backoff / 60)
         Self.log.notice("handleRateLimited: backing off \(backoffMinutes, privacy: .public) min")
         lastError = "Rate limited. Retrying in \(backoffMinutes) min."
+        isRateLimited = true
         startUsagePolling(interval: backoff)
     }
 

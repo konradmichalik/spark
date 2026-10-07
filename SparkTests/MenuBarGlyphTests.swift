@@ -35,6 +35,13 @@ final class MenuBarGlyphTests: XCTestCase {
         XCTAssertFalse(withLogo.isTemplate)
     }
 
+    func testDimmedImageKeepsSizeAndTemplateFlag() {
+        let dimmed = MenuBarGlyph(value: 45, tone: .normal).image(logo: nil, alpha: 0.35)
+        XCTAssertEqual(dimmed.size, CGSize(width: 16, height: 16))
+        XCTAssertTrue(dimmed.isTemplate)
+        XCTAssertNotNil(dimmed.cgImage(forProposedRect: nil, context: nil, hints: nil))
+    }
+
     func testImageDrawsWithoutCrashingForEveryLogo() {
         for logo in [MenuBarLogo?.none, .claude, .codex] {
             let image = MenuBarGlyph(value: 45, tone: .normal).image(logo: logo)

@@ -120,6 +120,9 @@ struct MenuBarLabel: View {
     @ObservedObject var codex: CodexState
     @AppStorage(UsageProvider.selectionKey) private var selectedProviderRaw = UsageProvider.claude.rawValue
     @State private var now = Date()
+    /// One shared timer, so re-rendering the label does not restart it. It only triggers a
+    /// re-render; the staleness check reads the current time itself.
+    private static let minuteTick = Timer.publish(every: 60, on: .main, in: .common).autoconnect()
 
     private var reading: MenuBarReading {
         MenuBarReading.resolve(
@@ -140,15 +143,19 @@ struct MenuBarLabel: View {
     }
 
     private func isDimmed(now: Date) -> Bool {
+        // Codex is the selected tab but has no data yet: the label shows Claude as a fallback.
+        if UsageProvider(rawValue: selectedProviderRaw) == .codex, codex.isActive, codex.usage == nil {
+            return true
+        }
         switch reading.provider {
         case .codex:
             return MenuBarReading.isStale(
-                needsReconnect: state.needsReconnect, needsSignIn: codex.needsSignIn, hasError: codex.lastError != nil,
+                needsReconnect: state.needsReconnect, needsSignIn: codex.needsSignIn, hasError: codex.lastError != nil && !codex.isRateLimited,
                 lastUpdated: codex.usage?.usageData.lastUpdated ?? .distantPast, now: now
             )
         case .claude:
             return MenuBarReading.isStale(
-                needsReconnect: state.needsReconnect, needsSignIn: false, hasError: state.lastError != nil,
+                needsReconnect: state.needsReconnect, needsSignIn: false, hasError: state.lastError != nil && !state.isRateLimited,
                 lastUpdated: state.usageData.lastUpdated, now: now
             )
         }
@@ -171,20 +178,20 @@ struct MenuBarLabel: View {
     }
 
     var body: some View {
-        let dimmed = isDimmed(now: now)
+        let dimmed = isDimmed(now: max(now, Date()))
+        let alpha: CGFloat = dimmed ? 0.35 : 1
         let glyph = MenuBarGlyph(value: reading.value, tone: tone)
         HStack(spacing: 5) {
-            Image(nsImage: glyph.image(logo: logo))
+            Image(nsImage: glyph.image(logo: logo, alpha: alpha))
             if state.menuBarValue != "none" {
                 Text(reading.text)
                     .font(.system(size: 13, weight: .semibold))
                     .monospacedDigit()
-                    .foregroundStyle(tone == .normal ? Color.primary : tone.color)
+                    .foregroundStyle((tone == .normal ? Color.primary : tone.color).opacity(alpha))
             }
         }
-        .opacity(dimmed ? 0.35 : 1)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(accessibilityText(dimmed: dimmed))
-        .onReceive(Timer.publish(every: 60, on: .main, in: .common).autoconnect()) { now = $0 }
+        .onReceive(Self.minuteTick) { now = $0 }
     }
 }
