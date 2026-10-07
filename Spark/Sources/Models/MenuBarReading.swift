@@ -31,6 +31,12 @@ struct MenuBarReading: Equatable {
     let text: String
     let provider: UsageProvider
 
+    /// No fresh value: connection lost, sign-in needed, a failed fetch, or no update for an hour
+    /// (polling runs every 5 to 30 minutes).
+    static func isStale(needsReconnect: Bool, needsSignIn: Bool, hasError: Bool, lastUpdated: Date, now: Date) -> Bool {
+        needsReconnect || needsSignIn || hasError || now.timeIntervalSince(lastUpdated) > 3600
+    }
+
     /// The selected provider's value. Falls back to Claude when Codex is selected but not
     /// connected, so the label never goes blank after Codex is signed out.
     static func resolve(

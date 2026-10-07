@@ -83,4 +83,23 @@ final class MenuBarReadingTests: XCTestCase {
         XCTAssertEqual(reading.level(warning: 50, critical: 80), .critical)
         XCTAssertEqual(reading.level(warning: 85, critical: 95), .ok)
     }
+
+    func testStalenessRule() {
+        let now = Date()
+        let fresh = now.addingTimeInterval(-60)
+        func isStale(
+            needsReconnect: Bool = false, needsSignIn: Bool = false, hasError: Bool = false, lastUpdated: Date? = nil
+        ) -> Bool {
+            MenuBarReading.isStale(
+                needsReconnect: needsReconnect, needsSignIn: needsSignIn, hasError: hasError,
+                lastUpdated: lastUpdated ?? fresh, now: now
+            )
+        }
+        XCTAssertFalse(isStale())
+        XCTAssertTrue(isStale(needsReconnect: true))
+        XCTAssertTrue(isStale(needsSignIn: true))
+        XCTAssertTrue(isStale(hasError: true))
+        XCTAssertFalse(isStale(lastUpdated: now.addingTimeInterval(-3599)))
+        XCTAssertTrue(isStale(lastUpdated: now.addingTimeInterval(-3601)))
+    }
 }

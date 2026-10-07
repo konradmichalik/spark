@@ -119,6 +119,7 @@ struct MenuBarLabel: View {
     @ObservedObject var state: AppState
     @ObservedObject var codex: CodexState
     @AppStorage(UsageProvider.selectionKey) private var selectedProviderRaw = UsageProvider.claude.rawValue
+    @State private var now = Date()
 
     private var reading: MenuBarReading {
         MenuBarReading.resolve(
@@ -138,28 +139,39 @@ struct MenuBarLabel: View {
         return reading.provider == .codex ? .codex : .claude
     }
 
-    /// No fresh value: the connection is lost, Codex needs a new sign-in, or the last update is
-    /// older than an hour (polling runs every 5 to 30 minutes).
-    private var isDimmed: Bool {
-        if state.needsReconnect { return true }
-        let lastUpdated: Date
+    private func isDimmed(now: Date) -> Bool {
         switch reading.provider {
         case .codex:
-            if codex.needsSignIn { return true }
-            lastUpdated = codex.usage?.usageData.lastUpdated ?? .distantPast
+            return MenuBarReading.isStale(
+                needsReconnect: state.needsReconnect, needsSignIn: codex.needsSignIn, hasError: codex.lastError != nil,
+                lastUpdated: codex.usage?.usageData.lastUpdated ?? .distantPast, now: now
+            )
         case .claude:
-            lastUpdated = state.usageData.lastUpdated
+            return MenuBarReading.isStale(
+                needsReconnect: state.needsReconnect, needsSignIn: false, hasError: state.lastError != nil,
+                lastUpdated: state.usageData.lastUpdated, now: now
+            )
         }
-        return Date().timeIntervalSince(lastUpdated) > 3600
     }
 
-    private var accessibilityText: String {
+    private func accessibilityText(dimmed: Bool) -> String {
         let provider = reading.provider == .codex ? "Codex" : "Claude"
-        let status = state.needsReconnect ? ", disconnected" : isDimmed ? ", not up to date" : ""
-        return "Spark, \(provider) \(reading.text)\(status)"
+        var text = "Spark, \(provider) \(reading.text)"
+        switch tone {
+        case .warning: text += ", warning"
+        case .critical: text += ", critical"
+        default: break
+        }
+        if state.needsReconnect {
+            text += ", disconnected"
+        } else if dimmed {
+            text += ", not up to date"
+        }
+        return text
     }
 
     var body: some View {
+        let dimmed = isDimmed(now: now)
         let glyph = MenuBarGlyph(value: reading.value, tone: tone)
         HStack(spacing: 5) {
             Image(nsImage: glyph.image(logo: logo))
@@ -170,8 +182,9 @@ struct MenuBarLabel: View {
                     .foregroundStyle(tone == .normal ? Color.primary : tone.color)
             }
         }
-        .opacity(isDimmed ? 0.35 : 1)
+        .opacity(dimmed ? 0.35 : 1)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(accessibilityText)
+        .accessibilityLabel(accessibilityText(dimmed: dimmed))
+        .onReceive(Timer.publish(every: 60, on: .main, in: .common).autoconnect()) { now = $0 }
     }
 }
