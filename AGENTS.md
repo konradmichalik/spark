@@ -28,6 +28,7 @@ make setup    # brew install xcodegen swiftlint, set core.hooksPath to .githooks
 make xcode    # generate Spark.xcodeproj from project.yml
 make build    # release build (runs xcodegen first)
 make clean    # remove build artifacts and the generated .xcodeproj
+make brand    # regenerate app icon, README logo and site icons from the dot mark
 ```
 
 - `Spark.xcodeproj` is generated and git-ignored: run `make xcode` after cloning and after adding or removing files, never edit it by hand

@@ -137,7 +137,7 @@ HStack(alignment: .firstTextBaseline, spacing: 3) {
 | Normal | Ink |
 | Warning (≥ warning threshold) | Value, bar and menu bar glyph in `warning` |
 | Critical (≥ critical threshold) | Value, bar and menu bar glyph in `accent` |
-| Stale or error | Menu bar glyph at 35 % opacity; existing status row in the popover |
+| Stale or error | Menu bar label at 35 % opacity when the connection is lost, Codex needs a new sign-in, the shown provider reports an error, or the last update is older than an hour; existing status row in the popover |
 | Not connected | Empty dot ring with a link icon, one sentence, one primary action, one secondary link |
 
 Other providers stay usable when one is disconnected.
@@ -146,7 +146,7 @@ Other providers stay usable when one is disconnected.
 
 - Template image, 16pt, so the system can tint it on the transparent macOS 26 menu bar.
 - Shows the value of the selected popover tab.
-- Variants: ring and number (default), ring only, logo with ring and number.
+- Styles (Settings > Menu Bar): ring, or ring with the provider logo in front. "Displayed Value: None" hides the number and leaves the ring alone.
 - Only warning and critical break out of the template colour.
 
 ## Notifications
