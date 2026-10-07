@@ -1,7 +1,7 @@
 import SwiftUI
 
 // A tooltip drawn inside the window instead of the system `.help()` one: it matches the
-// existing hover tooltips (`RingTooltip`), honours Reduce Transparency, and is positioned against
+// existing hover tooltips (`RingTooltip`), and is positioned against
 // the window so it can never be cut off at the edge of the menu bar popover. A view using
 // `.tooltip` needs a `.tooltipHost()` on one of its ancestors, which draws the bubble.
 
@@ -38,13 +38,14 @@ extension View {
         modifier(TooltipHostModifier())
     }
 
-    /// The bubble behind a tooltip, shared with `RingTooltip` so both look the same. The border
-    /// and shadow lift it off the popover, whose material it would otherwise blend into.
-    func tooltipChrome(reduceTransparency: Bool) -> some View {
-        let shape = RoundedRectangle(cornerRadius: 6)
-        return adaptiveBackground(reduceTransparency: reduceTransparency, in: shape)
-            .overlay(shape.strokeBorder(Color.primary.opacity(0.15), lineWidth: 0.5))
-            .shadow(color: .black.opacity(0.2), radius: 6, y: 2)
+    /// The bubble behind a tooltip, shared with `RingTooltip` so both look the same: ink
+    /// background, paper text (docs/design/rules.md, "Tooltips"). Opaque, so it needs no
+    /// Reduce Transparency variant.
+    func tooltipChrome() -> some View {
+        let shape = RoundedRectangle(cornerRadius: 7)
+        return background(Theme.ink, in: shape)
+            .foregroundStyle(Theme.paper)
+            .shadow(color: .black.opacity(0.22), radius: 9, y: 3)
     }
 }
 
@@ -52,8 +53,8 @@ extension View {
 
 private enum TooltipHost {
     static let space = "tooltipHost"
-    /// Matches the system tooltip, so a pointer just passing over a control stays quiet.
-    static let delay: Duration = .milliseconds(500)
+    /// Long enough that a pointer passing over a control stays quiet (docs/design/rules.md, "Motion").
+    static let delay: Duration = .milliseconds(400)
 }
 
 private struct TooltipRequest: Equatable {
@@ -148,27 +149,29 @@ private struct TooltipBubble: View {
     let container: CGSize
 
     @State private var size: CGSize = .zero
-    @AppStorage("reduceTransparency") private var reduceTransparency: Bool = false
 
     var body: some View {
         let origin = TooltipLayout.origin(anchor: request.anchor, size: size, container: container)
 
         VStack(alignment: .leading, spacing: 3) {
             if let title = request.title {
-                Text(title)
-                    .fontWeight(.medium)
+                Text(title.uppercased())
+                    .font(.system(size: 10, design: .monospaced))
+                    .tracking(1.2)
+                    .foregroundStyle(Theme.paper.opacity(0.65))
             }
             if let text = request.text {
                 Text(text)
-                    .foregroundStyle(request.title == nil ? .primary : .secondary)
+                    .font(.system(size: 11))
+                    .monospacedDigit()
             }
         }
-        .font(.caption2)
         .multilineTextAlignment(.leading)
         .fixedSize(horizontal: false, vertical: true)
         .frame(maxWidth: TooltipLayout.maxWidth, alignment: .leading)
-        .padding(6)
-        .tooltipChrome(reduceTransparency: reduceTransparency)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 7)
+        .tooltipChrome()
         .background(
             GeometryReader { proxy in
                 Color.clear.preference(key: TooltipSizeKey.self, value: proxy.size)

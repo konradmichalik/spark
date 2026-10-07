@@ -67,23 +67,23 @@ struct RingArc: View {
 struct RingTooltip: View {
     let ring: RingData
     let showProjection: Bool
-    @AppStorage("reduceTransparency") private var reduceTransparency: Bool = false
-
     var body: some View {
-        VStack(spacing: 2) {
-            Text(ring.label)
-                .fontWeight(.medium)
-            Text("\(Int(ring.utilization))%")
-                .font(.system(.body, design: .monospaced))
-                .fontWeight(.semibold)
-            if showProjection, let projectionText = projectionText {
+        VStack(alignment: .leading, spacing: 3) {
+            Text(ring.label.uppercased())
+                .font(.system(size: 10, design: .monospaced))
+                .tracking(1.2)
+                .foregroundStyle(Theme.paper.opacity(0.65))
+            Text(UsageFormat.percent(ring.utilization))
+                .font(.system(size: 11, weight: .semibold))
+                .monospacedDigit()
+            if showProjection, let projectionText {
                 Text(projectionText)
-                    .foregroundColor(.secondary)
+                    .font(.system(size: 11))
             }
         }
-        .font(.caption2)
-        .padding(6)
-        .tooltipChrome(reduceTransparency: reduceTransparency)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 7)
+        .tooltipChrome()
     }
 
     private var projectionText: String? {
