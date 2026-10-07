@@ -1064,7 +1064,7 @@ struct AboutTab: View {
                 }
             }
 
-            Text("Claude Code usage in your menu bar.")
+            Text("AI coding usage in your menu bar.")
                 .font(.callout)
                 .foregroundColor(.secondary)
 
@@ -1106,6 +1106,10 @@ struct AboutTab: View {
                 .foregroundColor(.secondary)
 
             Link("Icons by Tabler Icons (MIT)", destination: URL(staticString: "https://tabler.io/icons"))
+                .font(.caption2)
+                .foregroundColor(.secondary)
+
+            Link("Doto font by The Doto Project Authors (OFL)", destination: URL(staticString: "https://fonts.google.com/specimen/Doto"))
                 .font(.caption2)
                 .foregroundColor(.secondary)
         }
