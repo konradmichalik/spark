@@ -27,15 +27,24 @@ enum TooltipLayout {
 }
 
 extension View {
-    /// Shows `text` after a short hover, like the system tooltip. Nothing is shown for `nil` or
-    /// an empty string.
-    func tooltip(_ text: String?) -> some View {
-        modifier(TooltipModifier(text: text))
+    /// Shows `text` after a short hover, like the system tooltip, with an optional bold `title`
+    /// above it. Nothing is shown when both are `nil` or empty.
+    func tooltip(_ text: String?, title: String? = nil) -> some View {
+        modifier(TooltipModifier(title: title.flatMap { $0.isEmpty ? nil : $0 }, text: text.flatMap { $0.isEmpty ? nil : $0 }))
     }
 
     /// Draws the tooltips requested by `.tooltip` on views inside it. Apply once per window root.
     func tooltipHost() -> some View {
         modifier(TooltipHostModifier())
+    }
+
+    /// The bubble behind a tooltip, shared with `RingTooltip` so both look the same. The border
+    /// and shadow lift it off the popover, whose material it would otherwise blend into.
+    func tooltipChrome(reduceTransparency: Bool) -> some View {
+        let shape = RoundedRectangle(cornerRadius: 6)
+        return adaptiveBackground(reduceTransparency: reduceTransparency, in: shape)
+            .overlay(shape.strokeBorder(Color.primary.opacity(0.15), lineWidth: 0.5))
+            .shadow(color: .black.opacity(0.2), radius: 6, y: 2)
     }
 }
 
@@ -48,7 +57,8 @@ private enum TooltipHost {
 }
 
 private struct TooltipRequest: Equatable {
-    let text: String
+    let title: String?
+    let text: String?
     let anchor: CGRect
 }
 
@@ -63,12 +73,16 @@ private struct TooltipRequestKey: PreferenceKey {
 private struct TooltipSizeKey: PreferenceKey {
     static let defaultValue: CGSize = .zero
 
+    /// Skips `.zero`: subtrees that never set the key (the border overlay, for one) report the
+    /// default, and taking it last-wins would hide the bubble forever.
     static func reduce(value: inout CGSize, nextValue: () -> CGSize) {
-        value = nextValue()
+        let next = nextValue()
+        if next != .zero { value = next }
     }
 }
 
 private struct TooltipModifier: ViewModifier {
+    let title: String?
     let text: String?
 
     @State private var isShown = false
@@ -76,7 +90,7 @@ private struct TooltipModifier: ViewModifier {
 
     @ViewBuilder
     func body(content: Content) -> some View {
-        if let text, !text.isEmpty {
+        if title != nil || text != nil {
             content
                 .onHover { hovering in
                     hovering ? scheduleShow() : hide()
@@ -88,7 +102,7 @@ private struct TooltipModifier: ViewModifier {
                         Color.clear.preference(
                             key: TooltipRequestKey.self,
                             value: isShown
-                                ? TooltipRequest(text: text, anchor: proxy.frame(in: .named(TooltipHost.space)))
+                                ? TooltipRequest(title: title, text: text, anchor: proxy.frame(in: .named(TooltipHost.space)))
                                 : nil
                         )
                     }
@@ -139,22 +153,31 @@ private struct TooltipBubble: View {
     var body: some View {
         let origin = TooltipLayout.origin(anchor: request.anchor, size: size, container: container)
 
-        Text(request.text)
-            .font(.caption2)
-            .multilineTextAlignment(.leading)
-            .fixedSize(horizontal: false, vertical: true)
-            .frame(maxWidth: TooltipLayout.maxWidth, alignment: .leading)
-            .padding(6)
-            .adaptiveBackground(reduceTransparency: reduceTransparency, in: RoundedRectangle(cornerRadius: 6))
-            .background(
-                GeometryReader { proxy in
-                    Color.clear.preference(key: TooltipSizeKey.self, value: proxy.size)
-                }
-            )
-            .onPreferenceChange(TooltipSizeKey.self) { size = $0 }
-            // Hidden until measured, otherwise it flashes at the wrong spot for one frame.
-            .opacity(size == .zero ? 0 : 1)
-            .offset(x: origin.x, y: origin.y)
-            .accessibilityHidden(true)
+        VStack(alignment: .leading, spacing: 3) {
+            if let title = request.title {
+                Text(title)
+                    .fontWeight(.medium)
+            }
+            if let text = request.text {
+                Text(text)
+                    .foregroundStyle(request.title == nil ? .primary : .secondary)
+            }
+        }
+        .font(.caption2)
+        .multilineTextAlignment(.leading)
+        .fixedSize(horizontal: false, vertical: true)
+        .frame(maxWidth: TooltipLayout.maxWidth, alignment: .leading)
+        .padding(6)
+        .tooltipChrome(reduceTransparency: reduceTransparency)
+        .background(
+            GeometryReader { proxy in
+                Color.clear.preference(key: TooltipSizeKey.self, value: proxy.size)
+            }
+        )
+        .onPreferenceChange(TooltipSizeKey.self) { size = $0 }
+        // Hidden until measured, otherwise it flashes at the wrong spot for one frame.
+        .opacity(size == .zero ? 0 : 1)
+        .offset(x: origin.x, y: origin.y)
+        .accessibilityHidden(true)
     }
 }

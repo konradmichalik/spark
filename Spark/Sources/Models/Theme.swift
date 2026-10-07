@@ -60,15 +60,6 @@ enum Theme {
         }
     }
 
-    /// Normal stays neutral so the value only draws attention once it climbs.
-    static func burnRateColor(for tier: BurnRate.Tier) -> Color {
-        switch tier {
-        case .normal: .secondary
-        case .moderate: paceColor(for: .warming)
-        case .high: paceColor(for: .critical)
-        }
-    }
-
     /// Returns a distinct color per ring, based on utilization thresholds.
     /// ringIndex: 0 = outermost (Session), 1 = middle (Weekly), 2 = innermost (Sonnet)
     static func ringColor(
@@ -142,6 +133,13 @@ extension View {
                 : AnyShapeStyle(material),
             in: shape
         )
+    }
+}
+
+extension Date {
+    /// The detail line of a reset tooltip, e.g. "Wednesday, 7 October at 13:10".
+    var resetDescription: String {
+        formatted(.dateTime.weekday(.wide).day().month(.wide).hour().minute())
     }
 }
 

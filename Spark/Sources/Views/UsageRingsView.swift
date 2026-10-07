@@ -169,7 +169,6 @@ private struct SeparateRingItem: View {
     let showProjection: Bool
     let ringWidth: CGFloat
     let ringSize: CGFloat
-    @State private var showResetPopover = false
     @State private var isHovered = false
     @State private var hoverInProjectionZone = false
 
@@ -213,44 +212,20 @@ private struct SeparateRingItem: View {
                     .font(.system(size: 9))
                     .foregroundColor(.secondary)
 
-                if ring.resetTime != nil {
-                    Button {
-                        showResetPopover.toggle()
-                    } label: {
-                        TablerIconView(.history, size: 9, isDecorative: false)
-                            .frame(width: 14, height: 14)
-                            .background(Color.secondary.opacity(0.12))
-                            .clipShape(Circle())
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("\(ring.label) reset time")
-                    .popover(isPresented: $showResetPopover, arrowEdge: .bottom) {
-                        VStack(spacing: 6) {
-                            HStack(spacing: 4) {
-                                TablerIconView(.history, size: 11)
-                                Text("Reset in \(ring.resetTime ?? "")")
-                                    .fontWeight(.medium)
-                            }
-                            .font(.caption)
-
-                            if let resetDate = ring.resetDate {
-                                Text(
-                                    resetDate,
-                                    format: .dateTime.weekday(.wide).day().month(.wide).hour().minute()
-                                )
-                                .font(.caption2)
-                                .foregroundColor(.secondary)
-                            }
-                        }
-                        .padding(10)
-                        .frame(width: 220)
-                    }
+                if let resetTime = ring.resetTime {
+                    TablerIconView(.history, size: 9)
+                        .frame(width: 14, height: 14)
+                        .background(Color.secondary.opacity(0.12))
+                        .clipShape(Circle())
+                        .tooltip(ring.resetDate?.resetDescription, title: "Reset in \(resetTime)")
                 }
             }
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(ring.label) usage \(Int(ring.utilization)) percent")
         .accessibilityValue(ring.resetTime.map { "Resets in \($0)" } ?? "")
+        // The reset date otherwise only appears in the hover tooltip.
+        .accessibilityHint(ring.resetDate?.resetDescription ?? "")
     }
 
     private struct RingHit {
