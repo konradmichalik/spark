@@ -34,6 +34,7 @@ struct MenuBarView: View {
                     liveStats: state.liveStats,
                     period: state.statsPeriod,
                     isLoading: state.isLoadingStats,
+                    isBuildingCache: state.isBuildingTranscriptCache,
                     showProjectBreakdown: state.showProjectBreakdown,
                     cost: state.showApiCost ? state.liveCost : nil,
                     onSelectPeriod: state.setStatsPeriod
@@ -383,6 +384,7 @@ struct StatsRow: View {
     let liveStats: LiveStats?
     let period: StatsPeriod
     let isLoading: Bool
+    let isBuildingCache: Bool
     let showProjectBreakdown: Bool
     let cost: CostSummary?
     let onSelectPeriod: (StatsPeriod) -> Void
@@ -411,11 +413,27 @@ struct StatsRow: View {
                         if showProjectBreakdown {
                             ProjectBreakdownDisclosure(liveStats: live, costByProject: cost?.byProject)
                         }
+                    } else if isBuildingCache {
+                        cacheBuildHint
                     }
                 }
             }
-            .opacity(isLoading ? 0.5 : 1)
+            .opacity(isLoading && liveStats != nil ? 0.5 : 1)
         }
+    }
+
+    /// The first scan after an install or update reads every transcript and can take a minute,
+    /// with Stats and Active Sessions empty meanwhile. Says so instead of leaving a blank card.
+    private var cacheBuildHint: some View {
+        HStack(spacing: 8) {
+            ProgressView()
+                .controlSize(.small)
+            Text("Reading your Claude Code history. The first run can take a minute.")
+                .font(.caption)
+                .foregroundColor(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .accessibilityElement(children: .combine)
     }
 
     /// Wraps `onSelectPeriod` rather than binding straight to a `period` property: `SegmentPicker`
