@@ -47,7 +47,7 @@ func drawMark(in rect: CGRect, dotRatioOverride: CGFloat? = nil, centreRatioOver
     NSBezierPath(ovalIn: CGRect(x: center.x - centre / 2, y: center.y - centre / 2, width: centre, height: centre)).fill()
 }
 
-/// The app icon tile on the macOS grid: an 824 pt body centred on 1024, continuous corners,
+/// The app icon tile on the macOS grid: an 824 pt body centred on 1024, rounded corners,
 /// card fill, hairline edge, soft shadow, mark at 62 % of the body.
 func drawTile(canvas: CGFloat) {
     let scale = canvas / 1024
@@ -73,20 +73,22 @@ func drawTile(canvas: CGFloat) {
     drawMark(in: CGRect(x: bodyRect.midX - mark / 2, y: bodyRect.midY - mark / 2, width: mark, height: mark))
 }
 
+/// Draws into an sRGB bitmap, so the hex colours above land in the PNG unchanged instead of
+/// being converted through the display or a generic RGB profile.
 func render(size: Int, to path: String, draw: (CGFloat) -> Void) {
-    guard let rep = NSBitmapImageRep(
-        bitmapDataPlanes: nil, pixelsWide: size, pixelsHigh: size, bitsPerSample: 8, samplesPerPixel: 4,
-        hasAlpha: true, isPlanar: false, colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0
-    ), let context = NSGraphicsContext(bitmapImageRep: rep) else {
+    guard let space = CGColorSpace(name: CGColorSpace.sRGB),
+          let cgContext = CGContext(
+              data: nil, width: size, height: size, bitsPerComponent: 8, bytesPerRow: 0, space: space,
+              bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+          ) else {
         fatalError("Could not create a \(size) px bitmap")
     }
     NSGraphicsContext.saveGraphicsState()
-    NSGraphicsContext.current = context
-    NSColor.clear.setFill()
-    CGRect(x: 0, y: 0, width: size, height: size).fill()
+    NSGraphicsContext.current = NSGraphicsContext(cgContext: cgContext, flipped: false)
     draw(CGFloat(size))
     NSGraphicsContext.restoreGraphicsState()
-    guard let data = rep.representation(using: .png, properties: [:]) else {
+    guard let image = cgContext.makeImage(),
+          let data = NSBitmapImageRep(cgImage: image).representation(using: .png, properties: [:]) else {
         fatalError("Could not encode \(path)")
     }
     do {

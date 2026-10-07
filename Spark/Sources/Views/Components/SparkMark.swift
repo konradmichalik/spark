@@ -35,7 +35,7 @@ struct SparkMark: View {
                 RoundedRectangle(cornerRadius: size * 0.225, style: .continuous)
                     .fill(Theme.card)
                     .overlay(RoundedRectangle(cornerRadius: size * 0.225, style: .continuous).strokeBorder(Theme.hairline))
-                    .overlay(dots(in: size * 0.72))
+                    .overlay(dots(in: size * 0.62))
             }
         }
         .frame(width: size, height: size)
