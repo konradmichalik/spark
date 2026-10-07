@@ -60,12 +60,6 @@ struct MenuBarReading: Equatable {
         }
     }
 
-    func level(warning: Double, critical: Double) -> UsageLevel {
-        if value >= critical { return .critical }
-        if value >= warning { return .warning }
-        return .ok
-    }
-
     private static func single(_ value: Double, _ provider: UsageProvider, locale: Locale) -> MenuBarReading {
         MenuBarReading(value: value, text: UsageFormat.percent(value, locale: locale), provider: provider)
     }

@@ -11,8 +11,8 @@ enum Theme {
 
     /// Icon tint. The brand orange sits at roughly 2.4:1 on a light window background, below the
     /// 3:1 that non-text UI elements need, so icons use a darkened variant in light mode and a
-    /// lightened one in dark. `sparkOrange` itself is unchanged and still paints the logo, the
-    /// tier badge, and the session graph line at their exact brand tone.
+    /// lightened one in dark. `sparkOrange` itself is unchanged and still paints the tier badge
+    /// and the session graph line at their exact tone until those screens move to the new tokens.
     static let sparkOrangeIcon = Color(nsColor: NSColor(name: nil) { appearance in
         let isDark = appearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
         return isDark

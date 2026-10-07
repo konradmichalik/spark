@@ -76,14 +76,6 @@ final class MenuBarReadingTests: XCTestCase {
         XCTAssertNil(MenuBarReading.providerValue(for: .codex, claude: claude, codex: nil, mode: "session"))
     }
 
-    func testLevelFollowsValue() {
-        let reading = MenuBarReading(value: 80, text: "80%", provider: .codex)
-
-        XCTAssertEqual(reading.level(warning: 75, critical: 90), .warning)
-        XCTAssertEqual(reading.level(warning: 50, critical: 80), .critical)
-        XCTAssertEqual(reading.level(warning: 85, critical: 95), .ok)
-    }
-
     func testStalenessRule() {
         let now = Date()
         let fresh = now.addingTimeInterval(-60)
