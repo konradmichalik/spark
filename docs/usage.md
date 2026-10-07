@@ -2,26 +2,20 @@
 
 ## Menu bar icon
 
-The icon reflects your highest current usage level:
+The icon is a ring of twelve dots. Each dot stands for a twelfth of the limit, and the last one fills partially, so 45% and 50% look different. It follows the menu bar's colors until a value crosses a threshold:
 
-| Color | Meaning |
-|-------|---------|
-| Green | Below warning threshold (default < 75%) |
-| Orange | Warning level (default 75–90%) |
-| Red | Critical level (default > 90%) |
+| State | Icon |
+|-------|------|
+| Below the warning threshold (default 75%) | Menu bar color |
+| Warning (default 75% to 90%) | Ochre |
+| Critical (default 90% and above) | Red |
+| Disconnected, sign-in expired, last fetch failed, or no update for an hour | Dimmed |
 
-Click the icon to open the detailed popover with usage stats, the history graph, and service status. The icon style (Minimal, Dot, or Logo; colored or monochrome) is set in **Settings → Menu Bar**.
+Click the icon to open the detailed popover with usage stats, the history graph, and service status. **Settings → Menu Bar** sets the style (Ring, or With logo, which puts the provider logo in front of the ring) and the value next to it.
 
 ## Claude and Codex
 
-With a Codex ChatGPT sign-in present, the popover gets a **Claude | Codex** switch and **Settings → Menu Bar → Provider** decides what the icon reports:
-
-| Provider | Menu bar shows |
-|----------|----------------|
-| Highest (default) | Whichever of Claude and Codex is closer to its limit |
-| Claude | Claude only |
-| Codex | Codex only |
-| Both | `Claude% \| Codex%`, ring and color follow the higher one |
+With a Codex ChatGPT sign-in present, the popover gets a **Claude | Codex** switch. The menu bar shows the provider of the tab you opened last, so switching tabs is how you choose what it reports. If Codex is selected but has no data yet, the icon shows Claude's value, dimmed.
 
 Each tab also shows that provider's session usage, colored from the warning threshold up, so both can be read without switching. Turn it off under **Settings → Display → Session Usage in Provider Tabs**.
 

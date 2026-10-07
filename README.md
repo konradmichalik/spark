@@ -33,7 +33,7 @@ Learn more at <a href="https://konradmichalik.github.io/spark/">konradmichalik.g
 - **Native notifications** for warning thresholds, critical levels, limit resets, and service incidents
 - **Smart refresh** that reacts to your actual Claude Code activity: watches your transcripts directly and snaps back to active polling the moment you start working, instead of waiting for the next scheduled check
 - **Codex usage** _(automatic when available)_: if the [Codex CLI](https://github.com/openai/codex) is signed in with ChatGPT, a Claude | Codex switch appears in the popover with Codex's plan limits, credits and local session stats, and the menu bar can show the busier provider, either one, or both
-- **Customizable icon**: Minimal, Dot, or Logo style; colored or monochrome
+- **Menu bar ring**: twelve dots that fill with usage, as a ring alone or with the provider logo in front
 - **Auto-connect** via Claude Code CLI credentials from macOS Keychain
 - **Data export** _(opt-in)_: write live usage state to a local JSON file for external consumers such as a Stream Deck plugin, enabled in **Settings → General**
 
@@ -84,7 +84,7 @@ claude auth login
 
 ### Codex
 
-Codex needs no setup in Spark. Once `codex login` has stored a ChatGPT sign-in in `~/.codex/auth.json` (or `$CODEX_HOME/auth.json`), Spark shows Codex next to Claude. Choose what the menu bar shows under **Settings → Menu Bar → Provider**, or turn Codex off under **Settings → Connection**.
+Codex needs no setup in Spark. Once `codex login` has stored a ChatGPT sign-in in `~/.codex/auth.json` (or `$CODEX_HOME/auth.json`), Spark shows Codex next to Claude. The menu bar shows the provider of the popover tab you opened last. Turn Codex off under **Settings → Connection**.
 
 > [!NOTE]
 > Spark only reads `auth.json` and never refreshes or rewrites the Codex token, so it cannot sign the CLI out. Not supported yet: sign-ins stored in the Keychain (`cli_auth_credentials_store = keyring`), using Codex without a Claude Code connection, and a `CODEX_HOME` set only in your shell profile (apps started from Finder or as a login item don't see it, so Spark falls back to `~/.codex`).
