@@ -9,7 +9,8 @@ Spark is a native macOS menu bar app (SwiftUI, Swift 6) that displays Claude Cod
 - `Spark/Sources/App/`: app entry (`SparkApp.swift`)
 - `Spark/Sources/Models/`: `AppState` (`@MainActor`, `ObservableObject`, the Claude provider), `CodexState` (the Codex provider), `MenuBarReading` (what the menu bar shows across both), usage and stats models, transcript caches, persistence
 - `Spark/Sources/Services/`: `KeychainService`, `UsageClient`, `CLIVersionClient`, `TranscriptFileWatcher`, `SparkCredentialStore`, `CodexAuthReader`, `CodexUsageClient`
-- `Spark/Sources/Views/`: `MenuBarView` (main popover), usage graphs, `SettingsView`, `WeeklyReportView`, `Views/Components/` (`SectionHeader`, `SectionCard`, `SegmentPicker`, `TablerIcon`, `MenuBarGlyph`, `SparkMark`, `DotBar`, `DotRing`)
+- `Spark/Sources/Views/Popover/`: the popover screens (`PopoverHeader`, `UsageBlocks`, `OverviewParts`, `OverviewScreen`, `DetailScreens`); pure helpers in `Spark/Sources/Models/OverviewModels.swift`
+- `Spark/Sources/Views/`: `MenuBarView` (popover root and navigation), usage graphs, `SettingsView`, `WeeklyReportView`, `Views/Components/` (`SectionHeader`, `SectionCard`, `SegmentPicker`, `TablerIcon`, `MenuBarGlyph`, `SparkMark`, `DotBar`, `DotRing`)
 - `Spark/Assets.xcassets/Icons/`: bundled Tabler outline SVG icon set
 - `SparkTests/`: unit tests
 - `project.yml`: XcodeGen project definition, the source of truth for project config

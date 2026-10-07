@@ -13,6 +13,17 @@ The icon is a ring of twelve dots. Each dot stands for a twelfth of the limit, a
 
 Click the icon to open the detailed popover with usage stats, the history graph, and service status. **Settings → Menu Bar** sets the style (Ring, or With logo, which puts the provider logo in front of the ring) and the value next to it.
 
+## Popover
+
+The popover opens on an overview of the selected provider:
+
+- **Session**: the current value, a dot bar with the forecast (hollow dots up to where the session lands at the reset, red when the limit comes first) and a marker for how much of the 5-hour window has passed. Hover the bar for the details.
+- **Week**: the weekly value and its bar.
+- **History**: the last six hours, session as dot columns and the week as a line. Click the card for the full history.
+- **Rows** to Active sessions, Statistics and All limits.
+
+A detail screen opens in place. The header stays, and the breadcrumb (`‹ Claude / History`) leads back. Switching the provider tab or closing the popover returns to the overview.
+
 ## Claude and Codex
 
 With a Codex ChatGPT sign-in present, the popover gets a **Claude | Codex** switch. The menu bar shows the provider of the tab you opened last, so switching tabs is how you choose what it reports. If Codex is selected but has no data yet, the icon shows Claude's value, dimmed.
