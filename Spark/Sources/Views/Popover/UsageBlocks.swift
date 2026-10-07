@@ -49,21 +49,24 @@ struct SessionBlock: View {
             .foregroundStyle(toneColor(tone))
             .lineLimit(1)
             .minimumScaleFactor(0.6)
-            .accessibilityElement(children: .ignore)
-            .accessibilityLabel("Session \(UsageFormat.percent(value))")
             DotBar(
                 value: value, projected: forecast.projected, marker: elapsed.map { $0 * 100 },
                 tone: tone, projectionReachesLimit: forecast.reachesLimit
             )
             .frame(height: 10)
-            .accessibilityLabel("Session usage")
+            .accessibilityHidden(true)
             .tooltip(detail, title: "Forecast")
         }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Session")
+        .accessibilityValue(HeadlineLimit.accessibilityValue(value, detail: detail))
+        .accessibilityHint(resetIn.map { "Reset in \($0)" } ?? "")
     }
 }
 
 /// Week on the overview: label and value on one line, a thin dot bar below.
 struct WeekBlock: View {
+    var label = "WEEK"
     let value: Double
     let resetIn: String?
     let resetDate: Date?
@@ -72,7 +75,7 @@ struct WeekBlock: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(alignment: .firstTextBaseline) {
-                MicroLabel(text: "WEEK")
+                MicroLabel(text: label)
                 Spacer()
                 Text(UsageFormat.percent(value))
                     .font(.system(size: 15, weight: .semibold))
@@ -81,9 +84,16 @@ struct WeekBlock: View {
             }
             DotBar(value: value, tone: tone, pitch: 4, dotSize: 2.6)
                 .frame(height: 6)
-                .accessibilityLabel("Week usage")
         }
-        .tooltip(resetDate?.resetDescription ?? resetIn.map { "Reset in \($0)" }, title: "Week")
+        .tooltip(resetDescription, title: label.capitalized)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(label.capitalized)
+        .accessibilityValue(UsageFormat.percent(value))
+        .accessibilityHint(resetDescription ?? "")
+    }
+
+    private var resetDescription: String? {
+        resetDate?.resetDescription ?? resetIn.map { "Reset in \($0)" }
     }
 }
 
@@ -113,10 +123,16 @@ struct RingsBlock: View {
                 }
                 VStack(alignment: .leading, spacing: 3) {
                     MicroLabel(text: "WEEK")
-                    Text([UsageFormat.percent(week), weekResetIn.map { "Reset in \($0)" }].compactMap { $0 }.joined(separator: " · "))
-                        .font(.system(size: 12))
+                    Text(UsageFormat.percent(week))
+                        .font(.system(size: 12, weight: .semibold))
                         .monospacedDigit()
                         .foregroundStyle(toneColor(weekTone))
+                    if let weekResetIn {
+                        Text("Reset in \(weekResetIn)")
+                            .font(.system(size: 12))
+                            .monospacedDigit()
+                            .foregroundStyle(Theme.ink)
+                    }
                 }
             }
             Spacer(minLength: 0)
@@ -133,16 +149,17 @@ struct RingsBlock: View {
                 .padding(30)
             HStack(alignment: .firstTextBaseline, spacing: 1) {
                 Text(String(Int(session.rounded())))
-                    .font(.doto(size: 40))
+                    .font(.doto(size: 30))
                 Text("%")
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(.system(size: 12, weight: .semibold))
             }
             .foregroundStyle(toneColor(sessionTone))
             .accessibilityHidden(true)
         }
         .frame(width: 136, height: 136)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Session \(UsageFormat.percent(session)), week \(UsageFormat.percent(week))")
+        .accessibilityLabel("Session and week")
+        .accessibilityValue(HeadlineLimit.accessibilityValue(session, detail: detail) + ". Week \(UsageFormat.percent(week))")
         .tooltip(detail, title: "Forecast")
     }
 }

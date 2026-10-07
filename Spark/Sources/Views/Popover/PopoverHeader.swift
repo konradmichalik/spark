@@ -101,6 +101,7 @@ struct PopoverHeader: View {
         .tooltip(tab.tooltip)
         .accessibilityLabel([tab.provider.segmentLabel, percent].compactMap { $0 }.joined(separator: ", "))
         .accessibilityAddTraits(isSelected ? .isSelected : [])
+        .accessibilityHint(tab.tooltip ?? "")
     }
 
     private func selectedBackground(for provider: UsageProvider) -> some View {

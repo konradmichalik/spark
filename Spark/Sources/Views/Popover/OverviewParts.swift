@@ -88,9 +88,9 @@ struct HistoryCard: View {
 
     private var axis: some View {
         HStack {
-            Text("\u{2212}6 h")
+            Text("\u{2212}6h")
             Spacer()
-            Text("\u{2212}3 h")
+            Text("\u{2212}3h")
             Spacer()
             Text("now")
         }

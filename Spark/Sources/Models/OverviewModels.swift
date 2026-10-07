@@ -120,3 +120,21 @@ enum ForecastDetail {
         return ", rising ~\(Int(rate.rounded()))%/h"
     }
 }
+
+/// What the overview leads with when a provider reports no session window: Codex Pro sends only
+/// the weekly window, Free a single 30-day one that lands among the other limits.
+enum HeadlineLimit {
+    static func withoutSession(weekly: UsageBucket?, others: [CodexNamedLimit]) -> (label: String, bucket: UsageBucket)? {
+        if let weekly { return ("WEEK", weekly) }
+        return others.first.map { ($0.label.uppercased(), $0.bucket) }
+    }
+
+    static func emptyText(limitReached: Bool) -> String {
+        limitReached ? "Usage limit reached" : "No limits reported for this plan"
+    }
+
+    /// Tooltips only show on hover, so VoiceOver gets the forecast through the value.
+    static func accessibilityValue(_ value: Double, detail: String?, locale: Locale = .current) -> String {
+        [UsageFormat.percent(value, locale: locale), detail].compactMap { $0 }.joined(separator: ". ")
+    }
+}

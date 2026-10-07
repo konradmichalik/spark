@@ -277,6 +277,12 @@ enum ClaudeServiceStatus: String, Codable, Sendable {
         self == .operational || self == .none
     }
 
+    /// A problem the status page actually reports. `.unknown` only means the page could not be
+    /// read, which is no reason to show a notice in the popover.
+    var isIncident: Bool {
+        self == .degradedPerformance || self == .partialOutage || self == .majorOutage
+    }
+
     var icon: TablerIcon {
         switch self {
         case .operational, .none: .circleCheck

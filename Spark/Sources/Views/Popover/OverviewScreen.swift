@@ -14,6 +14,12 @@ private struct UsageSection: View {
     let style: String
 
     var body: some View {
+        if session == nil, let week {
+            WeekBlock(
+                value: week.utilization, resetIn: week.timeUntilReset, resetDate: week.resetsAtDate,
+                tone: UsageTone(value: week.utilization, warning: warning, critical: critical)
+            )
+        }
         if let session {
             let elapsed = Pace.calculate(utilization: session.utilization, resetsAt: session.resetsAtDate, windowLength: fiveHours)?
                 .elapsedFraction
@@ -44,8 +50,8 @@ private struct UsageSection: View {
     }
 }
 
-private func noDataText() -> some View {
-    Text("No data available")
+private func noDataText(_ text: String = "No data available") -> some View {
+    Text(text)
         .font(.system(size: 12))
         .foregroundStyle(Theme.inkSecondary)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -58,7 +64,7 @@ struct ClaudeOverview: View {
     let open: (PopoverScreen) -> Void
 
     var body: some View {
-        if !state.status.isHealthy {
+        if state.status.isIncident {
             StatusRow(state: state)
         }
         if state.needsReconnect {
@@ -152,6 +158,15 @@ struct CodexOverview: View {
                 session: usage.usageData.session, week: usage.usageData.weekly, forecast: SessionForecast(.insufficientData),
                 detail: nil, warning: warning, critical: critical, style: style
             )
+        } else if let usage = codex.usage,
+                  let headline = HeadlineLimit.withoutSession(weekly: usage.usageData.weekly, others: usage.additionalLimits) {
+            WeekBlock(
+                label: headline.label, value: headline.bucket.utilization, resetIn: headline.bucket.timeUntilReset,
+                resetDate: headline.bucket.resetsAtDate,
+                tone: UsageTone(value: headline.bucket.utilization, warning: warning, critical: critical)
+            )
+        } else if let usage = codex.usage {
+            noDataText(HeadlineLimit.emptyText(limitReached: usage.limitReached))
         } else if !codex.isLoading, !codex.needsSignIn, codex.lastError == nil {
             noDataText()
         }
