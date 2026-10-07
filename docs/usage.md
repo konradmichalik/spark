@@ -23,6 +23,8 @@ With a Codex ChatGPT sign-in present, the popover gets a **Claude | Codex** swit
 | Codex | Codex only |
 | Both | `Claude% \| Codex%`, ring and color follow the higher one |
 
+Each tab also shows that provider's session usage, colored from the warning threshold up, so both can be read without switching. Turn it off under **Settings → Display → Session Usage in Provider Tabs**.
+
 If a Codex plan lacks the window picked under **Displayed Value** (Pro has no 5-hour window, Free only a 30-day one), Spark uses that plan's highest window instead of showing 0%.
 
 ## Smart refresh
