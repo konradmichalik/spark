@@ -41,4 +41,11 @@ final class MenuBarGlyphTests: XCTestCase {
             XCTAssertNotNil(image.cgImage(forProposedRect: nil, context: nil, hints: nil))
         }
     }
+
+    func testEveryOldIconStyleMapsToTheRing() {
+        for stored in ["logo", "dot", "bar", "minimal", "ring", "", "unexpected"] {
+            XCTAssertEqual(MenuBarIconStyle(stored: stored), .ring, stored)
+        }
+        XCTAssertEqual(MenuBarIconStyle(stored: "providerLogo"), .providerLogo)
+    }
 }

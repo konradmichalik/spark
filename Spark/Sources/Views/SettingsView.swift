@@ -209,42 +209,14 @@ private struct MiniRing: View {
     }
 }
 
-private struct IconMinimalThumb: View {
-    var body: some View {
-        RoundedRectangle(cornerRadius: 1)
-            .fill(Color.primary.opacity(0.6))
-            .frame(width: 14, height: 3)
-    }
-}
+private struct GlyphThumb: View {
+    let logo: MenuBarLogo?
 
-private struct IconDotThumb: View {
     var body: some View {
-        Circle()
-            .fill(Color.primary.opacity(0.6))
-            .frame(width: 8, height: 8)
-    }
-}
-
-private struct IconBarThumb: View {
-    var body: some View {
-        VStack(spacing: 0) {
-            ZStack(alignment: .leading) {
-                RoundedRectangle(cornerRadius: 2.5)
-                    .fill(Color.secondary.opacity(0.15))
-                    .frame(width: 28, height: 5)
-                RoundedRectangle(cornerRadius: 2.5)
-                    .fill(Color.primary.opacity(0.6))
-                    .frame(width: 18, height: 5)
-            }
-        }
-    }
-}
-
-private struct IconLogoThumb: View {
-    var body: some View {
-        ClaudeLogoShape()
-            .fill(Color.primary.opacity(0.6))
-            .frame(width: 18, height: 18)
+        Image(nsImage: MenuBarGlyph(value: 45, tone: .normal).image(logo: logo))
+            .renderingMode(.template)
+            .foregroundStyle(Theme.ink)
+            .accessibilityHidden(true)
     }
 }
 
@@ -487,28 +459,16 @@ struct MenuBarTab: View {
 
                 HStack(spacing: 8) {
                     OptionCard(
-                        label: "Minimal",
-                        isSelected: state.iconStyle == "minimal",
-                        preview: { IconMinimalThumb() },
-                        action: { state.iconStyle = "minimal" }
+                        label: "Ring",
+                        isSelected: MenuBarIconStyle(stored: state.iconStyle) == .ring,
+                        preview: { GlyphThumb(logo: nil) },
+                        action: { state.iconStyle = MenuBarIconStyle.ring.rawValue }
                     )
                     OptionCard(
-                        label: "Dot",
-                        isSelected: state.iconStyle == "dot",
-                        preview: { IconDotThumb() },
-                        action: { state.iconStyle = "dot" }
-                    )
-                    OptionCard(
-                        label: "Bar",
-                        isSelected: state.iconStyle == "bar",
-                        preview: { IconBarThumb() },
-                        action: { state.iconStyle = "bar" }
-                    )
-                    OptionCard(
-                        label: "Logo",
-                        isSelected: state.iconStyle == "logo",
-                        preview: { IconLogoThumb() },
-                        action: { state.iconStyle = "logo" }
+                        label: "With logo",
+                        isSelected: MenuBarIconStyle(stored: state.iconStyle) == .providerLogo,
+                        preview: { GlyphThumb(logo: .claude) },
+                        action: { state.iconStyle = MenuBarIconStyle.providerLogo.rawValue }
                     )
                 }
 
@@ -541,16 +501,10 @@ struct MenuBarTab: View {
                     )
                 }
 
-                SectionHeader("Options", icon: .adjustmentsHorizontal)
-
-                SectionCard {
-                    Toggle(isOn: $state.coloredIcon) {
-                        SettingLabel(
-                            title: "Colored Icon",
-                            subtitle: "Show icon and percentage in color based on usage level."
-                        )
-                    }
-                }
+                Text("The menu bar shows the provider of the popover tab you opened last.")
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
             .padding()
         }

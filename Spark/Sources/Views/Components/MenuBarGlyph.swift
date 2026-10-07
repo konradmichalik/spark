@@ -60,9 +60,19 @@ struct MenuBarGlyph: Equatable {
             path.fill()
         case .codex:
             guard let symbol = NSImage(named: TablerIcon.brandOpenai.assetName) else { return }
-            symbol.draw(in: rect)
+            symbol.draw(in: rect, from: .zero, operation: .sourceOver, fraction: 1, respectFlipped: true, hints: nil)
             color.setFill()
             rect.fill(using: .sourceAtop)
         }
+    }
+}
+
+/// The two glyph styles in Settings > Menu Bar. Stored in `@AppStorage("iconStyle")`; values
+/// from earlier versions ("logo", "dot", "bar", "minimal") all fall back to the ring.
+enum MenuBarIconStyle: String {
+    case ring, providerLogo
+
+    init(stored: String) {
+        self = MenuBarIconStyle(rawValue: stored) ?? .ring
     }
 }

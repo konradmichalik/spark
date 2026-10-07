@@ -129,170 +129,49 @@ struct MenuBarLabel: View {
         )
     }
 
-    private var displayValue: Double { reading.value }
+    private var tone: UsageTone {
+        UsageTone(value: reading.value, warning: state.warningThreshold, critical: state.criticalThreshold)
+    }
 
-    private var iconColor: NSColor {
-        // The Anthropic status page says nothing about Codex, so it only tints a Claude reading.
-        if reading.provider != .codex, !state.status.isHealthy && state.status != .unknown {
-            return .systemOrange
+    private var logo: MenuBarLogo? {
+        guard MenuBarIconStyle(stored: state.iconStyle) == .providerLogo else { return nil }
+        return reading.provider == .codex ? .codex : .claude
+    }
+
+    /// No fresh value: the connection is lost, Codex needs a new sign-in, or the last update is
+    /// older than an hour (polling runs every 5 to 30 minutes).
+    private var isDimmed: Bool {
+        if state.needsReconnect { return true }
+        let lastUpdated: Date
+        switch reading.provider {
+        case .codex:
+            if codex.needsSignIn { return true }
+            lastUpdated = codex.usage?.usageData.lastUpdated ?? .distantPast
+        case .claude:
+            lastUpdated = state.usageData.lastUpdated
         }
-        switch reading.level(warning: state.warningThreshold, critical: state.criticalThreshold) {
-        case .ok: return .systemGreen
-        case .warning: return .systemOrange
-        case .critical: return .systemRed
-        }
+        return Date().timeIntervalSince(lastUpdated) > 3600
     }
 
-    private func makeIcon(draw: @escaping (CGRect) -> Void) -> NSImage {
-        let size = CGSize(width: 16, height: 16)
-        let image = NSImage(size: size, flipped: false) { rect in
-            draw(rect)
-            return true
-        }
-        image.isTemplate = !state.coloredIcon
-        return image
-    }
-
-    private var sparkIcon: NSImage {
-        let utilization = displayValue
-        let size = CGSize(width: 18, height: 18)
-        let image = NSImage(size: size, flipped: true) { rect in
-            let center = CGPoint(x: rect.midX, y: rect.midY)
-            let ringRadius: CGFloat = rect.width / 2 - 1
-            let ringWidth: CGFloat = 1.8
-
-            // Track (gray ring)
-            let trackPath = NSBezierPath()
-            trackPath.appendArc(withCenter: center, radius: ringRadius, startAngle: 0, endAngle: 360)
-            trackPath.lineWidth = ringWidth
-            NSColor.gray.withAlphaComponent(0.3).setStroke()
-            trackPath.stroke()
-
-            // Progress arc (starts at 12 o'clock, fills clockwise)
-            if utilization > 0 {
-                let startAngle: CGFloat = 270 // top in flipped coordinates
-                let endAngle = startAngle + (CGFloat(min(utilization, 100)) / 100 * 360)
-                let arcPath = NSBezierPath()
-                arcPath.appendArc(withCenter: center, radius: ringRadius, startAngle: startAngle, endAngle: endAngle, clockwise: false)
-                arcPath.lineWidth = ringWidth
-                arcPath.lineCapStyle = .round
-                self.iconColor.setStroke()
-                arcPath.stroke()
-            }
-
-            // Spark shape in the center
-            let sparkInset: CGFloat = 3.5
-            let sparkRect = rect.insetBy(dx: sparkInset, dy: sparkInset)
-            let sparkPath = ClaudeLogoShape().path(in: CGRect(origin: .zero, size: sparkRect.size))
-            let transform = AffineTransform(translationByX: sparkRect.minX, byY: sparkRect.minY)
-            let bezier = NSBezierPath(cgPath: sparkPath.cgPath)
-            bezier.transform(using: transform)
-            let sparkColor: NSColor = self.state.coloredIcon ? .labelColor : Theme.sparkOrangeNS
-            sparkColor.setFill()
-            bezier.fill()
-
-            return true
-        }
-        image.isTemplate = !state.coloredIcon
-        return image
-    }
-
-    private var barIcon: NSImage {
-        let utilization = displayValue
-        let imgSize = CGSize(width: 18, height: 12)
-        let image = NSImage(size: imgSize, flipped: false) { rect in
-            let barHeight: CGFloat = 5
-            let barY = (rect.height - barHeight) / 2
-            let cornerRadius: CGFloat = barHeight / 2
-
-            // Track
-            let trackRect = CGRect(x: 0, y: barY, width: rect.width, height: barHeight)
-            let trackPath = NSBezierPath(roundedRect: trackRect, xRadius: cornerRadius, yRadius: cornerRadius)
-            NSColor.gray.withAlphaComponent(0.3).setFill()
-            trackPath.fill()
-
-            // Fill
-            let fillWidth = max(0, rect.width * CGFloat(min(utilization, 100)) / 100)
-            if fillWidth > 0 {
-                let fillRect = CGRect(x: 0, y: barY, width: fillWidth, height: barHeight)
-                let fillPath = NSBezierPath(roundedRect: fillRect, xRadius: cornerRadius, yRadius: cornerRadius)
-                self.iconColor.setFill()
-                fillPath.fill()
-            }
-
-            return true
-        }
-        image.isTemplate = !state.coloredIcon
-        return image
-    }
-
-    private var dotIcon: NSImage {
-        makeIcon { rect in
-            let dotSize: CGFloat = 10
-            let dotRect = CGRect(
-                x: (rect.width - dotSize) / 2,
-                y: (rect.height - dotSize) / 2,
-                width: dotSize,
-                height: dotSize
-            )
-            let path = NSBezierPath(ovalIn: dotRect)
-            self.iconColor.setFill()
-            path.fill()
-        }
-    }
-
-    private var percentageColor: Color {
-        state.coloredIcon ? Color(nsColor: iconColor) : .primary
-    }
-
-    private var showPercentage: Bool {
-        state.menuBarValue != "none"
-    }
-
-    @ViewBuilder
-    private var disconnectIcon: some View {
-        // The icon stands alone here with no adjacent text, so it is the control rather than
-        // decoration next to one — `isDecorative: false` keeps it out of
-        // `.accessibilityHidden`, and the label below attaches directly to it.
-        TablerIconView(.alertTriangle, size: 13, color: .orange, isDecorative: false)
-            .accessibilityLabel("Spark disconnected — tap to reconnect")
-    }
-
-    @ViewBuilder
-    private var percentageText: some View {
-        Text(reading.text)
-            .font(.system(.caption, design: .monospaced))
-            .foregroundColor(percentageColor)
+    private var accessibilityText: String {
+        let provider = reading.provider == .codex ? "Codex" : "Claude"
+        let status = state.needsReconnect ? ", disconnected" : isDimmed ? ", not up to date" : ""
+        return "Spark, \(provider) \(reading.text)\(status)"
     }
 
     var body: some View {
-        if state.needsReconnect {
-            disconnectIcon
-        } else {
-            switch state.iconStyle {
-            case "minimal":
-                if showPercentage {
-                    percentageText
-                } else {
-                    Image(nsImage: sparkIcon)
-                }
-            case "dot":
-                HStack(spacing: 6) {
-                    Image(nsImage: dotIcon)
-                        .frame(width: 16, height: 16)
-                    if showPercentage { percentageText }
-                }
-            case "bar":
-                HStack(spacing: 6) {
-                    Image(nsImage: barIcon)
-                    if showPercentage { percentageText }
-                }
-            default:
-                HStack(spacing: 6) {
-                    Image(nsImage: sparkIcon)
-                    if showPercentage { percentageText }
-                }
+        let glyph = MenuBarGlyph(value: reading.value, tone: tone)
+        HStack(spacing: 5) {
+            Image(nsImage: glyph.image(logo: logo))
+            if state.menuBarValue != "none" {
+                Text(reading.text)
+                    .font(.system(size: 13, weight: .semibold))
+                    .monospacedDigit()
+                    .foregroundStyle(tone == .normal ? Color.primary : tone.color)
             }
         }
+        .opacity(isDimmed ? 0.35 : 1)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(accessibilityText)
     }
 }

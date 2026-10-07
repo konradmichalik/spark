@@ -35,7 +35,7 @@ final class AppState: ObservableObject {
 
     // MARK: - Settings (persisted)
 
-    @AppStorage("iconStyle") var iconStyle: String = "logo"
+    @AppStorage("iconStyle") var iconStyle: String = MenuBarIconStyle.ring.rawValue
     @AppStorage("menuBarValue") var menuBarValue: String = "max"
     @AppStorage("showSonnetUsage") var showSonnetUsage: Bool = true
     @AppStorage("showOpusUsage") var showOpusUsage: Bool = true
@@ -57,7 +57,6 @@ final class AppState: ObservableObject {
     @AppStorage("showStats") var showStats: Bool = true
     @AppStorage("showProjectBreakdown") var showProjectBreakdown: Bool = true
     @AppStorage("showActiveSessions") var showActiveSessions: Bool = true
-    @AppStorage("coloredIcon") var coloredIcon: Bool = true
     @AppStorage("usageDisplayStyle") var usageDisplayStyle: String = "bars"
     @AppStorage("reduceTransparency") var reduceTransparency: Bool = false
     @AppStorage("exportDataEnabled") var exportDataEnabled: Bool = false
