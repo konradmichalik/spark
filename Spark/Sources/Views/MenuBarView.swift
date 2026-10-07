@@ -944,8 +944,8 @@ struct StatusRow: View {
 
             Spacer()
 
-            if !state.claudeCodeStatus.isHealthy {
-                Link(destination: URL(string: "https://status.claude.com")!) {
+            if !state.claudeCodeStatus.isHealthy, let statusPage = URL(string: "https://status.claude.com") {
+                Link(destination: statusPage) {
                     HStack(spacing: 2) {
                         Text("Code: \(state.claudeCodeStatus.displayName)")
                             .font(.caption2)
