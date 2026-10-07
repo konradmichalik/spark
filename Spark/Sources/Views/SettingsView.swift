@@ -586,6 +586,8 @@ struct MenuBarTab: View {
 
 struct DisplayTab: View {
     @EnvironmentObject var state: AppState
+    @EnvironmentObject var codex: CodexState
+    @AppStorage("showProviderTabValues") private var showProviderTabValues = true
 
     var body: some View {
         ScrollView {
@@ -626,6 +628,15 @@ struct DisplayTab: View {
                             title: "Reduce Transparency",
                             subtitle: "Use an opaque background instead of the translucent system material."
                         )
+                    }
+
+                    if codex.isActive {
+                        Toggle(isOn: $showProviderTabValues) {
+                            SettingLabel(
+                                title: "Session Usage in Provider Tabs",
+                                subtitle: "Show each provider's session usage next to Claude and Codex in the popover."
+                            )
+                        }
                     }
                 }
             }

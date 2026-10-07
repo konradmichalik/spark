@@ -66,6 +66,14 @@ struct MenuBarReading: Equatable {
         }
     }
 
+    /// One provider's value for a `menuBarValue` mode, or nil when that provider has no data.
+    static func providerValue(for provider: UsageProvider, claude: UsageData, codex: CodexUsage?, mode: String) -> Double? {
+        switch provider {
+        case .claude: claudeValue(claude, mode: mode)
+        case .codex: codex.map { codexValue($0, mode: mode) }
+        }
+    }
+
     func level(warning: Double, critical: Double) -> UsageLevel {
         if value >= critical { return .critical }
         if value >= warning { return .warning }

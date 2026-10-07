@@ -7,6 +7,7 @@ struct MenuBarView: View {
     @EnvironmentObject var codex: CodexState
     @Environment(\.openWindow) private var openWindow
     @AppStorage("selectedProvider") private var selectedProviderRaw = UsageProvider.claude.rawValue
+    @AppStorage("showProviderTabValues") private var showProviderTabValues = true
 
     private static let fiveHours: TimeInterval = 5 * 3600
     private static let sevenDays: TimeInterval = 7 * 24 * 3600
@@ -27,7 +28,11 @@ struct MenuBarView: View {
             headerRow
 
             if codex.isActive {
-                SegmentPicker(selection: providerBinding, options: UsageProvider.allCases)
+                SegmentPicker(
+                    selection: providerBinding,
+                    options: UsageProvider.allCases,
+                    detail: providerTabDetail
+                )
             }
 
             switch provider {
@@ -223,6 +228,21 @@ extension MenuBarView {
         if state.showGraph, !state.history.isEmpty {
             UsageGraphView(history: state.history, rollups: state.rollups)
         }
+    }
+
+    fileprivate var providerTabDetail: ((UsageProvider) -> Text?)? {
+        guard showProviderTabValues else { return nil }
+        return { providerTabValue($0) }
+    }
+
+    /// Session usage on each provider tab, so both can be read without switching. Colored only
+    /// from the warning threshold up, so the tabs stay quiet while everything is fine.
+    fileprivate func providerTabValue(_ provider: UsageProvider) -> Text? {
+        guard let value = MenuBarReading.providerValue(
+            for: provider, claude: state.usageData, codex: codex.usage, mode: "session"
+        ) else { return nil }
+        let color: Color = value >= state.criticalThreshold ? .red : value >= state.warningThreshold ? .orange : .secondary
+        return Text("\(Int(value))%").foregroundColor(color)
     }
 
     fileprivate var isLoading: Bool {

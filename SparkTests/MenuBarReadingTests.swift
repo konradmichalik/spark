@@ -79,6 +79,18 @@ final class MenuBarReadingTests: XCTestCase {
         XCTAssertEqual(MenuBarReading.resolve(claude: claude, codex: codex, value: "max", mode: .codex).value, 80)
     }
 
+    /// The provider tabs show each provider's session value, with the same fallback as the
+    /// menu bar when a Codex plan has no session window.
+    func testSessionValuePerProvider() throws {
+        let withSession = try codex(session: 12, weekly: 70)
+        let withoutSession = try codex(session: nil, weekly: 30, extra: 80)
+
+        XCTAssertEqual(MenuBarReading.providerValue(for: .claude, claude: claude, codex: withSession, mode: "session"), 42)
+        XCTAssertEqual(MenuBarReading.providerValue(for: .codex, claude: claude, codex: withSession, mode: "session"), 12)
+        XCTAssertEqual(MenuBarReading.providerValue(for: .codex, claude: claude, codex: withoutSession, mode: "session"), 80)
+        XCTAssertNil(MenuBarReading.providerValue(for: .codex, claude: claude, codex: nil, mode: "session"))
+    }
+
     func testLevelFollowsValue() {
         let reading = MenuBarReading(value: 80, text: "80%", provider: .codex)
 

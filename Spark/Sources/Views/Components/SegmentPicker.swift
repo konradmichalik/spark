@@ -44,6 +44,9 @@ enum SegmentIcon {
 struct SegmentPicker<T: SegmentLabeled>: View {
     @Binding var selection: T
     let options: [T]
+    /// Live value after a segment's label, e.g. the session usage on a provider tab. The caller
+    /// styles the color; size and font are set here so every segment matches.
+    var detail: ((T) -> Text?)?
 
     var body: some View {
         HStack(spacing: 0) {
@@ -58,6 +61,9 @@ struct SegmentPicker<T: SegmentLabeled>: View {
                         Text(option.segmentLabel)
                             .font(.system(size: 9.5, weight: isSelected ? .semibold : .medium))
                             .foregroundColor(isSelected ? .primary : .secondary)
+                        if let detail = detail?(option) {
+                            detail.font(.system(size: 9.5, design: .monospaced))
+                        }
                     }
                     .padding(.horizontal, 5.5)
                     .padding(.vertical, 3)
