@@ -72,6 +72,44 @@ final class CodexUsageTests: XCTestCase {
         XCTAssertEqual(usage.additionalLimits.first?.bucket.utilization, 5)
     }
 
+    /// The free plan reports a single 30-day window (seen live on 2026-10-07). It is neither a
+    /// session nor a weekly quota, but it still has to drive the menu bar value.
+    func testThirtyDayWindowIsNotWeekly() throws {
+        let response = try decode("""
+        {
+          "plan_type": "free",
+          "rate_limit": {
+            "allowed": true, "limit_reached": false,
+            "primary_window": { "used_percent": 64, "limit_window_seconds": 2592000, "reset_after_seconds": 100, "reset_at": 1791360000 },
+            "secondary_window": null
+          }
+        }
+        """)
+
+        let usage = CodexUsage(response: response)
+
+        XCTAssertNil(usage.usageData.weekly)
+        XCTAssertEqual(usage.additionalLimits.map(\.label), ["30 days"])
+        XCTAssertEqual(usage.maxUtilization, 64)
+    }
+
+    func testMaxUtilizationCoversAllWindows() throws {
+        let response = try decode("""
+        {
+          "plan_type": "plus",
+          "rate_limit": {
+            "primary_window": { "used_percent": 20, "limit_window_seconds": 18000, "reset_at": 1791360000 },
+            "secondary_window": { "used_percent": 30, "limit_window_seconds": 604800, "reset_at": 1791446400 }
+          },
+          "additional_rate_limits": [
+            { "limit_name": "Max", "rate_limit": { "primary_window": { "used_percent": 90, "limit_window_seconds": 18000 } } }
+          ]
+        }
+        """)
+
+        XCTAssertEqual(CodexUsage(response: response).maxUtilization, 90)
+    }
+
     func testAdditionalRateLimitsAreNamedByLimitName() throws {
         let response = try decode("""
         {

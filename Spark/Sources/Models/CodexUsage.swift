@@ -96,11 +96,12 @@ struct CodexUsage: Sendable {
     let creditsBalance: String?
     let limitReached: Bool
 
-    /// Anything up to 6h counts as the session window, anything from 6 days up as the weekly
-    /// one. Codex reports a 5h and a 7d window today, but Pro has no 5h window and sends the
-    /// weekly one as `primary_window`, so the slot position says nothing.
+    /// Anything up to 6h counts as the session window, 6 to 8 days as the weekly one. Codex
+    /// reports a 5h and a 7d window on paid plans, but Pro has no 5h window and sends the weekly
+    /// one as `primary_window`, and Free sends a single 30-day window. So neither the slot
+    /// position nor "long means weekly" can decide the label.
     private static let sessionWindowMax = 6 * 3600
-    private static let weeklyWindowMin = 6 * 86400
+    private static let weeklyWindowRange = (6 * 86400)...(8 * 86400)
 
     init(response: CodexUsageResponse, now: Date = Date()) {
         var session: UsageBucket?
@@ -111,7 +112,7 @@ struct CodexUsage: Sendable {
             let bucket = Self.bucket(for: window)
             if window.limitWindowSeconds <= Self.sessionWindowMax, session == nil {
                 session = bucket
-            } else if window.limitWindowSeconds >= Self.weeklyWindowMin, weekly == nil {
+            } else if Self.weeklyWindowRange.contains(window.limitWindowSeconds), weekly == nil {
                 weekly = bucket
             } else {
                 additional.append(CodexNamedLimit(
@@ -143,6 +144,12 @@ struct CodexUsage: Sendable {
         } else {
             creditsBalance = nil
         }
+    }
+
+    /// Highest usage across every window, including the ones that are neither session nor
+    /// weekly, so a plan whose only quota is a 30-day window still drives the menu bar.
+    var maxUtilization: Double {
+        additionalLimits.map(\.bucket.utilization).reduce(usageData.maxUtilization, max)
     }
 
     /// "plus" → "Plus", "self_serve_business_prolite" → "Self Serve Business Prolite".
