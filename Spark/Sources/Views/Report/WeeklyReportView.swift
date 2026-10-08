@@ -11,7 +11,8 @@ struct WeeklyReportView: View {
     @EnvironmentObject private var codex: CodexState
 
     @State private var selectedScope = ReportScope.all
-    @State private var codexData: CodexReportData?
+    @State private var cachedCodexData: CodexReportData?
+    @State private var codexLoadedKey: String?
 
     var body: some View {
         // The header stays outside the scroll view: the period controls are what someone reaches
@@ -32,7 +33,7 @@ struct WeeklyReportView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
             // Dims stale numbers while a reopen or period change re-scans.
-            .opacity(state.isLoadingWeeklyReport ? 0.5 : 1)
+            .opacity(state.isLoadingWeeklyReport || isLoadingCodexData ? 0.5 : 1)
         }
         .frame(minWidth: 460, idealWidth: 560, minHeight: 420, idealHeight: 660)
         .background(Theme.paper)
@@ -44,8 +45,15 @@ struct WeeklyReportView: View {
         .task(id: codexLoadKey) { await loadCodexData() }
     }
 
+    /// Only the scan that belongs to the shown period; empty while a new one is running.
+    private var codexData: CodexReportData? {
+        ReportScoping.codexData(cachedCodexData, loadedFor: codexLoadedKey, wanted: codexLoadKey)
+    }
+
     /// Codex counts once it is active, or when signed out but its local files still hold use.
     private var codexShown: Bool { codex.isActive || codexData?.hasUse == true }
+
+    private var isLoadingCodexData: Bool { codex.isEnabled && codexLoadedKey != codexLoadKey }
 
     private var scope: ReportScope { ReportScoping.effective(selectedScope, codexShown: codexShown) }
 
@@ -56,14 +64,17 @@ struct WeeklyReportView: View {
 
     /// A switched-off Codex is not read at all.
     private func loadCodexData() async {
+        let key = codexLoadKey
         guard let report = state.weeklyReport, codex.isEnabled else {
-            codexData = nil
+            cachedCodexData = nil
+            codexLoadedKey = key
             return
         }
         let range = CodexReportRange(report: report)
         let data = await codex.reportData(previousStart: range.previousStart, start: range.start, until: range.until)
         guard !Task.isCancelled else { return }
-        codexData = data
+        cachedCodexData = data
+        codexLoadedKey = key
     }
 
     @ViewBuilder

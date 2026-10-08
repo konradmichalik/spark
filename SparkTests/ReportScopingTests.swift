@@ -108,4 +108,11 @@ final class ReportScopingTests: XCTestCase {
         XCTAssertTrue(codex.hasUse)
         XCTAssertFalse(CodexReportData(dayTokens: [:], modelTokens: [:]).hasUse)
     }
+
+    func testCachedCodexDataOnlyBelongsToTheSamePeriod() {
+        XCTAssertEqual(ReportScoping.codexData(codex, loadedFor: "week-1", wanted: "week-1"), codex)
+        XCTAssertNil(ReportScoping.codexData(codex, loadedFor: "week-1", wanted: "week-2"))
+        XCTAssertNil(ReportScoping.codexData(nil, loadedFor: "week-1", wanted: "week-1"))
+        XCTAssertNil(ReportScoping.codexData(codex, loadedFor: nil, wanted: "week-1"))
+    }
 }

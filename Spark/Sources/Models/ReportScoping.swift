@@ -41,6 +41,12 @@ enum ReportScoping {
         codexShown ? selected : .claude
     }
 
+    /// Cached Codex numbers only count while they were scanned for the period now shown, so a
+    /// period or provider change never displays the previous scan's totals.
+    static func codexData(_ data: CodexReportData?, loadedFor loadedKey: String?, wanted wantedKey: String) -> CodexReportData? {
+        loadedKey == wantedKey ? data : nil
+    }
+
     static func showsClaudeSections(_ scope: ReportScope) -> Bool { scope != .codex }
 
     /// Names a Claude-only section when it sits in a report that also holds Codex numbers.
