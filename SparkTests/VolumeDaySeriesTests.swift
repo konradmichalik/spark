@@ -2,20 +2,10 @@ import XCTest
 @testable import Spark
 
 final class VolumeDaySeriesTests: XCTestCase {
-    private var calendar: Calendar = {
-        var calendar = Calendar(identifier: .gregorian)
-        // swiftlint:disable:next force_unwrapping
-        calendar.timeZone = TimeZone(identifier: "Europe/Berlin")!
-        return calendar
-    }()
+    private let calendar = TestCalendar.berlin()
 
     private func date(_ day: String, time: String = "12:00") -> Date {
-        let formatter = DateFormatter()
-        formatter.calendar = calendar
-        formatter.timeZone = calendar.timeZone
-        formatter.dateFormat = "yyyy-MM-dd HH:mm"
-        // swiftlint:disable:next force_unwrapping
-        return formatter.date(from: "\(day) \(time)")!
+        TestCalendar.date(day, time: time, calendar: calendar)
     }
 
     private func rollup(tokens: Int) -> DailyRollup {
@@ -94,11 +84,11 @@ final class VolumeDaySeriesTests: XCTestCase {
         XCTAssertEqual(days.first?.day, "2026-08-15")
     }
 
-    func testTokensSumEveryRollupBucket() {
+    func testTokensSumEveryBucketExceptCacheReads() {
         let full = DailyRollup(sessionCount: 2, input: 1, output: 2, cacheCreation: 4, cacheRead: 8)
         let days = build(["2026-08-20": full])
 
-        XCTAssertEqual(days.last?.tokens, 15)
+        XCTAssertEqual(days.last?.tokens, 7)
     }
 
     func testPresentRollupWithZeroTokensIsNotEmpty() {

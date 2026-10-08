@@ -33,6 +33,9 @@ struct PeriodReport {
     let modelTotals: [String: Int]
     let topProjects: [ProjectUsage]
     let topSessions: [SessionUsage]
+    /// Claude's fresh tokens per day key over the calendar range, from the same live scan as the
+    /// model split, so today is included before its rollup exists.
+    let dayTokens: [String: Int]
     /// What the current period's usage would cost at API prices. `nil` when the cost view is off
     /// or no prices could be loaded.
     let costSummary: CostSummary?
@@ -43,6 +46,13 @@ struct PeriodReport {
     /// The shown window's first and last calendar day.
     let rangeStart: Date
     let rangeEnd: Date
+    /// The same for the period before, which Codex's trend is summed over.
+    let previousStart: Date
+    let previousEnd: Date
+    /// The days the activity calendar draws. Unlike `rangeStart` and `rangeEnd` it includes today
+    /// for the current period, and the current week is the last seven days ending today.
+    let calendarStart: Date
+    let calendarEnd: Date
 
     var hasData: Bool {
         currentPeriodTokens > 0 || previousPeriodTokens > 0 || !topProjects.isEmpty
@@ -59,6 +69,7 @@ struct PeriodReport {
         modelTotals: [String: Int] = [:],
         topProjects: [ProjectUsage] = [],
         topSessions: [SessionUsage] = [],
+        dayTokens: [String: Int] = [:],
         costSummary: CostSummary? = nil,
         period: ReportPeriod = .week,
         periodOffset: Int = 0,
@@ -77,6 +88,8 @@ struct PeriodReport {
         let cacheEligible = current.cacheRead + current.cacheCreation
         let cacheHitRate: Double? = cacheEligible > 0 ? Double(current.cacheRead) / Double(cacheEligible) : nil
 
+        let calendarRange = activityRange(range, period: period, offset: periodOffset, now: now, calendar: calendar)
+
         return PeriodReport(
             currentPeriodTokens: current.real,
             previousPeriodTokens: previous.real,
@@ -85,12 +98,26 @@ struct PeriodReport {
             modelTotals: modelTotals,
             topProjects: topProjects,
             topSessions: topSessions,
+            dayTokens: dayTokens,
             costSummary: costSummary,
             period: period,
             periodOffset: periodOffset,
             rangeStart: range.start,
-            rangeEnd: range.end
+            rangeEnd: range.end,
+            previousStart: previousRange.start,
+            previousEnd: previousRange.end,
+            calendarStart: calendarRange.start,
+            calendarEnd: calendarRange.end
         )
+    }
+
+    private static func activityRange(
+        _ range: (start: Date, end: Date), period: ReportPeriod, offset: Int, now: Date, calendar: Calendar
+    ) -> (start: Date, end: Date) {
+        guard offset == 0 else { return range }
+        let today = calendar.startOfDay(for: now)
+        guard period == .week else { return (range.start, today) }
+        return (calendar.date(byAdding: .day, value: -6, to: today) ?? today, today)
     }
 
     /// The shown window's first day — for a live scan (top projects, per-model split) that needs
@@ -128,10 +155,12 @@ struct PeriodReport {
         period: ReportPeriod = .week,
         periodOffset: Int,
         rollups: [String: DailyRollup],
+        earliestExtraDay: String? = nil,
         now: Date = Date(),
         calendar: Calendar = .current
     ) -> Bool {
-        guard let earliestRollupDay = rollups.keys.min() else { return false }
+        // `earliestExtraDay` is the first day another provider (Codex) has activity.
+        guard let earliestRollupDay = ([rollups.keys.min(), earliestExtraDay].compactMap { $0 }).min() else { return false }
         let shownStart = periodRange(period: period, offset: periodOffset, rollups: rollups, now: now, calendar: calendar).start
         return earliestRollupDay < TranscriptCache.dayKey(for: shownStart, calendar: calendar)
     }
@@ -217,5 +246,26 @@ struct PeriodReport {
             day = calendar.startOfDay(for: next)
         }
         return totals
+    }
+}
+
+/// The bounds a Codex scan uses for a report, aligned to whole calendar days like Claude's day
+/// keys. `PeriodReport` carries the days at the time of day it was built, but Codex filters by
+/// exact timestamp, so the lower bounds snap to midnight and the upper bound is the start of the
+/// day after the last day (exclusive).
+struct CodexReportRange: Equatable {
+    let previousStart: Date
+    let start: Date
+    /// `nil` for the current period, where the scan runs through the present moment.
+    let until: Date?
+
+    init(report: PeriodReport, calendar: Calendar = .current) {
+        previousStart = calendar.startOfDay(for: report.previousStart)
+        start = calendar.startOfDay(for: report.rangeStart)
+        if report.periodOffset > 0, let next = calendar.date(byAdding: .day, value: 1, to: report.rangeEnd) {
+            until = calendar.startOfDay(for: next)
+        } else {
+            until = nil
+        }
     }
 }

@@ -1,0 +1,208 @@
+import AppKit
+import SwiftUI
+
+private let fiveHours: TimeInterval = 5 * 3600
+private let sevenDays: TimeInterval = 7 * 24 * 3600
+
+/// Session and week for one provider in the user's display style (bars or ring).
+private struct UsageSection: View {
+    let session: UsageBucket?
+    let week: UsageBucket?
+    let forecast: SessionForecast
+    var fact: ForecastFact?
+    var tokensPerMinute: Int?
+    let warning: Double
+    let critical: Double
+    let style: String
+
+    var body: some View {
+        if let session {
+            let elapsed = Pace.calculate(utilization: session.utilization, resetsAt: session.resetsAtDate, windowLength: fiveHours)?
+                .elapsedFraction
+            let reading = SessionReading(
+                value: session.utilization, resetIn: session.timeUntilReset, resetDate: session.resetsAtDate,
+                forecast: forecast, elapsed: elapsed, tone: UsageTone(value: session.utilization, warning: warning, critical: critical),
+                fact: fact, tokensPerMinute: tokensPerMinute
+            )
+            if style == "bars" {
+                VStack(alignment: .leading, spacing: 16) {
+                    SessionBlock(reading: reading)
+                    weekBlock
+                }
+            } else {
+                RingsBlock(reading: reading, week: weekBlock)
+            }
+        } else {
+            weekBlock
+        }
+    }
+
+    private var weekBlock: WeekBlock? {
+        week.map { week in
+            WeekBlock(
+                value: week.utilization, resetIn: week.timeUntilReset, resetDate: week.resetsAtDate,
+                elapsed: Pace.calculate(utilization: week.utilization, resetsAt: week.resetsAtDate, windowLength: sevenDays)?
+                    .elapsedFraction,
+                tone: UsageTone(value: week.utilization, warning: warning, critical: critical)
+            )
+        }
+    }
+}
+
+private func noDataText(_ text: String = "No data available") -> some View {
+    Text(text)
+        .font(.system(size: 12))
+        .foregroundStyle(Theme.inkSecondary)
+        .frame(maxWidth: .infinity, alignment: .leading)
+}
+
+/// The Claude overview: status and connection notices, session and week, the history card, and
+/// the rows to the detail screens.
+struct ClaudeOverview: View {
+    @EnvironmentObject var state: AppState
+    let open: (PopoverScreen) -> Void
+
+    var body: some View {
+        if state.status.isIncident || state.claudeCodeStatus.isIncident {
+            StatusRow(state: state)
+        }
+        if state.needsReconnect {
+            ReconnectPrompt(onReconnect: state.reconnect)
+        }
+        if let error = state.lastError {
+            WarningBanner(message: error)
+        }
+        if state.usageData.session == nil {
+            if state.lastError == nil, !state.isLoading { noDataText() }
+        } else {
+            UsageSection(
+                session: state.usageData.session, week: state.usageData.weekly, forecast: SessionForecast(projection),
+                fact: forecastFact, tokensPerMinute: state.showProjection ? state.burnRate?.tokensPerMinute : nil,
+                warning: state.warningThreshold, critical: state.criticalThreshold, style: state.usageDisplayStyle
+            )
+        }
+        if let extra = AllLimits.extraUsageLine(state.usageData.extraUsage, warning: state.warningThreshold, critical: state.criticalThreshold) {
+            ExtraUsageBlock(line: extra)
+        }
+        if state.showGraph, !state.history.isEmpty {
+            HistoryCard(columns: HistoryColumns.make(state.history, now: Date())) { open(.history) }
+        }
+        OverviewRows(rows: rows, onOpen: open)
+    }
+
+    private var projection: ProjectionResult {
+        guard state.showProjection, let session = state.usageData.session else { return .insufficientData }
+        return SessionProjection.calculate(history: state.history, currentUtilization: session.utilization, resetsAt: session.resetsAtDate)
+    }
+
+    private var forecastFact: ForecastFact? {
+        guard state.showProjection, let session = state.usageData.session else { return nil }
+        let secondsToReset = session.resetsAtDate.map { $0.timeIntervalSinceNow }
+        return ForecastFact.make(
+            projection: projection, utilization: session.utilization,
+            secondsToReset: secondsToReset, elapsedInWindow: secondsToReset.map { fiveHours - $0 }
+        )
+    }
+
+    private var rows: [OverviewRow] {
+        var rows: [OverviewRow] = []
+        if state.showActiveSessions {
+            rows.append(OverviewRow(
+                screen: .sessions, icon: .pulse(isLive: !state.activeSessions.isEmpty),
+                label: "Active sessions", value: "\(state.activeSessions.count)"
+            ))
+        }
+        if state.showStats {
+            let label = state.statsPeriod == .today ? "Statistics today" : "Statistics"
+            let value = OverviewSummary.statisticsValue(
+                tokens: state.liveStats?.realTokens, messages: state.liveStats?.messageCount
+            )
+            rows.append(OverviewRow(screen: .statistics, icon: .dots(.statistics), label: label, value: value))
+        }
+        let more = state.moreLimits
+        if let value = OverviewSummary.moreLimitsValue(count: more.limits.count + more.extras.count) {
+            rows.append(OverviewRow(screen: .limits, icon: .dots(.limits), label: "More limits", value: value))
+        }
+        return rows
+    }
+}
+
+/// The Codex overview: sign-in and error notices, session and week, and the rows. Codex has no
+/// usage history, so there is no history card.
+struct CodexOverview: View {
+    @ObservedObject var codex: CodexState
+    let warning: Double
+    let critical: Double
+    let style: String
+    let showStats: Bool
+    let open: (PopoverScreen) -> Void
+
+    var body: some View {
+        if codex.needsSignIn {
+            CodexSignInPrompt()
+        }
+        if let error = codex.lastError {
+            WarningBanner(message: error)
+        }
+        if let usage = codex.usage, usage.usageData.session != nil {
+            UsageSection(
+                session: usage.usageData.session, week: usage.usageData.weekly, forecast: SessionForecast(.insufficientData),
+                warning: warning, critical: critical, style: style
+            )
+        } else if let usage = codex.usage,
+                  let headline = HeadlineLimit.withoutSession(weekly: usage.usageData.weekly, others: usage.additionalLimits) {
+            WeekBlock(
+                label: headline.label, window: headline.label == "WEEK" ? "weekly" : headline.label.lowercased(),
+                value: headline.bucket.utilization, resetIn: headline.bucket.timeUntilReset,
+                resetDate: headline.bucket.resetsAtDate,
+                elapsed: Pace.calculate(
+                    utilization: headline.bucket.utilization, resetsAt: headline.bucket.resetsAtDate, windowLength: headline.window
+                )?.elapsedFraction,
+                tone: UsageTone(value: headline.bucket.utilization, warning: warning, critical: critical)
+            )
+        } else if let usage = codex.usage {
+            noDataText(HeadlineLimit.emptyText(limitReached: usage.limitReached))
+        } else if !codex.isLoading, !codex.needsSignIn, codex.lastError == nil {
+            noDataText()
+        }
+        OverviewRows(rows: rows, onOpen: open)
+    }
+
+    private var rows: [OverviewRow] {
+        var rows: [OverviewRow] = []
+        if showStats, let stats = codex.stats, stats.fileCount > 0 {
+            rows.append(OverviewRow(
+                screen: .statistics, icon: .dots(.statistics), label: "Statistics",
+                value: OverviewSummary.statisticsValue(tokens: stats.realTokens, messages: stats.messageCount)
+            ))
+        }
+        if let usage = codex.usage {
+            let more = AllLimits.codex(usage, warning: warning, critical: critical)
+            if let value = OverviewSummary.moreLimitsValue(count: more.limits.count + more.extras.count) {
+                rows.append(OverviewRow(screen: .limits, icon: .dots(.limits), label: "More limits", value: value))
+            }
+        }
+        return rows
+    }
+}
+
+/// The Claude session expired notice with its reconnect action.
+struct ReconnectPrompt: View {
+    let onReconnect: () -> Void
+
+    var body: some View {
+        WarningBanner(message: "Claude session expired", icon: .refreshAlert, actionTitle: "Reconnect", action: onReconnect)
+    }
+}
+
+/// Spark never refreshes the Codex token itself (that would sign the CLI out), so an expired
+/// sign-in can only be fixed in the CLI. The action copies the command.
+struct CodexSignInPrompt: View {
+    var body: some View {
+        WarningBanner(message: "Codex sign-in expired. Run codex login.", icon: .refreshAlert, actionTitle: "Copy command") {
+            NSPasteboard.general.clearContents()
+            NSPasteboard.general.setString("codex login", forType: .string)
+        }
+        .accessibilityHint("Copies codex login")
+    }
+}

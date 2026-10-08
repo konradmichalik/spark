@@ -7,46 +7,22 @@ import SwiftUI
 /// `TablerIconTests.testEveryIconResolvesToABundledAsset` rather than rendering an empty frame.
 enum TablerIcon: String, CaseIterable {
     case activity
-    case adjustmentsHorizontal = "adjustments-horizontal"
     case alertTriangle = "alert-triangle"
-    case arrowDown = "arrow-down"
-    case arrowRight = "arrow-right"
-    case arrowUp = "arrow-up"
-    case bellBolt = "bell-bolt"
-    case bellRinging = "bell-ringing"
+    case brandOpenai = "brand-openai"
     case calendarMonth = "calendar-month"
-    case chartBar = "chart-bar"
-    case chartLine = "chart-line"
     case chevronLeft = "chevron-left"
     case chevronRight = "chevron-right"
     case circleArrowUp = "circle-arrow-up"
     case circleCheck = "circle-check"
-    case circlePlus = "circle-plus"
-    case circleX = "circle-x"
-    case clock
-    case download
     case externalLink = "external-link"
-    case eye
-    case eyeOff = "eye-off"
     case helpCircle = "help-circle"
-    case heart
     case history
     case key
-    case layoutGrid = "layout-grid"
     case link
-    case linkPlus = "link-plus"
-    case moon
-    case numbers
-    case palette
     case power
     case refresh
     case refreshAlert = "refresh-alert"
-    case reportAnalytics = "report-analytics"
-    case rosetteDiscountCheck = "rosette-discount-check"
-    case send
-    case server
     case settings
-    case terminal2 = "terminal-2"
     case world
 
     var assetName: String { rawValue }
@@ -61,7 +37,7 @@ enum TablerIcon: String, CaseIterable {
 struct TablerIconView: View {
     let icon: TablerIcon
     var size: CGFloat = 13
-    var color: Color = .secondary
+    var color: Color = Theme.inkSecondary
     /// `true` (the default) hides the icon from the accessibility tree, which is right when it
     /// sits beside text that already carries the label — VoiceOver would otherwise announce the
     /// icon and its neighbor as two elements. Pass `false` when the icon *is* the control (an
@@ -69,7 +45,7 @@ struct TablerIconView: View {
     /// accessibility element; pair that with an explicit `.accessibilityLabel` on the control.
     var isDecorative: Bool = true
 
-    init(_ icon: TablerIcon, size: CGFloat = 13, color: Color = .secondary, isDecorative: Bool = true) {
+    init(_ icon: TablerIcon, size: CGFloat = 13, color: Color = Theme.inkSecondary, isDecorative: Bool = true) {
         self.icon = icon
         self.size = size
         self.color = color
@@ -95,9 +71,9 @@ struct TablerLabel: View {
     let title: String
     let icon: TablerIcon
     var size: CGFloat = 13
-    var tint: Color = .secondary
+    var tint: Color = Theme.inkSecondary
 
-    init(_ title: String, icon: TablerIcon, size: CGFloat = 13, tint: Color = .secondary) {
+    init(_ title: String, icon: TablerIcon, size: CGFloat = 13, tint: Color = Theme.inkSecondary) {
         self.title = title
         self.icon = icon
         self.size = size

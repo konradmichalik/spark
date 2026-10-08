@@ -56,4 +56,17 @@ final class TooltipLayoutTests: XCTestCase {
 
         XCTAssertEqual(origin.x, TooltipLayout.inset, accuracy: 0.001)
     }
+
+    func testShortTextKeepsItsOwnWidth() {
+        XCTAssertEqual(TooltipLayout.textWidth(ideal: 64.2), 65, accuracy: 0.001)
+    }
+
+    func testLongTextWrapsAtTheMaximumWidth() {
+        XCTAssertEqual(TooltipLayout.textWidth(ideal: 480), TooltipLayout.maxWidth, accuracy: 0.001)
+    }
+
+    func testUnmeasuredTextHasNoWidth() {
+        XCTAssertEqual(TooltipLayout.textWidth(ideal: -3), 0, accuracy: 0.001)
+        XCTAssertEqual(TooltipLayout.textWidth(ideal: .infinity), TooltipLayout.maxWidth, accuracy: 0.001)
+    }
 }

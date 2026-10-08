@@ -71,6 +71,8 @@ struct LiveStats: Sendable {
     let modelTokenTotals: [String: ModelTokenTotals]
     let projectModelTotals: [String: [String: ModelTokenTotals]]
     let sessionTotals: [String: SessionTotals]
+    /// Fresh tokens per day key, for the report's activity calendar.
+    let dayTokens: [String: Int]
 
     init(
         period: StatsPeriod,
@@ -85,7 +87,8 @@ struct LiveStats: Sendable {
         projectDisplayNames: [String: String] = [:],
         modelTokenTotals: [String: ModelTokenTotals] = [:],
         projectModelTotals: [String: [String: ModelTokenTotals]] = [:],
-        sessionTotals: [String: SessionTotals] = [:]
+        sessionTotals: [String: SessionTotals] = [:],
+        dayTokens: [String: Int] = [:]
     ) {
         self.period = period
         self.messageCount = messageCount
@@ -100,7 +103,11 @@ struct LiveStats: Sendable {
         self.modelTokenTotals = modelTokenTotals
         self.projectModelTotals = projectModelTotals
         self.sessionTotals = sessionTotals
+        self.dayTokens = dayTokens
     }
+
+    /// Days of the period on which tokens were used; the divisor of "per active day" averages.
+    var activeDayCount: Int { dayTokens.count }
 
     var totalTokens: Int { inputTokens + outputTokens + cacheCreationTokens + cacheReadTokens }
 
@@ -108,10 +115,6 @@ struct LiveStats: Sendable {
     /// headline number; the full `totalTokens` (including cache reads) is only surfaced via
     /// `tokenBreakdown`, e.g. in a hover tooltip.
     var realTokens: Int { inputTokens + outputTokens + cacheCreationTokens }
-
-    var formattedTokens: String {
-        formatTokenCount(realTokens)
-    }
 
     var tokenBreakdown: String {
         "Input \(formatTokenCount(inputTokens)) · Output \(formatTokenCount(outputTokens)) · " +
@@ -250,7 +253,8 @@ enum LiveStatsParser {
             projectDisplayNames: transcripts.projectDisplayNames,
             modelTokenTotals: transcripts.modelTotals,
             projectModelTotals: transcripts.projectModelTotals,
-            sessionTotals: transcripts.sessionTotals
+            sessionTotals: transcripts.sessionTotals,
+            dayTokens: transcripts.dayTokens
         )
     }
 

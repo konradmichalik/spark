@@ -1,4 +1,4 @@
-.PHONY: xcode build clean lint setup
+.PHONY: xcode build clean lint setup brand
 
 xcode:
 	xcodegen generate
@@ -18,6 +18,10 @@ clean:
 	rm -rf build/
 	rm -rf DerivedData/
 	rm -rf Spark.xcodeproj
+
+# Regenerate app icon, README logo and website icons from the dot mark
+brand:
+	swift scripts/render-brand-assets.swift $(CURDIR)
 
 setup:
 	git config core.hooksPath .githooks

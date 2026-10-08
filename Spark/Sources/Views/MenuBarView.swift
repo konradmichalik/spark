@@ -1,1032 +1,138 @@
-// swiftlint:disable file_length
 import AppKit
 import SwiftUI
 
+/// The popover. Level 1 is the overview of the selected provider; a detail screen replaces the
+/// content below the header, which stays put (docs/design/rules.md, "Navigation").
 struct MenuBarView: View {
     @EnvironmentObject var state: AppState
+    @EnvironmentObject var codex: CodexState
     @Environment(\.openWindow) private var openWindow
+    @AppStorage(UsageProvider.selectionKey) private var selectedProviderRaw = UsageProvider.claude.rawValue
+    @AppStorage("showProviderTabValues") private var showProviderTabValues = true
+    @State private var screen: PopoverScreen = .overview
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    private static let fiveHours: TimeInterval = 5 * 3600
-    private static let sevenDays: TimeInterval = 7 * 24 * 3600
+    /// Falls back to Claude whenever Codex is switched off or its sign-in disappears, so a
+    /// remembered Codex selection never leaves the popover on an empty tab.
+    private var provider: UsageProvider {
+        guard codex.isActive else { return .claude }
+        return UsageProvider(rawValue: selectedProviderRaw) ?? .claude
+    }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            headerRow
-
-            // Status - only show when there's a problem
-            if !state.status.isHealthy {
-                StatusRow(state: state)
-            }
-
-            usageSection
-            extraUsageRow
-            reconnectPrompt
-            errorRow
-
-            // Active Sessions
-            if state.showActiveSessions {
-                ActiveSessionsView(sessions: state.activeSessions)
-            }
-
-            // Stats
-            if state.showStats {
-                StatsRow(
-                    liveStats: state.liveStats,
-                    period: state.statsPeriod,
-                    isLoading: state.isLoadingStats,
-                    isBuildingCache: state.isBuildingTranscriptCache,
-                    showProjectBreakdown: state.showProjectBreakdown,
-                    cost: state.showApiCost ? state.liveCost : nil,
-                    onSelectPeriod: state.setStatsPeriod
+        VStack(alignment: .leading, spacing: 16) {
+            PopoverHeader(
+                provider: provider,
+                screen: $screen,
+                showTabs: codex.isActive,
+                tabs: tabs,
+                isLoading: isLoading,
+                onSelect: select,
+                onReport: openReport
+            )
+            content
+                .id(screen)
+                // Level 2 pushes in from the right and the overview comes back from the left
+                // (docs/design/rules.md, "Motion"). Each screen carries its own edge, so the
+                // same transition reads correctly in both directions.
+                .transition(
+                    reduceMotion
+                        ? .identity
+                        : .move(edge: screen == .overview ? .leading : .trailing).combined(with: .opacity)
                 )
-            }
-
-            // Mini Graph
-            if state.showGraph, !state.history.isEmpty {
-                UsageGraphView(history: state.history, rollups: state.rollups)
-            }
-
-            footerRow
         }
-        .padding(12)
-        .frame(width: 300)
+        .clipped()
+        .animation(reduceMotion ? nil : .easeOut(duration: 0.22), value: screen)
+        .padding(14)
+        .frame(width: 320)
         .fixedSize(horizontal: false, vertical: true)
-        .background {
-            if state.reduceTransparency {
-                Color(nsColor: .windowBackgroundColor)
-            }
-        }
+        .background(Theme.paper)
         .background(WindowResizer())
         .onAppear { state.startActiveSessionTicker() }
-        .onDisappear { state.stopActiveSessionTicker() }
-    }
-
-    private var headerRow: some View {
-        HStack(spacing: 6) {
-            SparkLogoView(size: 20, isLoading: state.isLoading)
-            Text("Spark")
-                .font(.custom("InstrumentSerif-Regular", size: 15))
-
-            Text(state.accountTier.displayName)
-                .font(.caption2)
-                .fontWeight(.medium)
-                .padding(.horizontal, 6)
-                .padding(.vertical, 2)
-                .background(claudeOrange.opacity(0.15))
-                .foregroundColor(claudeOrange)
-                .clipShape(Capsule())
-
-            Spacer()
-            Button {
-                openWindow(id: WeeklyReportView.windowID)
-                NSApp.activate(ignoringOtherApps: true)
-            } label: {
-                TablerIconView(.calendarMonth, size: 13, color: .secondary)
-            }
-            .buttonStyle(.borderless)
-            .tooltip("Usage Report")
-            .accessibilityLabel("Usage Report")
-
-            SettingsLink {
-                TablerIconView(.settings, size: 13, color: .secondary, isDecorative: false)
-            }
-            .buttonStyle(.borderless)
-            .tooltip("Settings")
-            .accessibilityLabel("Settings")
+        .onDisappear {
+            state.stopActiveSessionTicker()
+            // Reopening the popover always starts on the overview.
+            screen = .overview
         }
-    }
-
-    // Extra usage (pay-as-you-go) — subtle line, only when credits spent
-    @ViewBuilder
-    private var extraUsageRow: some View {
-        if let extra = state.usageData.extraUsage, extra.hasSpend,
-           let spend = extra.formattedSpendWithLimit {
-            HStack(spacing: 6) {
-                TablerIconView(.circlePlus, size: 11)
-                Text("Extra usage")
-                    .font(.caption2)
-                    .foregroundColor(.secondary)
-                Spacer()
-                Text(spend)
-                    .font(.system(.caption2, design: .monospaced))
-                    .foregroundColor(.secondary)
-            }
-            .accessibilityElement(children: .combine)
-            .accessibilityLabel("Extra usage \(extra.spendAccessibilityValue ?? spend)")
-        }
-    }
-
-    // Reconnect prompt (token expired, ACL wiped by Claude Code)
-    @ViewBuilder
-    private var reconnectPrompt: some View {
-        if state.needsReconnect {
-            HStack(spacing: 6) {
-                TablerIconView(.refreshAlert, size: 12, color: .orange)
-                Text("Session expired")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                Spacer()
-                Button("Reconnect") {
-                    state.reconnect()
-                }
-                .font(.caption)
-                .buttonStyle(.borderless)
-                .foregroundColor(Theme.sparkOrange)
-            }
-        }
-    }
-
-    @ViewBuilder
-    private var errorRow: some View {
-        if let error = state.lastError {
-            WarningBanner(message: error)
-        }
-    }
-
-    private var footerRow: some View {
-        HStack {
-            RefreshButton(isLoading: state.isLoading) {
-                Task { await state.fetchUsage() }
-            }
-
-            Text("Updated: \(timeAgo(state.usageData.lastUpdated))")
-                .font(.caption2)
-                .foregroundColor(.secondary)
-            Spacer()
-
-            Button {
-                NSApplication.shared.terminate(nil)
-            } label: {
-                TablerIconView(.power, size: 12, color: .secondary, isDecorative: false)
-            }
-            .buttonStyle(.borderless)
-            .tooltip("Quit")
-            .accessibilityLabel("Quit")
-        }
-    }
-
-    /// Local token attribution for a model family, or `nil` when there's nothing to show —
-    /// omitted rather than rendered as "0" to avoid noise on every row that hasn't seen that
-    /// model in the currently selected Stats period.
-    private func formattedLocalTokens(_ liveStats: LiveStats?, family: ModelFamily) -> String? {
-        guard let tokens = liveStats?.tokens(for: family), tokens > 0 else { return nil }
-        return formatTokenCount(tokens)
-    }
-
-    /// Formats a date as a concise relative time description.
-    /// - Parameter date: The date to describe.
-    /// - Returns: A relative time string in seconds, minutes, or hours.
-    private func timeAgo(_ date: Date) -> String {
-        let interval = Date().timeIntervalSince(date)
-        if interval < 5 { return "just now" }
-        if interval < 60 { return "\(Int(interval))s ago" }
-        if interval < 3600 { return "\(Int(interval / 60))m ago" }
-        return "\(Int(interval / 3600))h ago"
-    }
-}
-
-// MARK: - Usage Section
-
-/// Split from `MenuBarView`'s own body into an extension purely to keep the struct's declared
-/// body under SwiftLint's `type_body_length` limit — these still read and drive `state` exactly
-/// as if they lived inline.
-extension MenuBarView {
-    /// The Usage section: bars or rings, whichever `state.usageDisplayStyle` selects, sharing one
-    /// header and card — a card is a container and does not care which display style fills it.
-    fileprivate var usageSection: some View {
-        let density = SectionDensity.compact
-        return VStack(alignment: .leading, spacing: density.headerGap) {
-            SectionHeader("Usage", icon: .activity, density: density)
-            SectionCard(density: density) {
-                if state.usageDisplayStyle == "bars" {
-                    usageBars
-                } else {
-                    usageRings
-                }
-            }
-        }
-    }
-
-    @ViewBuilder
-    fileprivate var usageBars: some View {
-        sessionUsageRow
-        weeklyUsageRow
-        sonnetUsageRow
-        opusUsageRow
-        fableUsageRow
-        noUsageDataText
-    }
-
-    @ViewBuilder
-    fileprivate var sessionUsageRow: some View {
-        if let session = state.usageData.session {
-            let sessionProjection = state.showProjection
-                ? SessionProjection.calculate(
-                    history: state.history,
-                    currentUtilization: session.utilization,
-                    resetsAt: session.resetsAtDate
-                )
-                : .insufficientData
-
-            UsageRow(
-                label: "Session (5h)",
-                utilization: session.utilization,
-                resetTime: session.timeUntilReset,
-                resetDate: session.resetsAtDate,
-                warningThreshold: state.warningThreshold,
-                criticalThreshold: state.criticalThreshold,
-                projection: sessionProjection,
-                pace: Pace.calculate(
-                    utilization: session.utilization,
-                    resetsAt: session.resetsAtDate,
-                    windowLength: Self.fiveHours
-                ),
-                burnRate: state.showProjection ? state.burnRate : nil
-            )
-        }
-    }
-
-    @ViewBuilder
-    fileprivate var weeklyUsageRow: some View {
-        if let weekly = state.usageData.weekly {
-            UsageRow(
-                label: "Weekly (7 days)",
-                utilization: weekly.utilization,
-                resetTime: weekly.timeUntilReset,
-                resetDate: weekly.resetsAtDate,
-                warningThreshold: state.warningThreshold,
-                criticalThreshold: state.criticalThreshold,
-                pace: Pace.calculate(
-                    utilization: weekly.utilization,
-                    resetsAt: weekly.resetsAtDate,
-                    windowLength: Self.sevenDays
-                )
-            )
-        }
-    }
-
-    @ViewBuilder
-    fileprivate var sonnetUsageRow: some View {
-        // `weeklySonnet` is nil when the account's plan doesn't report a
-        // Sonnet-specific weekly quota — falling back to a zeroed bucket there would
-        // draw an empty 0% bar that reads as "no usage" when it actually means "no
-        // such quota to measure against." Local token attribution, unlike the quota,
-        // always exists independently, so it's shown as a plain line instead.
-        if state.showSonnetUsage {
-            if let sonnet = state.usageData.weeklySonnet {
-                UsageRow(
-                    label: "Sonnet (Weekly)",
-                    utilization: sonnet.utilization,
-                    resetTime: sonnet.timeUntilReset,
-                    resetDate: sonnet.resetsAtDate,
-                    warningThreshold: state.warningThreshold,
-                    criticalThreshold: state.criticalThreshold,
-                    localTokens: formattedLocalTokens(state.liveStats, family: .sonnet),
-                    pace: Pace.calculate(
-                        utilization: sonnet.utilization,
-                        resetsAt: sonnet.resetsAtDate,
-                        windowLength: Self.sevenDays
-                    )
-                )
-            } else if let localTokens = formattedLocalTokens(state.liveStats, family: .sonnet) {
-                LocalOnlyUsageRow(label: "Sonnet", localTokens: localTokens)
-            }
-        }
-    }
-
-    @ViewBuilder
-    fileprivate var opusUsageRow: some View {
-        if state.showOpusUsage {
-            if let opus = state.usageData.weeklyOpus {
-                UsageRow(
-                    label: "Opus (Weekly)",
-                    utilization: opus.utilization,
-                    resetTime: opus.timeUntilReset,
-                    resetDate: opus.resetsAtDate,
-                    warningThreshold: state.warningThreshold,
-                    criticalThreshold: state.criticalThreshold,
-                    localTokens: formattedLocalTokens(state.liveStats, family: .opus),
-                    pace: Pace.calculate(
-                        utilization: opus.utilization,
-                        resetsAt: opus.resetsAtDate,
-                        windowLength: Self.sevenDays
-                    )
-                )
-            } else if let localTokens = formattedLocalTokens(state.liveStats, family: .opus) {
-                LocalOnlyUsageRow(label: "Opus", localTokens: localTokens)
-            }
-        }
-    }
-
-    @ViewBuilder
-    fileprivate var fableUsageRow: some View {
-        if state.showFableUsage {
-            if let fable = state.usageData.weeklyFable {
-                UsageRow(
-                    label: "Fable (Weekly)",
-                    utilization: fable.utilization,
-                    resetTime: fable.timeUntilReset,
-                    resetDate: fable.resetsAtDate,
-                    warningThreshold: state.warningThreshold,
-                    criticalThreshold: state.criticalThreshold,
-                    localTokens: formattedLocalTokens(state.liveStats, family: .fable),
-                    pace: Pace.calculate(
-                        utilization: fable.utilization,
-                        resetsAt: fable.resetsAtDate,
-                        windowLength: Self.sevenDays
-                    )
-                )
-            } else if let localTokens = formattedLocalTokens(state.liveStats, family: .fable) {
-                LocalOnlyUsageRow(label: "Fable", localTokens: localTokens)
-            }
-        }
-    }
-
-    @ViewBuilder
-    fileprivate var noUsageDataText: some View {
-        if state.usageData.session == nil && state.lastError == nil && !state.isLoading {
-            Text("No data available")
-                .foregroundColor(.secondary)
-                .font(.caption)
-        }
-    }
-
-    fileprivate var usageRings: some View {
-        let sessionProjection = state.showProjection
-            ? SessionProjection.calculate(
-                history: state.history,
-                currentUtilization: state.usageData.session?.utilization ?? 0,
-                resetsAt: state.usageData.session?.resetsAtDate
-            )
-            : .insufficientData
-
-        return UsageRingsView(
-            session: state.usageData.session,
-            weekly: state.usageData.weekly,
-            sonnet: state.usageData.weeklySonnet,
-            opus: state.usageData.weeklyOpus,
-            fable: state.usageData.weeklyFable,
-            showSonnet: state.showSonnetUsage,
-            showOpus: state.showOpusUsage,
-            showFable: state.showFableUsage,
-            showProjection: state.showProjection,
-            warningThreshold: state.warningThreshold,
-            criticalThreshold: state.criticalThreshold,
-            sessionProjection: sessionProjection,
-            displayStyle: state.usageDisplayStyle
-        )
-    }
-}
-
-// MARK: - Stats Row
-
-struct StatsRow: View {
-    let liveStats: LiveStats?
-    let period: StatsPeriod
-    let isLoading: Bool
-    let isBuildingCache: Bool
-    let showProjectBreakdown: Bool
-    let cost: CostSummary?
-    let onSelectPeriod: (StatsPeriod) -> Void
-
-    private static let density = SectionDensity.compact
-
-    private static func costTooltip(_ cost: CostSummary) -> String {
-        let estimate = "Estimated at public pay-as-you-go API prices, not what the subscription costs."
-        guard !cost.unpricedModels.isEmpty else { return estimate }
-        return estimate + " No price for \(cost.unpricedModels.joined(separator: ", ")), not included."
-    }
-
-    var body: some View {
-        if liveStats != nil || isLoading {
-            VStack(alignment: .leading, spacing: Self.density.headerGap) {
-                header
-                SectionCard(density: Self.density) {
-                    if let live = liveStats {
-                        StatsLine(label: "Messages", value: "\(live.messageCount)")
-                        StatsLine(label: "Sessions", value: "\(live.sessionCount)")
-                        StatsLine(label: "Tokens", value: live.formattedTokens, tooltip: live.tokenBreakdown)
-                        if let cost {
-                            StatsLine(label: "API cost", value: "≈ \(formatCost(cost.total))", tooltip: Self.costTooltip(cost))
-                        }
-
-                        if showProjectBreakdown {
-                            ProjectBreakdownDisclosure(liveStats: live, costByProject: cost?.byProject)
-                        }
-                    } else if isBuildingCache {
-                        cacheBuildHint
-                    }
-                }
-            }
-            .opacity(isLoading && liveStats != nil ? 0.5 : 1)
-        }
-    }
-
-    /// The first scan after an install or update reads every transcript and can take a minute,
-    /// with Stats and Active Sessions empty meanwhile. Says so instead of leaving a blank card.
-    private var cacheBuildHint: some View {
-        HStack(spacing: 8) {
-            ProgressView()
-                .controlSize(.small)
-            Text("Reading your Claude Code history. The first run can take a minute.")
-                .font(.caption)
-                .foregroundColor(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .accessibilityElement(children: .combine)
-    }
-
-    /// Wraps `onSelectPeriod` rather than binding straight to a `period` property: `SegmentPicker`
-    /// needs a `Binding`, but the caller's `onSelectPeriod` (`AppState.setStatsPeriod`) guards
-    /// against a no-op write and triggers `refreshLiveStats()`. A raw property binding would skip
-    /// that refresh and leave the numbers stale after every period switch.
-    private var periodBinding: Binding<StatsPeriod> {
-        Binding(get: { period }, set: { onSelectPeriod($0) })
-    }
-
-    private var header: some View {
-        SectionHeader("Stats", icon: .reportAnalytics, density: Self.density) {
-            SegmentPicker(selection: periodBinding, options: StatsPeriod.allCases)
-        }
-    }
-}
-
-private struct StatsLine: View {
-    let label: String
-    let value: String
-    var tooltip: String?
-
-    var body: some View {
-        HStack {
-            Text(label)
-                .font(.system(size: 11))
-                .foregroundColor(.primary)
-            Spacer()
-            Text(value)
-                .font(.system(size: 11.5, design: .monospaced))
-                .foregroundColor(.primary)
-        }
-        .tooltip(tooltip)
-        .accessibilityHint(tooltip ?? "")
-    }
-}
-
-// MARK: - Project Breakdown Disclosure
-
-/// Top projects by token volume for the currently selected Stats period, nested inside the Stats
-/// card rather than as its own section — the ranking already tracks whichever period is
-/// selected above it, so visually it reads as one more Stats line rather than an unrelated block.
-/// Collapsed by default: unlike the always-visible Messages/Sessions/Tokens lines, a project
-/// breakdown is the kind of detail someone drills into occasionally, not on every glance.
-private struct ProjectBreakdownDisclosure: View {
-    let liveStats: LiveStats
-    let costByProject: [String: Double]?
-    @State private var isExpanded = false
-    @State private var showAll = false
-
-    /// Beyond this, the list keeps growing with the number of distinct projects in the period
-    /// (up to dozens on `All`) — loading only this many by default keeps the common case cheap
-    /// to render, with the rest a single tap away via "Show all".
-    private static let collapsedLimit = 5
-    /// Bounds the fully-expanded list's height once "Show all" is tapped, so a period with many
-    /// projects scrolls internally instead of growing the popover without limit.
-    private static let scrollCapHeight: CGFloat = 160
-    private static let animation = Animation.easeInOut(duration: 0.2)
-
-    private var ranked: [ProjectUsage] {
-        liveStats.topProjects(limit: liveStats.projectTotals.count)
-    }
-
-    private var maxTokens: Int { ranked.first?.tokens ?? 1 }
-
-    var body: some View {
-        if !ranked.isEmpty {
-            VStack(alignment: .leading, spacing: 0) {
-                header
-                if isExpanded {
-                    content
-                        .padding(.top, 4)
-                }
-            }
-            .padding(.top, 2)
-        }
-    }
-
-    /// A `Button` rather than `.onTapGesture` — a tap gesture exposes no keyboard focus or
-    /// activation on macOS, which would leave keyboard-only and VoiceOver users unable to expand
-    /// this section at all. The full row is one tap target via `contentShape`, not just the label
-    /// text, so clicking anywhere across its width works.
-    ///
-    /// No icon, no uppercase: this is a tappable row, not a section header, and needs to read as
-    /// neither the Stats heading above it nor one of its plain content lines. The resting
-    /// background is what signals "tappable" instead.
-    ///
-    /// The inner `+6`/outer `-6` horizontal padding pair cancels only for the size reported
-    /// upward to the card's `VStack` — not for the background drawn around the padded label. So
-    /// the label text still lands on the same left edge as the `StatsLine` rows above it (no
-    /// layout shift), while the highlight itself bleeds ~6pt past that edge on each side, the way
-    /// a resting selection highlight surrounds its label rather than displacing it. That bleed is
-    /// horizontal only: the card's 10pt vertical clearance is untouched, so the 8pt corner curve
-    /// is never entered.
-    private var header: some View {
-        Button {
-            withAnimation(Self.animation) {
-                isExpanded.toggle()
-            }
-        } label: {
-            HStack(spacing: 5) {
-                Text("Top Projects")
-                    .font(.system(size: 11))
-                    .foregroundColor(.primary)
-                Spacer()
-                TablerIconView(.chevronRight, size: 10)
-                    .rotationEffect(.degrees(isExpanded ? 90 : 0))
-            }
-            .padding(.horizontal, 6)
-            .padding(.vertical, 4)
-            .background(RoundedRectangle(cornerRadius: 5).fill(Color.primary.opacity(0.05)))
-            .contentShape(Rectangle())
-        }
-        .padding(.horizontal, -6)
-        .buttonStyle(.plain)
-        .accessibilityValue(isExpanded ? "Expanded" : "Collapsed")
     }
 
     @ViewBuilder
     private var content: some View {
-        if showAll {
-            ScrollView {
-                projectList(ranked)
-            }
-            .frame(maxHeight: Self.scrollCapHeight)
-        } else {
-            VStack(alignment: .leading, spacing: 4) {
-                projectList(Array(ranked.prefix(Self.collapsedLimit)))
-
-                if ranked.count > Self.collapsedLimit {
-                    Button {
-                        withAnimation(Self.animation) {
-                            showAll = true
-                        }
-                    } label: {
-                        Text("Show all \(ranked.count)")
-                            .font(.caption2)
-                            .foregroundColor(.secondary)
-                    }
-                    .buttonStyle(.plain)
-                }
+        VStack(alignment: .leading, spacing: 16) {
+            if screen == .overview, provider == .claude, !state.isAuthenticated {
+                // Without a Claude sign-in the popover still opens, so Codex stays one tab away.
+                NotConnectedScreen()
+                NotConnectedFooter(codexIsActive: codex.isActive)
+            } else if screen == .overview {
+                overview
+                PopoverFooter(lastUpdated: lastUpdated, isLoading: isLoading, onRefresh: refresh)
+            } else {
+                DetailScreen(screen: screen, provider: provider)
             }
         }
     }
 
-    private func projectList(_ projects: [ProjectUsage]) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            ForEach(projects) { project in
-                ProjectLine(project: project, maxTokens: maxTokens, cost: costByProject?[project.key])
-            }
-        }
-    }
-}
-
-private struct ProjectLine: View {
-    let project: ProjectUsage
-    let maxTokens: Int
-    let cost: Double?
-
-    private var share: CGFloat {
-        maxTokens > 0 ? CGFloat(project.tokens) / CGFloat(maxTokens) : 0
-    }
-
-    var body: some View {
-        // Only a context menu, no left-click action: unlike Active Sessions, these rows have no
-        // primary click behavior to begin with, so adding one is purely additive.
-        if let cwd = project.cwd {
-            content.contextMenu {
-                Button("Reveal in Finder") {
-                    NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: cwd)])
-                }
-                Button("Open in Terminal") {
-                    openInTerminal(cwd)
-                }
-                Button("Copy Path") {
-                    NSPasteboard.general.clearContents()
-                    NSPasteboard.general.setString(cwd, forType: .string)
-                }
-            }
-        } else {
-            content
-        }
-    }
-
-    private var content: some View {
-        VStack(alignment: .leading, spacing: 2) {
-            HStack {
-                Text(project.displayName)
-                    .font(.caption)
-                    .lineLimit(1)
-                    .truncationMode(.middle)
-                Spacer()
-                if let cost {
-                    Text(formatCost(cost))
-                        .font(.system(.caption2, design: .monospaced))
-                        .foregroundColor(.secondary)
-                }
-                Text(formatTokenCount(project.tokens))
-                    .font(.system(.caption2, design: .monospaced))
-                    .foregroundColor(.secondary)
-            }
-
-            GeometryReader { geo in
-                ZStack(alignment: .leading) {
-                    RoundedRectangle(cornerRadius: 2)
-                        .fill(Color.secondary.opacity(0.12))
-                    RoundedRectangle(cornerRadius: 2)
-                        .fill(claudeOrange)
-                        .frame(width: geo.size.width * share)
-                }
-            }
-            .frame(height: 3)
-        }
-    }
-}
-
-/// Launches Terminal.app at `path` via `/usr/bin/open`, rather than shelling out through `zsh -c`
-/// (see `CLIVersionClient.readLocalVersion`) — arguments passed as an array need no shell
-/// quoting, so a project path containing spaces can't break this. Fire-and-forget: nothing here
-/// needs the launched process's exit status.
-private func openInTerminal(_ path: String) {
-    let process = Process()
-    process.executableURL = URL(fileURLWithPath: "/usr/bin/open")
-    process.arguments = ["-a", "Terminal", path]
-    try? process.run()
-}
-
-// MARK: - Local-Only Usage Row
-
-/// Shown instead of `UsageRow` when the API doesn't report a Sonnet/Opus-specific weekly quota
-/// for this account's plan — a bare label plus the local token count, with no percentage or bar
-/// implying a quota that doesn't exist.
-struct LocalOnlyUsageRow: View {
-    let label: String
-    let localTokens: String
-
-    var body: some View {
-        HStack(spacing: 4) {
-            Text(label)
-                .font(.system(size: 11))
-                .foregroundColor(.primary)
-            Text("· \(localTokens) local")
-                .font(.caption2)
-                .foregroundColor(.secondary)
-            Spacer()
-        }
-    }
-}
-
-// MARK: - Usage Row
-
-private let claudeOrange = Theme.sparkOrange
-
-struct UsageRow: View {
-    let label: String
-    let utilization: Double
-    let resetTime: String?
-    let resetDate: Date?
-    let warningThreshold: Double
-    let criticalThreshold: Double
-    var projection: ProjectionResult = .insufficientData
-    /// Local token attribution for this bucket's model family, shown alongside the label — see
-    /// `MenuBarView.formattedLocalTokens`. `nil` renders nothing, adding no vertical height.
-    var localTokens: String?
-    /// Pace for this bucket's window — see `Pace.calculate`. `nil` omits the marker entirely.
-    var pace: Pace.Result?
-    /// Local burn rate, shown alongside the label — see `BurnRate`. `nil` renders nothing.
-    var burnRate: BurnRate?
-
-    private static func burnRateDetail(_ burnRate: BurnRate) -> String {
-        "\(formatTokenCount(burnRate.tokensPerMinute)) fresh tokens per minute across all sessions, "
-            + "averaged over the last \(Int(BurnRate.window / 60)) minutes. Cache reads are not counted."
-    }
-
-    private var paceDescription: String? {
-        guard let pace else { return nil }
-        let percent = Int((pace.ratio * 100).rounded())
-        let exhausts = pace.ratio > 1 ? "before" : "at or after"
-        return "Pace: \(pace.tier.label) — \(percent)% of the on-track rate. At this rate, quota exhausts \(exhausts) reset."
-    }
-
-    private var color: Color {
-        if utilization >= criticalThreshold { return .red }
-        if utilization >= warningThreshold { return .orange }
-        return .green
-    }
-
-    private var projectionTitle: String? {
-        switch projection {
-        case .limitReached(let seconds):
-            return "Limit in ~\(formatDuration(seconds))"
-        case .safe(let projected):
-            return "~\(Int(projected))% at reset"
-        case .insufficientData:
-            return nil
-        }
-    }
-
-    private var projectionDetail: String? {
-        switch projection {
-        case .limitReached(let seconds):
-            let rate = ratePerHour
-            return "At the current rate of ~\(Int(rate))%/h, the session limit will be reached in ~\(formatDuration(seconds))."
-        case .safe(let projected):
-            let rate = ratePerHour
-            return "At the current rate of ~\(Int(rate))%/h, usage will be ~\(Int(projected))% when the session resets."
-        case .insufficientData:
-            return nil
-        }
-    }
-
-    private var ratePerHour: Double {
-        switch projection {
-        case .limitReached(let seconds):
-            guard seconds > 0 else { return 0 }
-            return (100 - utilization) / (seconds / 3600)
-        case .safe(let projected):
-            guard resetTime != nil else { return 0 }
-            // Rough estimate: parse hours from reset string isn't clean, use projected delta
-            let delta = projected - utilization
-            return delta > 0 ? delta : 0
-        case .insufficientData:
-            return 0
-        }
-    }
-
-    private var projectionIconColor: Color {
-        switch projection {
-        case .limitReached: return .red
-        case .safe: return .secondary
-        case .insufficientData: return .clear
-        }
-    }
-
-    private func formatDuration(_ seconds: TimeInterval) -> String {
-        seconds.shortDuration
-    }
-
-    private var insightAccessibilityLabel: String {
-        var parts: [String] = []
-        if let burnRate {
-            parts.append("Burn rate \(burnRate.tier.label), \(formatTokenCount(burnRate.tokensPerMinute)) tokens per minute")
-        }
-        if projectionTitle != nil { parts.append("Usage projection") }
-        return parts.joined(separator: ", ")
-    }
-
-    private var insightTooltipTitle: String? {
-        projectionTitle ?? burnRate.map { "Burn rate: \($0.tier.label)" }
-    }
-
-    private var insightTooltipText: String? {
-        var paragraphs: [String] = []
-        if let projectionDetail { paragraphs.append(projectionDetail) }
-        if let burnRate {
-            let detail = Self.burnRateDetail(burnRate)
-            paragraphs.append(projectionTitle == nil ? detail : "Burn rate: \(burnRate.tier.label). \(detail)")
-        }
-        return paragraphs.isEmpty ? nil : paragraphs.joined(separator: "\n\n")
-    }
-
-    /// Burn rate and projection share one hover target and one tooltip.
     @ViewBuilder
-    private var insight: some View {
-        if projectionTitle != nil || burnRate != nil {
-            HStack(spacing: 4) {
-                // Neutral in the row: red there belongs to the projection, which says whether
-                // the session limit is actually at risk. The tier is named in the tooltip.
-                if let burnRate {
-                    Text("· \(formatTokenCount(burnRate.tokensPerMinute))/min")
-                        .font(.caption2)
-                        .foregroundColor(.secondary)
-                }
-                if projectionTitle != nil {
-                    TablerIconView(.chartLine, size: 10, color: projectionIconColor)
-                }
-            }
-            .contentShape(Rectangle())
-            .tooltip(insightTooltipText, title: insightTooltipTitle)
-            .accessibilityElement(children: .ignore)
-            .accessibilityLabel(insightAccessibilityLabel)
-            .accessibilityHint(insightTooltipText ?? "")
+    private var overview: some View {
+        switch provider {
+        case .claude:
+            ClaudeOverview { screen = $0 }
+        case .codex:
+            CodexOverview(
+                codex: codex, warning: state.warningThreshold, critical: state.criticalThreshold,
+                style: state.usageDisplayStyle, showStats: state.showStats
+            ) { screen = $0 }
         }
     }
 
-    var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HStack {
-                Text(label)
-                    .font(.system(size: 11))
-                    .foregroundColor(.primary)
-
-                if let localTokens {
-                    Text("· \(localTokens) local")
-                        .font(.caption2)
-                        .foregroundColor(.secondary)
-                }
-
-                insight
-
-                Spacer()
-                if let resetTime {
-                    HStack(spacing: 4) {
-                        TablerIconView(.history, size: 10, color: .secondary)
-                        Text("\(resetTime) left")
-                            .font(.system(size: 10))
-                            .foregroundStyle(.tertiary)
-                    }
-                    .contentShape(Rectangle())
-                    .tooltip(resetDate?.resetDescription, title: "Reset in \(resetTime)")
-                    .accessibilityElement(children: .combine)
-                    .accessibilityHint(resetDate?.resetDescription ?? "")
-                }
-            }
-
-            HStack(spacing: 8) {
-                ProjectedProgressBar(
-                    utilization: utilization,
-                    color: color,
-                    projection: projection,
-                    pace: pace
-                )
-                .frame(height: 6)
-                .tooltip(paceDescription)
-                .accessibilityHint(paceDescription ?? "")
-
-                Text("\(Int(utilization))%")
-                    .font(.system(size: 13, weight: .semibold, design: .monospaced))
-                    .foregroundColor(utilization >= warningThreshold ? color : .primary)
-                    .frame(width: 36, alignment: .trailing)
-            }
-        }
+    /// Switching providers returns to the overview, so a detail screen never shows one
+    /// provider's data under the other's breadcrumb.
+    private func select(_ provider: UsageProvider) {
+        selectedProviderRaw = provider.rawValue
+        screen = .overview
     }
-}
 
-// MARK: - Projected Progress Bar
+    private func openReport() {
+        openWindow(id: WeeklyReportView.windowID)
+        NSApp.activate(ignoringOtherApps: true)
+    }
 
-struct ProjectedProgressBar: View {
-    let utilization: Double
-    let color: Color
-    let projection: ProjectionResult
-    /// Pace for this bucket's window, drawn as a colored marker on the bar. Fill left of the
-    /// marker reads as under budget, fill right of it as over; the marker's color reflects
-    /// `Pace.Tier`, from comfortably under budget to badly overspending. `nil` when pace can't be
-    /// computed (see `Pace.calculate`), which simply omits the marker rather than drawing a
-    /// misleading one.
-    var pace: Pace.Result?
-
-    private var projectedWidth: Double {
-        switch projection {
-        case .limitReached:
-            return 100
-        case .safe(let projected):
-            return min(projected, 100)
-        case .insufficientData:
-            return 0
+    private func refresh() {
+        switch provider {
+        case .claude: Task { await state.fetchUsage() }
+        case .codex: Task { await codex.fetchUsage(force: true) }
         }
     }
 
-    private var projectionColor: Color {
-        switch projection {
-        case .limitReached:
-            return .red
-        case .safe:
-            return .primary
-        case .insufficientData:
-            return .clear
+    private var tabs: [ProviderTab] {
+        UsageProvider.allCases.map { provider in
+            let value = showProviderTabValues
+                ? MenuBarReading.providerValue(for: provider, claude: state.usageData, codex: codex.usage, mode: "session")
+                : nil
+            return ProviderTab(
+                provider: provider,
+                value: value,
+                tone: UsageTone(value: value ?? 0, warning: state.warningThreshold, critical: state.criticalThreshold),
+                tooltip: tabTooltip(provider)
+            )
         }
     }
 
-    var body: some View {
-        GeometryReader { geometry in
-            ZStack(alignment: .leading) {
-                // Opaque backing to prevent vibrancy bleed-through
-                RoundedRectangle(cornerRadius: 3)
-                    .fill(Color(nsColor: .windowBackgroundColor).opacity(0.6))
-
-                // Track
-                RoundedRectangle(cornerRadius: 3)
-                    .fill(.quaternary)
-
-                // Projection background
-                if projectedWidth > utilization {
-                    RoundedRectangle(cornerRadius: 3)
-                        .fill(projectionColor.opacity(0.15))
-                        .frame(width: geometry.size.width * min(projectedWidth, 100) / 100)
-                }
-
-                // Current utilization
-                RoundedRectangle(cornerRadius: 3)
-                    .fill(color)
-                    .frame(width: geometry.size.width * min(utilization, 100) / 100)
-
-                // Pace marker: where "on budget" would sit right now, colored by Pace.Tier.
-                if let pace {
-                    Rectangle()
-                        .fill(Theme.paceColor(for: pace.tier))
-                        .frame(width: 1)
-                        .offset(x: geometry.size.width * min(max(pace.elapsedFraction, 0), 1))
-                }
-            }
-        }
-    }
-}
-
-// MARK: - Status Row
-
-struct StatusRow: View {
-    @ObservedObject var state: AppState
-
-    var body: some View {
-        HStack {
-            TablerIconView(state.status.icon, size: 13, color: Theme.sparkOrange)
-            Text("Claude: \(state.status.displayName)")
-                .font(.caption)
-
-            Spacer()
-
-            if !state.claudeCodeStatus.isHealthy, let statusPage = URL(string: "https://status.claude.com") {
-                Link(destination: statusPage) {
-                    HStack(spacing: 2) {
-                        Text("Code: \(state.claudeCodeStatus.displayName)")
-                            .font(.caption2)
-                        TablerIconView(.externalLink, size: 9, color: Theme.sparkOrange)
-                    }
-                    .foregroundColor(Theme.sparkOrange)
-                }
-                .buttonStyle(.plain)
-            }
-        }
-    }
-}
-
-// MARK: - Window Resizer
-
-/// Measures the SwiftUI content size via GeometryReader and forces the
-/// hosting NSPanel to match, working around the MenuBarExtra resize bug.
-struct WindowResizer: View {
-    var body: some View {
-        GeometryReader { proxy in
-            Color.clear
-                .onChange(of: proxy.size) { _, newSize in
-                    resizeHostingWindow(to: newSize)
-                }
-                .onAppear {
-                    resizeHostingWindow(to: proxy.size)
-                }
+    private func tabTooltip(_ provider: UsageProvider) -> String? {
+        switch provider {
+        case .claude:
+            ProviderTabSummary.tooltip(plan: state.accountTier.displayName, signIn: "via \(state.authMethod.rawValue)")
+        case .codex:
+            ProviderTabSummary.tooltip(plan: ProviderTabSummary.codexPlan(codex.usage?.planDisplayName), signIn: "via Codex CLI")
         }
     }
 
-    private func resizeHostingWindow(to size: CGSize) {
-        DispatchQueue.main.async {
-            guard let panel = NSApp.windows.first(where: { $0 is NSPanel && $0.isVisible }) else { return }
-            let contentRect = panel.contentRect(forFrameRect: panel.frame)
-            let deltaHeight = size.height - contentRect.size.height
-            var frame = panel.frame
-            frame.origin.y -= deltaHeight
-            frame.size.height += deltaHeight
-            panel.setFrame(frame, display: true)
-        }
+    private var isLoading: Bool {
+        provider == .codex ? codex.isLoading : state.isLoading
     }
-}
 
-// MARK: - Refresh Button
-
-struct RefreshButton: View {
-    let isLoading: Bool
-    let action: () -> Void
-
-    @State private var rotation: Double = 0
-
-    var body: some View {
-        Button(action: action) {
-            TablerIconView(.refresh, size: 12, color: .secondary, isDecorative: false)
-                .rotationEffect(.degrees(rotation))
-        }
-        .buttonStyle(.borderless)
-        .disabled(isLoading)
-        .opacity(isLoading ? 0.5 : 1)
-        .tooltip(isLoading ? "Refreshing\u{2026}" : "Refresh")
-        .accessibilityLabel(isLoading ? "Refreshing" : "Refresh")
-        .task(id: isLoading) {
-            guard isLoading else { return }
-            while !Task.isCancelled {
-                withAnimation(.linear(duration: 0.8)) {
-                    rotation += 360
-                }
-                do {
-                    try await Task.sleep(for: .seconds(0.8))
-                } catch {
-                    return
-                }
-            }
-        }
+    private var lastUpdated: Date? {
+        guard provider == .codex else { return state.usageData.lastUpdated }
+        return codex.usage?.usageData.lastUpdated
     }
 }

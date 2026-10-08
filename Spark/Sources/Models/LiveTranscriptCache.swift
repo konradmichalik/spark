@@ -48,6 +48,7 @@ actor LiveTranscriptCache {
         for claudeDir in claudeDirs {
             let result = TranscriptCache.aggregate(claudeDir: claudeDir, cutoff: cutoff, upperCutoff: upperCutoff, store: &current)
             combined.sessionIds.formUnion(result.sessionIds)
+            combined.dayTokens.merge(result.dayTokens, uniquingKeysWith: +)
             combined.input += result.input
             combined.output += result.output
             combined.cacheCreation += result.cacheCreation

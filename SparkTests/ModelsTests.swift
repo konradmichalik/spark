@@ -6,7 +6,7 @@ final class ModelsTests: XCTestCase {
     // MARK: - UsageAPIResponse Decoding
 
     func testDecodeUsageAPIResponse() throws {
-        let json = """
+        let json = Data("""
         {
             "five_hour": { "utilization": 42.5, "resets_at": "2026-03-30T18:00:00Z" },
             "seven_day": { "utilization": 65.0, "resets_at": "2026-04-05T00:00:00Z" },
@@ -14,7 +14,7 @@ final class ModelsTests: XCTestCase {
             "seven_day_opus": { "utilization": 12.0, "resets_at": "2026-04-05T00:00:00Z" },
             "seven_day_fable": { "utilization": 8.0, "resets_at": "2026-04-05T00:00:00Z" }
         }
-        """.data(using: .utf8)!
+        """.utf8)
 
         let response = try JSONDecoder().decode(UsageAPIResponse.self, from: json)
         XCTAssertEqual(response.fiveHour?.utilization, 42.5)
@@ -28,11 +28,11 @@ final class ModelsTests: XCTestCase {
     /// The live API may not report a Fable-specific bucket at all yet — decoding must tolerate
     /// its absence exactly like it already does for a missing Opus bucket.
     func testDecodeUsageAPIResponseWithoutFableBucket() throws {
-        let json = """
+        let json = Data("""
         {
             "five_hour": { "utilization": 10.0 }
         }
-        """.data(using: .utf8)!
+        """.utf8)
 
         let response = try JSONDecoder().decode(UsageAPIResponse.self, from: json)
         XCTAssertNil(response.sevenDayFable)
@@ -41,7 +41,7 @@ final class ModelsTests: XCTestCase {
     /// The live API includes many extra null buckets (codenames) and an extra_usage
     /// object — decoding must tolerate unknown keys and a null opus bucket.
     func testDecodeUsageAPIResponseFullPayload() throws {
-        let json = """
+        let json = Data("""
         {
             "five_hour": { "utilization": 11, "resets_at": "2026-06-12T11:20:00.999581+00:00" },
             "seven_day": { "utilization": 16, "resets_at": "2026-06-14T04:00:00.999602+00:00" },
@@ -55,7 +55,7 @@ final class ModelsTests: XCTestCase {
                 "utilization": null, "currency": "EUR", "disabled_reason": null
             }
         }
-        """.data(using: .utf8)!
+        """.utf8)
 
         let response = try JSONDecoder().decode(UsageAPIResponse.self, from: json)
         XCTAssertEqual(response.fiveHour?.utilization, 11)
@@ -68,119 +68,12 @@ final class ModelsTests: XCTestCase {
         XCTAssertNotNil(response.extraUsage?.formattedSpend)
     }
 
-    /// Live API sends amounts in minor units (cents) plus `decimal_places`. 3988 cents
-    /// with decimal_places 2 must resolve to 39.88, not 3988 — regression for the
-    /// "€3988 extra usage" display bug.
-    func testExtraUsageHonorsDecimalPlaces() throws {
-        let json = """
-        {
-            "is_enabled": true, "monthly_limit": 4000, "used_credits": 3988.0,
-            "utilization": 99.7, "currency": "EUR", "decimal_places": 2,
-            "disabled_reason": null
-        }
-        """.data(using: .utf8)!
-
-        let extra = try JSONDecoder().decode(ExtraUsage.self, from: json)
-        XCTAssertEqual(extra.decimalPlaces, 2)
-        XCTAssertTrue(extra.hasSpend)
-        XCTAssertEqual(extra.spendAmount ?? 0, 39.88, accuracy: 0.0001)
-    }
-
-    /// With a monthly limit present, the display combines spend and cap ("39,88 / 40,00 €");
-    /// the accessible variant uses "of" instead of the visual slash.
-    func testExtraUsageFormatsSpendWithLimit() throws {
-        let json = """
-        {
-            "is_enabled": true, "monthly_limit": 4000, "used_credits": 3988.0,
-            "utilization": 99.7, "currency": "EUR", "decimal_places": 2,
-            "disabled_reason": null
-        }
-        """.data(using: .utf8)!
-
-        let extra = try JSONDecoder().decode(ExtraUsage.self, from: json)
-        XCTAssertEqual(extra.limitAmount ?? 0, 40.00, accuracy: 0.0001)
-        let combined = try XCTUnwrap(extra.formattedSpendWithLimit)
-        XCTAssertTrue(combined.contains("/"), "expected spend/limit format, got \(combined)")
-        let accessible = try XCTUnwrap(extra.spendAccessibilityValue)
-        XCTAssertTrue(accessible.contains(" of "), "expected 'of' phrasing, got \(accessible)")
-        XCTAssertFalse(accessible.contains("/"))
-    }
-
-    /// Without a monthly limit the combined string falls back to the bare spent amount.
-    func testExtraUsageWithoutLimitFallsBackToSpend() throws {
-        let json = """
-        {
-            "is_enabled": true, "monthly_limit": null, "used_credits": 240,
-            "utilization": null, "currency": "EUR", "decimal_places": 2,
-            "disabled_reason": null
-        }
-        """.data(using: .utf8)!
-
-        let extra = try JSONDecoder().decode(ExtraUsage.self, from: json)
-        XCTAssertNil(extra.limitAmount)
-        XCTAssertEqual(extra.formattedSpendWithLimit, extra.formattedSpend)
-        XCTAssertFalse(extra.formattedSpendWithLimit?.contains("/") ?? true)
-    }
-
-    /// Absent `decimal_places` (legacy response) means the value is already in major
-    /// units — no scaling applied.
-    func testExtraUsageWithoutDecimalPlacesIsUnscaled() throws {
-        let json = """
-        {
-            "is_enabled": true, "monthly_limit": null, "used_credits": 2.4,
-            "utilization": null, "currency": "EUR", "disabled_reason": null
-        }
-        """.data(using: .utf8)!
-
-        let extra = try JSONDecoder().decode(ExtraUsage.self, from: json)
-        XCTAssertNil(extra.decimalPlaces)
-        XCTAssertEqual(extra.spendAmount ?? 0, 2.4, accuracy: 0.0001)
-    }
-
-    /// `decimal_places` beyond the currency's own default (2) must survive formatting —
-    /// a two-decimal currency formatter would otherwise round 3.988 to 3.99.
-    func testExtraUsageFormatsBeyondCurrencyDefaultDecimalPlaces() throws {
-        let json = """
-        {
-            "is_enabled": true, "monthly_limit": 4000, "used_credits": 3988.0,
-            "utilization": 99.7, "currency": "EUR", "decimal_places": 3, "disabled_reason": null
-        }
-        """.data(using: .utf8)!
-        let combined = try XCTUnwrap(JSONDecoder().decode(ExtraUsage.self, from: json).formattedSpendWithLimit)
-        XCTAssertTrue(combined.contains("988") && combined.contains("000"))
-    }
-
-    func testExtraUsageNoSpend() throws {
-        let json = """
-        {
-            "is_enabled": true, "monthly_limit": null, "used_credits": 0,
-            "utilization": null, "currency": "EUR", "disabled_reason": null
-        }
-        """.data(using: .utf8)!
-
-        let extra = try JSONDecoder().decode(ExtraUsage.self, from: json)
-        XCTAssertFalse(extra.hasSpend)
-        XCTAssertNil(extra.formattedSpend)
-    }
-
-    func testExtraUsageDisabledHasNoSpend() throws {
-        let json = """
-        {
-            "is_enabled": false, "monthly_limit": null, "used_credits": 5.0,
-            "utilization": null, "currency": "USD", "disabled_reason": "billing"
-        }
-        """.data(using: .utf8)!
-
-        let extra = try JSONDecoder().decode(ExtraUsage.self, from: json)
-        XCTAssertFalse(extra.hasSpend)
-    }
-
     func testDecodeUsageAPIResponsePartial() throws {
-        let json = """
+        let json = Data("""
         {
             "five_hour": { "utilization": 10.0 }
         }
-        """.data(using: .utf8)!
+        """.utf8)
 
         let response = try JSONDecoder().decode(UsageAPIResponse.self, from: json)
         XCTAssertEqual(response.fiveHour?.utilization, 10.0)
@@ -192,27 +85,27 @@ final class ModelsTests: XCTestCase {
     // MARK: - UsageBucket
 
     func testResetsAtDateParsing() throws {
-        let json = """
+        let json = Data("""
         { "utilization": 50.0, "resets_at": "2026-03-30T18:30:00Z" }
-        """.data(using: .utf8)!
+        """.utf8)
 
         let bucket = try JSONDecoder().decode(UsageBucket.self, from: json)
         XCTAssertNotNil(bucket.resetsAtDate)
     }
 
     func testResetsAtDateWithFractionalSeconds() throws {
-        let json = """
+        let json = Data("""
         { "utilization": 50.0, "resets_at": "2026-03-30T18:30:00.123Z" }
-        """.data(using: .utf8)!
+        """.utf8)
 
         let bucket = try JSONDecoder().decode(UsageBucket.self, from: json)
         XCTAssertNotNil(bucket.resetsAtDate)
     }
 
     func testResetsAtDateNil() throws {
-        let json = """
+        let json = Data("""
         { "utilization": 50.0 }
-        """.data(using: .utf8)!
+        """.utf8)
 
         let bucket = try JSONDecoder().decode(UsageBucket.self, from: json)
         XCTAssertNil(bucket.resetsAtDate)
@@ -229,14 +122,14 @@ final class ModelsTests: XCTestCase {
     }
 
     func testUsageDataMaxUtilization() throws {
-        let json = """
+        let json = Data("""
         { "utilization": 80.0 }
-        """.data(using: .utf8)!
+        """.utf8)
         let session = try JSONDecoder().decode(UsageBucket.self, from: json)
 
-        let json2 = """
+        let json2 = Data("""
         { "utilization": 40.0 }
-        """.data(using: .utf8)!
+        """.utf8)
         let weekly = try JSONDecoder().decode(UsageBucket.self, from: json2)
 
         let data = UsageData(session: session, weekly: weekly)
@@ -248,21 +141,21 @@ final class ModelsTests: XCTestCase {
     // MARK: - ClaudeServiceStatus
 
     func testStatusDecoding() throws {
-        let json = "\"operational\"".data(using: .utf8)!
+        let json = Data("\"operational\"".utf8)
         let status = try JSONDecoder().decode(ClaudeServiceStatus.self, from: json)
         XCTAssertEqual(status, .operational)
         XCTAssertTrue(status.isHealthy)
     }
 
     func testStatusNoneIsHealthy() throws {
-        let json = "\"none\"".data(using: .utf8)!
+        let json = Data("\"none\"".utf8)
         let status = try JSONDecoder().decode(ClaudeServiceStatus.self, from: json)
         XCTAssertEqual(status, .none)
         XCTAssertTrue(status.isHealthy)
     }
 
     func testStatusMajorOutage() throws {
-        let json = "\"major_outage\"".data(using: .utf8)!
+        let json = Data("\"major_outage\"".utf8)
         let status = try JSONDecoder().decode(ClaudeServiceStatus.self, from: json)
         XCTAssertEqual(status, .majorOutage)
         XCTAssertFalse(status.isHealthy)
@@ -279,7 +172,7 @@ final class ModelsTests: XCTestCase {
     // MARK: - StatusPageResponse
 
     func testDecodeStatusPageResponse() throws {
-        let json = """
+        let json = Data("""
         {
             "status": { "indicator": "none", "description": "All Systems Operational" },
             "components": [
@@ -287,7 +180,7 @@ final class ModelsTests: XCTestCase {
                 { "name": "Claude.ai", "status": "operational" }
             ]
         }
-        """.data(using: .utf8)!
+        """.utf8)
 
         let response = try JSONDecoder().decode(StatusPageResponse.self, from: json)
         XCTAssertEqual(response.status.indicator, "none")

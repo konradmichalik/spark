@@ -70,25 +70,16 @@ struct ExtraUsage: Codable, Sendable {
         return Self.currencyFormatter(currency, decimalPlaces: decimalPlaces).string(from: NSNumber(value: amount))
     }
 
-    /// Spent amount with its cap, e.g. "39,88 / 40,00 €" (currency symbol on the limit
-    /// only). Falls back to the bare spent amount when no limit is known. Nil when nothing spent.
-    var formattedSpendWithLimit: String? {
-        guard let parts = formattedParts else { return nil }
-        guard let limit = parts.limit else { return formattedSpend }
-        return "\(parts.spend) / \(limit)"
-    }
-
-    /// Screen-reader phrasing of the spend, e.g. "39,88 of 40,00 €" — avoids the visual
-    /// "/" so VoiceOver reads it naturally. Mirrors `formattedSpendWithLimit`.
-    var spendAccessibilityValue: String? {
+    /// The spend with its cap, e.g. "39,88 of 40,00 €", shown on More limits and read the same
+    /// way by VoiceOver. Falls back to the bare spent amount when no limit is known.
+    var spendWithLimit: String? {
         guard let parts = formattedParts else { return nil }
         guard let limit = parts.limit else { return formattedSpend }
         return "\(parts.spend) of \(limit)"
     }
 
     /// The spent amount (no currency symbol) and, when a limit exists, the limit as a
-    /// full currency string — both honoring `decimal_places`. Shared by the visible and
-    /// accessible spend strings so their formatting can't drift apart.
+    /// full currency string, both honoring `decimal_places`.
     private var formattedParts: (spend: String, limit: String?)? {
         guard let spend = spendAmount else { return nil }
         let digits = decimalPlaces ?? 2
@@ -216,18 +207,25 @@ enum ProjectionResult: Sendable {
 }
 
 enum SessionProjection {
-    /// Calculate projection from history snapshots (last 60 min), current utilization, and reset date.
+    /// Minutes of data the rate needs before it is worth extrapolating to the reset.
+    static let minimumSpan: TimeInterval = 15 * 60
+    private static let sessionLength: TimeInterval = 5 * 3600
+
+    /// Calculate projection from the last 60 minutes of the current session's snapshots, current
+    /// utilization, and reset date. Snapshots from before the session started would mix two
+    /// sessions into one rate, so they are dropped.
     static func calculate(
         history: [UsageSnapshot],
         currentUtilization: Double,
-        resetsAt: Date?
+        resetsAt: Date?,
+        now: Date = Date()
     ) -> ProjectionResult {
         guard let resetsAt else { return .insufficientData }
 
-        let hoursUntilReset = resetsAt.timeIntervalSinceNow / 3600
+        let hoursUntilReset = resetsAt.timeIntervalSince(now) / 3600
         guard hoursUntilReset > 0 else { return .insufficientData }
 
-        let cutoff = Date().addingTimeInterval(-3600) // last 60 minutes
+        let cutoff = max(now.addingTimeInterval(-3600), resetsAt.addingTimeInterval(-sessionLength))
         let recent = history.filter { $0.timestamp > cutoff }
 
         guard recent.count >= 2,
@@ -236,8 +234,9 @@ enum SessionProjection {
             return .insufficientData
         }
 
-        let timeDiffHours = newest.timestamp.timeIntervalSince(oldest.timestamp) / 3600
-        guard timeDiffHours > 0 else { return .insufficientData }
+        let span = newest.timestamp.timeIntervalSince(oldest.timestamp)
+        guard span >= minimumSpan else { return .insufficientData }
+        let timeDiffHours = span / 3600
 
         let rate = (newest.sessionUtilization - oldest.sessionUtilization) / timeDiffHours
         guard rate > 0 else { return .insufficientData }
@@ -254,6 +253,17 @@ enum SessionProjection {
 }
 
 // MARK: - Claude Status
+
+/// What the popover knows about the service: the overall status and the two components it shows.
+struct ServiceStatusSnapshot: Equatable {
+    var overall: ClaudeServiceStatus
+    var claudeCode: ClaudeServiceStatus
+    var api: ClaudeServiceStatus
+    var description: String
+
+    /// After a failed fetch nothing is known, including components of an earlier incident.
+    static let unavailable = ServiceStatusSnapshot(overall: .unknown, claudeCode: .unknown, api: .unknown, description: "Status unavailable")
+}
 
 enum ClaudeServiceStatus: String, Codable, Sendable {
     case operational = "operational"
@@ -277,13 +287,37 @@ enum ClaudeServiceStatus: String, Codable, Sendable {
         self == .operational || self == .none
     }
 
-    var icon: TablerIcon {
+    /// Reads both status page vocabularies: the overall indicator (`none`, `minor`, `major`,
+    /// `critical`) and component statuses (`operational`, `degraded_performance`, …). Treating
+    /// the indicator as a component status turned every real incident into `.unknown`.
+    static func parse(_ raw: String) -> ClaudeServiceStatus {
+        switch raw {
+        case "minor", "maintenance", "under_maintenance": .degradedPerformance
+        case "major": .partialOutage
+        case "critical": .majorOutage
+        default: ClaudeServiceStatus(rawValue: raw) ?? .unknown
+        }
+    }
+
+    /// A notification is for a problem the status page reports, not for a failed fetch (`.unknown`).
+    static func shouldNotify(enabled: Bool, current: ClaudeServiceStatus, last: ClaudeServiceStatus) -> Bool {
+        enabled && current != last && current.isIncident
+    }
+
+    /// A problem the status page actually reports. `.unknown` only means the page could not be
+    /// read, which is no reason to show a notice in the popover.
+    var isIncident: Bool {
+        self == .degradedPerformance || self == .partialOutage || self == .majorOutage
+    }
+
+    /// The status as one dot: quiet while healthy, pulsing in ochre or red during an incident,
+    /// hollow while it cannot be read.
+    var dot: StatusDot {
         switch self {
-        case .operational, .none: .circleCheck
-        case .degradedPerformance: .alertTriangle
-        case .partialOutage: .alertTriangle
-        case .majorOutage: .circleX
-        case .unknown: .helpCircle
+        case .operational, .none: StatusDot(tone: .normal, isHollow: false, pulses: false)
+        case .degradedPerformance, .partialOutage: StatusDot(tone: .warning, isHollow: false, pulses: true)
+        case .majorOutage: StatusDot(tone: .critical, isHollow: false, pulses: true)
+        case .unknown: StatusDot(tone: .normal, isHollow: true, pulses: false)
         }
     }
 }
@@ -337,4 +371,10 @@ enum ClaudeCodeInstallMethod: String, Sendable {
         case .other: "claude update"
         }
     }
+}
+
+struct StatusDot: Equatable {
+    let tone: UsageTone
+    let isHollow: Bool
+    let pulses: Bool
 }

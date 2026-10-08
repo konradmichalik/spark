@@ -24,6 +24,33 @@ class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDele
         completionHandler([.banner, .sound])
     }
 
+    /// A click on a provider's notification opens the popover on that provider's tab.
+    nonisolated func userNotificationCenter(
+        _ center: UNUserNotificationCenter,
+        didReceive response: UNNotificationResponse,
+        withCompletionHandler completionHandler: @escaping () -> Void
+    ) {
+        let provider = response.notification.request.content.userInfo[NotificationPoster.providerKey] as? String
+        Task { @MainActor in
+            if let provider, UsageProvider(rawValue: provider) != nil {
+                UserDefaults.standard.set(provider, forKey: UsageProvider.selectionKey)
+            }
+            Self.openPopover()
+        }
+        completionHandler()
+    }
+
+    /// The menu bar extra has no API to open its window, so this clicks its status item button.
+    /// A click toggles, so an already open popover (button highlighted) is left alone.
+    private static func openPopover() {
+        for window in NSApp.windows where window.className.contains("NSStatusBarWindow") {
+            if let button = window.contentView?.firstSubview(of: NSStatusBarButton.self) {
+                if !button.isHighlighted { button.performClick(nil) }
+                return
+            }
+        }
+    }
+
     private func setupContextMenu() {
         let menu = NSMenu()
 
@@ -54,50 +81,63 @@ class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDele
     }
 }
 
+private extension NSView {
+    func firstSubview<T: NSView>(of type: T.Type) -> T? {
+        if let match = self as? T { return match }
+        for subview in subviews {
+            if let match = subview.firstSubview(of: type) { return match }
+        }
+        return nil
+    }
+}
+
 @main
 struct SparkApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @StateObject private var state = AppState()
+    @StateObject private var codex = CodexState()
     @State private var hasLaunched = false
 
     var body: some Scene {
         MenuBarExtra {
-            Group {
-                if state.isAuthenticated {
-                    MenuBarView()
-                        .environmentObject(state)
-                } else {
-                    NotConnectedView()
-                        .environmentObject(state)
-                }
-            }
+            MenuBarView()
+                .environmentObject(state)
+                .environmentObject(codex)
             .task {
                 guard !hasLaunched else { return }
                 hasLaunched = true
                 state.onLaunch()
+                codex.onLaunch()
             }
             .tooltipHost()
             .background(MenuBarWindowTopPinner())
         } label: {
-            MenuBarLabel(state: state)
+            MenuBarLabel(state: state, codex: codex)
         }
         .menuBarExtraStyle(.window)
-        .onChange(of: state.usageData.maxUtilization) {
+        // Every fetch, not just a changed maximum: a session warning can come due while an
+        // already-notified weekly window keeps the maximum where it was.
+        .onChange(of: state.usageData.lastUpdated) {
             state.checkAndNotify()
         }
         .onChange(of: state.status) {
             state.checkAndNotify()
         }
+        .onChange(of: codex.usage?.usageData.lastUpdated) {
+            codex.checkAndNotify()
+        }
 
         Settings {
             SettingsView()
                 .environmentObject(state)
+                .environmentObject(codex)
                 .tooltipHost()
         }
 
         Window("Usage Report", id: WeeklyReportView.windowID) {
             WeeklyReportView()
                 .environmentObject(state)
+                .environmentObject(codex)
                 .tooltipHost()
         }
         .windowResizability(.contentMinSize)
@@ -108,176 +148,106 @@ struct SparkApp: App {
 
 struct MenuBarLabel: View {
     @ObservedObject var state: AppState
+    @ObservedObject var codex: CodexState
+    @AppStorage(UsageProvider.selectionKey) private var selectedProviderRaw = UsageProvider.claude.rawValue
+    @State private var now = Date()
+    /// One shared timer, so re-rendering the label does not restart it. It only triggers a
+    /// re-render; the staleness check reads the current time itself.
+    private static let minuteTick = Timer.publish(every: 60, on: .main, in: .common).autoconnect()
+    /// The value a rise fades in from, and how far the fade has run. `nil` outside a fade.
+    @State private var fade: (from: Double, progress: Double)?
+    @State private var fadeTask: Task<Void, Never>?
 
-    private var displayValue: Double {
-        switch state.menuBarValue {
-        case "session": state.usageData.sessionUtilization
-        case "weekly": state.usageData.weeklyUtilization
-        default: state.usageData.maxUtilization
-        }
+    private var reading: MenuBarReading {
+        MenuBarReading.resolve(
+            claude: state.usageData,
+            codex: codex.isActive ? codex.usage : nil,
+            value: state.menuBarValue,
+            provider: UsageProvider(rawValue: selectedProviderRaw) ?? .claude
+        )
     }
 
-    private var iconColor: NSColor {
-        if !state.status.isHealthy && state.status != .unknown {
-            return .systemOrange
-        }
-        switch state.usageData.level {
-        case .ok: return .systemGreen
-        case .warning: return .systemOrange
-        case .critical: return .systemRed
-        }
+    private var tone: UsageTone {
+        UsageTone(value: reading.value, warning: state.warningThreshold, critical: state.criticalThreshold)
     }
 
-    private func makeIcon(draw: @escaping (CGRect) -> Void) -> NSImage {
-        let size = CGSize(width: 16, height: 16)
-        let image = NSImage(size: size, flipped: false) { rect in
-            draw(rect)
-            return true
-        }
-        image.isTemplate = !state.coloredIcon
-        return image
+    private var logo: MenuBarLogo? {
+        guard MenuBarIconStyle(stored: state.iconStyle) == .providerLogo else { return nil }
+        return reading.provider == .codex ? .codex : .claude
     }
 
-    private var sparkIcon: NSImage {
-        let utilization = displayValue
-        let size = CGSize(width: 18, height: 18)
-        let image = NSImage(size: size, flipped: true) { rect in
-            let center = CGPoint(x: rect.midX, y: rect.midY)
-            let ringRadius: CGFloat = rect.width / 2 - 1
-            let ringWidth: CGFloat = 1.8
-
-            // Track (gray ring)
-            let trackPath = NSBezierPath()
-            trackPath.appendArc(withCenter: center, radius: ringRadius, startAngle: 0, endAngle: 360)
-            trackPath.lineWidth = ringWidth
-            NSColor.gray.withAlphaComponent(0.3).setStroke()
-            trackPath.stroke()
-
-            // Progress arc (starts at 12 o'clock, fills clockwise)
-            if utilization > 0 {
-                let startAngle: CGFloat = 270 // top in flipped coordinates
-                let endAngle = startAngle + (CGFloat(min(utilization, 100)) / 100 * 360)
-                let arcPath = NSBezierPath()
-                arcPath.appendArc(withCenter: center, radius: ringRadius, startAngle: startAngle, endAngle: endAngle, clockwise: false)
-                arcPath.lineWidth = ringWidth
-                arcPath.lineCapStyle = .round
-                self.iconColor.setStroke()
-                arcPath.stroke()
-            }
-
-            // Spark shape in the center
-            let sparkInset: CGFloat = 3.5
-            let sparkRect = rect.insetBy(dx: sparkInset, dy: sparkInset)
-            let sparkPath = ClaudeLogoShape().path(in: CGRect(origin: .zero, size: sparkRect.size))
-            let transform = AffineTransform(translationByX: sparkRect.minX, byY: sparkRect.minY)
-            let bezier = NSBezierPath(cgPath: sparkPath.cgPath)
-            bezier.transform(using: transform)
-            let sparkColor: NSColor = self.state.coloredIcon ? .labelColor : Theme.sparkOrangeNS
-            sparkColor.setFill()
-            bezier.fill()
-
-            return true
-        }
-        image.isTemplate = !state.coloredIcon
-        return image
-    }
-
-    private var barIcon: NSImage {
-        let utilization = displayValue
-        let imgSize = CGSize(width: 18, height: 12)
-        let image = NSImage(size: imgSize, flipped: false) { rect in
-            let barHeight: CGFloat = 5
-            let barY = (rect.height - barHeight) / 2
-            let cornerRadius: CGFloat = barHeight / 2
-
-            // Track
-            let trackRect = CGRect(x: 0, y: barY, width: rect.width, height: barHeight)
-            let trackPath = NSBezierPath(roundedRect: trackRect, xRadius: cornerRadius, yRadius: cornerRadius)
-            NSColor.gray.withAlphaComponent(0.3).setFill()
-            trackPath.fill()
-
-            // Fill
-            let fillWidth = max(0, rect.width * CGFloat(min(utilization, 100)) / 100)
-            if fillWidth > 0 {
-                let fillRect = CGRect(x: 0, y: barY, width: fillWidth, height: barHeight)
-                let fillPath = NSBezierPath(roundedRect: fillRect, xRadius: cornerRadius, yRadius: cornerRadius)
-                self.iconColor.setFill()
-                fillPath.fill()
-            }
-
-            return true
-        }
-        image.isTemplate = !state.coloredIcon
-        return image
-    }
-
-    private var dotIcon: NSImage {
-        makeIcon { rect in
-            let dotSize: CGFloat = 10
-            let dotRect = CGRect(
-                x: (rect.width - dotSize) / 2,
-                y: (rect.height - dotSize) / 2,
-                width: dotSize,
-                height: dotSize
+    private var connection: MenuBarConnection {
+        switch reading.provider {
+        case .codex:
+            MenuBarConnection.codex(
+                needsSignIn: codex.needsSignIn, hasError: codex.lastError != nil && !codex.isRateLimited,
+                lastUpdated: codex.usage?.usageData.lastUpdated
             )
-            let path = NSBezierPath(ovalIn: dotRect)
-            self.iconColor.setFill()
-            path.fill()
+        case .claude:
+            MenuBarConnection.claude(
+                isAuthenticated: state.isAuthenticated, needsReconnect: state.needsReconnect,
+                hasError: state.lastError != nil && !state.isRateLimited, lastUpdated: state.usageData.lastUpdated
+            )
         }
     }
 
-    private var percentageColor: Color {
-        state.coloredIcon ? Color(nsColor: iconColor) : .primary
+    private func isDimmed(now: Date) -> Bool {
+        // Codex is the selected tab but has no data yet: the label shows Claude as a fallback.
+        if UsageProvider(rawValue: selectedProviderRaw) == .codex, codex.isActive, codex.usage == nil {
+            return true
+        }
+        return connection.isStale(now: now)
     }
 
-    private var showPercentage: Bool {
-        state.menuBarValue != "none"
-    }
-
-    @ViewBuilder
-    private var disconnectIcon: some View {
-        // The icon stands alone here with no adjacent text, so it is the control rather than
-        // decoration next to one — `isDecorative: false` keeps it out of
-        // `.accessibilityHidden`, and the label below attaches directly to it.
-        TablerIconView(.alertTriangle, size: 13, color: .orange, isDecorative: false)
-            .accessibilityLabel("Spark disconnected — tap to reconnect")
-    }
-
-    @ViewBuilder
-    private var percentageText: some View {
-        Text("\(Int(displayValue))%")
-            .font(.system(.caption, design: .monospaced))
-            .foregroundColor(percentageColor)
+    private func accessibilityText(dimmed: Bool) -> String {
+        let provider = reading.provider == .codex ? "Codex" : "Claude"
+        var text = "Spark, \(provider) \(reading.text)"
+        switch tone {
+        case .warning: text += ", warning"
+        case .critical: text += ", critical"
+        default: break
+        }
+        if connection.isDisconnected {
+            text += ", disconnected"
+        } else if dimmed {
+            text += ", not up to date"
+        }
+        return text
     }
 
     var body: some View {
-        if state.needsReconnect {
-            disconnectIcon
-        } else {
-            switch state.iconStyle {
-            case "minimal":
-                if showPercentage {
-                    percentageText
-                } else {
-                    Image(nsImage: sparkIcon)
-                }
-            case "dot":
-                HStack(spacing: 6) {
-                    Image(nsImage: dotIcon)
-                        .frame(width: 16, height: 16)
-                    if showPercentage { percentageText }
-                }
-            case "bar":
-                HStack(spacing: 6) {
-                    Image(nsImage: barIcon)
-                    if showPercentage { percentageText }
-                }
-            default:
-                HStack(spacing: 6) {
-                    Image(nsImage: sparkIcon)
-                    if showPercentage { percentageText }
-                }
+        let dimmed = isDimmed(now: max(now, Date()))
+        let alpha: CGFloat = dimmed ? 0.35 : 1
+        let glyph = MenuBarGlyph(value: reading.value, tone: tone, fadingFrom: fade?.from, progress: fade?.progress ?? 1)
+        HStack(spacing: 5) {
+            Image(nsImage: glyph.image(logo: logo, alpha: alpha))
+            if state.menuBarValue != "none" {
+                Text(reading.text)
+                    .font(.system(size: 13, weight: .semibold))
+                    .monospacedDigit()
+                    .foregroundStyle((tone == .normal ? Color.primary : tone.color).opacity(alpha))
             }
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(accessibilityText(dimmed: dimmed))
+        .onReceive(Self.minuteTick) { now = $0 }
+        .onChange(of: reading.value) { old, new in fadeIn(from: old, to: new) }
+    }
+
+    /// A rise fades the new dots in with two in-between images, then stops. Started only by a
+    /// value change, never at launch, and never a loop: a `TimelineView` in this label hung the
+    /// app at launch once.
+    private func fadeIn(from old: Double, to new: Double) {
+        fadeTask?.cancel()
+        fade = nil
+        guard new > old, !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion else { return }
+        fadeTask = Task { @MainActor in
+            for progress in MenuBarGlyph.fadeSteps {
+                fade = (old, progress)
+                try? await Task.sleep(for: MenuBarGlyph.fadeFrame)
+                guard !Task.isCancelled else { return }
+            }
+            fade = nil
         }
     }
 }

@@ -22,6 +22,11 @@ struct ActiveSession: Identifiable, Equatable, Sendable {
     /// subagent's: a subagent runs its own separate, smaller conversation, so its context size
     /// would misrepresent the main conversation shown by `displayName`.
     let contextTokens: Int?
+    /// The main conversation's model, the one with the most fresh tokens in the root file, as a
+    /// display name such as "Opus 4.6".
+    let model: String?
+    /// The earliest line of the session, subagents included.
+    let startedAt: Date?
 
     init(
         sessionId: String,
@@ -30,7 +35,9 @@ struct ActiveSession: Identifiable, Equatable, Sendable {
         lastActivity: Date,
         cwd: String? = nil,
         sessionIdSuffix: String? = nil,
-        contextTokens: Int? = nil
+        contextTokens: Int? = nil,
+        model: String? = nil,
+        startedAt: Date? = nil
     ) {
         self.sessionId = sessionId
         self.projectKey = projectKey
@@ -39,6 +46,8 @@ struct ActiveSession: Identifiable, Equatable, Sendable {
         self.cwd = cwd
         self.sessionIdSuffix = sessionIdSuffix
         self.contextTokens = contextTokens
+        self.model = model
+        self.startedAt = startedAt
     }
 
     var id: String { sessionId }
@@ -88,6 +97,8 @@ enum ActiveSessionResolver {
         var cwd: String?
         var cwdDepth: Int
         var contextTokens: Int?
+        var model: String?
+        var startedAt: Date?
     }
 
     static func resolve(
@@ -141,7 +152,25 @@ enum ActiveSessionResolver {
         if depth == Self.rootFileDepth, let lastContextTokens = fileCache.lastContextTokens {
             entry.contextTokens = lastContextTokens
         }
+        // Subagents often run a smaller model; the session's model is the main conversation's.
+        if depth == Self.rootFileDepth {
+            entry.model = mainModel(of: fileCache)
+        }
+        if let first = fileCache.activity?.first {
+            entry.startedAt = min(entry.startedAt ?? first, first)
+        }
         bySession[sessionId] = entry
+    }
+
+    private static func mainModel(of fileCache: FileParseCache) -> String? {
+        var totals: [String: Int] = [:]
+        for bucket in fileCache.dailyBuckets.values {
+            for (model, tokens) in bucket.perModel {
+                totals[model, default: 0] += tokens.real
+            }
+        }
+        let main = totals.filter { $0.value > 0 }.max { $0.value != $1.value ? $0.value < $1.value : $0.key > $1.key }
+        return main.map { ModelFamily.displayName(forRawModelId: $0.key) }
     }
 
     private static func buildSessions(from bySession: [String: SessionAccumulator]) -> [ActiveSession] {
@@ -159,7 +188,9 @@ enum ActiveSessionResolver {
                     lastActivity: entry.lastActivity,
                     cwd: entry.cwd,
                     sessionIdSuffix: isAmbiguous ? String(sessionId.prefix(8)) : nil,
-                    contextTokens: entry.contextTokens
+                    contextTokens: entry.contextTokens,
+                    model: entry.model,
+                    startedAt: entry.startedAt
                 )
             }
             .sorted { lhs, rhs in

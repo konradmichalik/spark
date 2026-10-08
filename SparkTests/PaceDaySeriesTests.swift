@@ -2,20 +2,10 @@ import XCTest
 @testable import Spark
 
 final class PaceDaySeriesTests: XCTestCase {
-    private var calendar: Calendar = {
-        var calendar = Calendar(identifier: .gregorian)
-        // swiftlint:disable:next force_unwrapping
-        calendar.timeZone = TimeZone(identifier: "Europe/Berlin")!
-        return calendar
-    }()
+    private let calendar = TestCalendar.berlin()
 
     private func date(_ day: String, time: String = "12:00") -> Date {
-        let formatter = DateFormatter()
-        formatter.calendar = calendar
-        formatter.timeZone = calendar.timeZone
-        formatter.dateFormat = "yyyy-MM-dd HH:mm"
-        // swiftlint:disable:next force_unwrapping
-        return formatter.date(from: "\(day) \(time)")!
+        TestCalendar.date(day, time: time, calendar: calendar)
     }
 
     private func snapshot(_ day: String, time: String = "12:00", session: Double, weekly: Double) -> UsageSnapshot {

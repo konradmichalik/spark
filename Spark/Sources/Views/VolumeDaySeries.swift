@@ -37,7 +37,7 @@ enum VolumeDaySeries {
             guard let date = calendar.date(byAdding: .day, value: -offset, to: lastDay) else { return nil }
             let key = TranscriptCache.dayKey(for: date, calendar: calendar)
             let rollup = rollups[key]
-            return VolumeDay(day: key, tokens: rollup?.totalTokens ?? 0, hasRollup: rollup != nil)
+            return VolumeDay(day: key, tokens: rollup?.real ?? 0, hasRollup: rollup != nil)
         }
     }
 }

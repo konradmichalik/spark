@@ -16,7 +16,10 @@ final class AppState: ObservableObject {
     @Published var history: [UsageSnapshot] = []
     @Published var rollups: [String: DailyRollup] = [:]
     @Published var isLoading = false
-    @Published var lastError: String?
+    /// Every new error clears `isRateLimited`; the rate-limit path sets it again after the message.
+    @Published var lastError: String? { didSet { isRateLimited = false } }
+    /// The last error is the API rate limit, which the backoff handles: the data is not stale yet.
+    @Published private(set) var isRateLimited = false
     @Published var isAuthenticated = false
     @Published var needsReconnect = false
     @Published var authMethod: AuthMethod = .none
@@ -35,7 +38,7 @@ final class AppState: ObservableObject {
 
     // MARK: - Settings (persisted)
 
-    @AppStorage("iconStyle") var iconStyle: String = "logo"
+    @AppStorage("iconStyle") var iconStyle: String = MenuBarIconStyle.ring.rawValue
     @AppStorage("menuBarValue") var menuBarValue: String = "max"
     @AppStorage("showSonnetUsage") var showSonnetUsage: Bool = true
     @AppStorage("showOpusUsage") var showOpusUsage: Bool = true
@@ -57,9 +60,7 @@ final class AppState: ObservableObject {
     @AppStorage("showStats") var showStats: Bool = true
     @AppStorage("showProjectBreakdown") var showProjectBreakdown: Bool = true
     @AppStorage("showActiveSessions") var showActiveSessions: Bool = true
-    @AppStorage("coloredIcon") var coloredIcon: Bool = true
     @AppStorage("usageDisplayStyle") var usageDisplayStyle: String = "bars"
-    @AppStorage("reduceTransparency") var reduceTransparency: Bool = false
     @AppStorage("exportDataEnabled") var exportDataEnabled: Bool = false
 
     // Navigation
@@ -83,6 +84,9 @@ final class AppState: ObservableObject {
     /// every appearance (via `loadWeeklyReport(offset: 0)`), so reopening the window never
     /// strands the user on a past period they navigated to earlier.
     @Published private(set) var reportOffset = 0
+    /// First day with local Codex activity (a day key), so the report can go back for a Codex-only
+    /// user. Set by the report window, nil while Codex is off or has no files.
+    @Published var codexEarliestDay: String?
 
     // MARK: - OAuth Token (Keychain)
 
@@ -111,8 +115,7 @@ final class AppState: ObservableObject {
     private static let activeSessionsTickInterval: TimeInterval = 30
 
     // Notification tracking
-    private var lastSessionLevel: UsageLevel = .ok
-    private var lastWeeklyLevel: UsageLevel = .ok
+    private var levelTracker = UsageLevelTracker()
     private var lastStatusNotification: ClaudeServiceStatus = .operational
     private var hasSentSessionResetNotification = true
     private var hasSentWeeklyResetNotification = true
@@ -375,6 +378,7 @@ final class AppState: ObservableObject {
         let backoffMinutes = Int(backoff / 60)
         Self.log.notice("handleRateLimited: backing off \(backoffMinutes, privacy: .public) min")
         lastError = "Rate limited. Retrying in \(backoffMinutes) min."
+        isRateLimited = true
         startUsagePolling(interval: backoff)
     }
 
@@ -504,11 +508,11 @@ final class AppState: ObservableObject {
                 try await UsageClient.fetchStatus()
             }.value
 
-            status = ClaudeServiceStatus(rawValue: response.status.indicator) ?? .unknown
+            status = ClaudeServiceStatus.parse(response.status.indicator)
             statusDescription = response.status.description
 
             if let comps = response.components {
-                components = comps.map { (name: $0.name, status: ClaudeServiceStatus(rawValue: $0.status) ?? .unknown) }
+                components = comps.map { (name: $0.name, status: ClaudeServiceStatus.parse($0.status)) }
                 let knownAPINames = ["api", "anthropic api"]
                 let knownCodeNames = ["claude.ai", "claude code", "claude for work"]
                 for (name, compStatus) in components {
@@ -525,8 +529,11 @@ final class AppState: ObservableObject {
             if claudeCodeStatus == .unknown { claudeCodeStatus = status }
             if apiStatus == .unknown { apiStatus = status }
         } catch {
-            status = .unknown
-            statusDescription = "Status unavailable"
+            let unavailable = ServiceStatusSnapshot.unavailable
+            status = unavailable.overall
+            claudeCodeStatus = unavailable.claudeCode
+            apiStatus = unavailable.api
+            statusDescription = unavailable.description
         }
     }
 
@@ -579,11 +586,7 @@ final class AppState: ObservableObject {
             let current = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.0.0"
 
             if CLIVersionClient.isNewer(latest, than: current) {
-                sendNotification(
-                    id: "update-\(latest)",
-                    title: "Spark \(latest) available",
-                    body: "A new version of Spark is available. Open Settings → About to update."
-                )
+                NotificationPoster.post(NoticeWording.appUpdate(version: latest), id: "update-\(latest)")
             }
         } catch {
             // Silently ignore update check failures
@@ -612,10 +615,8 @@ final class AppState: ObservableObject {
             guard lastNotifiedCLIVersion != remote else { return }
 
             lastNotifiedCLIVersion = remote
-            sendNotification(
-                id: "cli-update-\(remote)",
-                title: "Claude Code \(remote) available",
-                body: "You're running \(local). Run `\(method.updateCommand)` to update."
+            NotificationPoster.post(
+                NoticeWording.cliUpdate(latest: remote, installed: local, command: method.updateCommand), id: "cli-update-\(remote)"
             )
         } catch {
             // Silently ignore — non-critical check
@@ -633,46 +634,39 @@ final class AppState: ObservableObject {
     func checkAndNotify() {
         guard notificationsEnabled else { return }
 
-        checkUsageNotification(
-            label: "Session",
-            utilization: usageData.sessionUtilization,
-            lastLevel: &lastSessionLevel
-        )
-        checkUsageNotification(
-            label: "Weekly",
-            utilization: usageData.weeklyUtilization,
-            lastLevel: &lastWeeklyLevel
-        )
+        checkUsageNotifications()
         checkStatusNotification()
         checkResetNotification()
     }
 
-    private func checkUsageNotification(label: String, utilization: Double, lastLevel: inout UsageLevel) {
-        let newLevel = levelFor(utilization)
-        if newLevel != lastLevel && newLevel != .ok {
-            let title = "\(label) usage at \(Int(utilization))%"
-            let body: String
-            switch newLevel {
-            case .warning:
-                body = "Claude Code \(label) limit approaching. \(100 - Int(utilization))% remaining."
-            case .critical:
-                body = "Claude Code \(label) limit almost reached! Only \(100 - Int(utilization))% remaining."
-            case .ok:
-                lastLevel = newLevel
-                return
-            }
-            sendNotification(id: "usage-\(label)-\(newLevel.rawValue)", title: title, body: body)
+    private func checkUsageNotifications() {
+        let crossings = levelTracker.update(
+            [("Session", usageData.sessionUtilization), ("Week", usageData.weeklyUtilization)],
+            warning: warningThreshold, critical: criticalThreshold
+        )
+        for crossing in crossings {
+            let bucket = crossing.key == "Session" ? usageData.session : usageData.weekly
+            let notice = NoticeWording.usage(
+                provider: .claude, window: crossing.key, value: crossing.utilization,
+                tone: UsageTone(value: crossing.utilization, warning: warningThreshold, critical: criticalThreshold),
+                resetsAt: bucket?.resetsAtDate, limitIn: crossing.key == "Session" ? sessionLimitIn(bucket) : nil
+            )
+            NotificationPoster.post(notice, id: "usage-\(crossing.key)-\(crossing.level.rawValue)")
         }
-        lastLevel = newLevel
+    }
+
+    /// Seconds until the session reaches its limit at the current pace, when that comes before
+    /// the reset. Only with the forecast switched on, like the popover.
+    private func sessionLimitIn(_ session: UsageBucket?) -> TimeInterval? {
+        guard showProjection, let session else { return nil }
+        let projection = SessionProjection.calculate(history: history, currentUtilization: session.utilization, resetsAt: session.resetsAtDate)
+        if case .limitReached(let seconds) = projection { return seconds }
+        return nil
     }
 
     private func checkStatusNotification() {
-        if notifyOnStatusChange && status != lastStatusNotification && !status.isHealthy {
-            sendNotification(
-                id: "status-\(status.rawValue)",
-                title: "Claude Status: \(status.displayName)",
-                body: "Claude Code is currently experiencing issues."
-            )
+        if ClaudeServiceStatus.shouldNotify(enabled: notifyOnStatusChange, current: status, last: lastStatusNotification) {
+            NotificationPoster.post(NoticeWording.status(status.displayName), id: "status-\(status.rawValue)")
         }
         lastStatusNotification = status
     }
@@ -685,20 +679,16 @@ final class AppState: ObservableObject {
         if usageData.weeklyUtilization >= 10 { hasSentWeeklyResetNotification = false }
 
         if usageData.sessionUtilization < 5, !hasSentSessionResetNotification {
-            sendNotification(id: "reset-session", title: "Session limit reset", body: "Your Claude Code session usage has been reset.")
+            let notice = NoticeWording.reset(provider: .claude, window: "Session", nextReset: usageData.session?.resetsAtDate)
+            NotificationPoster.post(notice, id: "reset-session")
             hasSentSessionResetNotification = true
         }
 
         if usageData.weeklyUtilization < 5, !hasSentWeeklyResetNotification {
-            sendNotification(id: "reset-weekly", title: "Weekly limit reset", body: "Your Claude Code weekly usage has been reset.")
+            let notice = NoticeWording.reset(provider: .claude, window: "Week", nextReset: usageData.weekly?.resetsAtDate)
+            NotificationPoster.post(notice, id: "reset-weekly")
             hasSentWeeklyResetNotification = true
         }
-    }
-
-    private func levelFor(_ utilization: Double) -> UsageLevel {
-        if utilization >= criticalThreshold { return .critical }
-        if utilization >= warningThreshold { return .warning }
-        return .ok
     }
 
     // MARK: - Reconnect Reminder
@@ -726,22 +716,8 @@ final class AppState: ObservableObject {
         reconnectReminderCancellable = nil
     }
 
-    nonisolated private func sendReconnectNotification(id: String) {
-        sendNotification(
-            id: id,
-            title: "Spark disconnected",
-            body: "Keychain access lost. Open Spark and tap Reconnect to re-authenticate."
-        )
-    }
-
-    nonisolated private func sendNotification(id: String, title: String, body: String) {
-        let content = UNMutableNotificationContent()
-        content.title = title
-        content.body = body
-        content.sound = .default
-
-        let request = UNNotificationRequest(identifier: id, content: content, trigger: nil)
-        UNUserNotificationCenter.current().add(request)
+    private func sendReconnectNotification(id: String) {
+        NotificationPoster.post(NoticeWording.disconnected(), id: id)
     }
 
     // MARK: - History
@@ -974,9 +950,10 @@ final class AppState: ObservableObject {
         let wantsCost = showApiCost
         Task.detached {
             let stats = await LiveStatsParser.parseStats(period: statsPeriodLabel, cutoffOverride: cutoff, upperCutoff: upperCutoff)
-            let topProjects = stats?.topProjects(limit: 5) ?? []
-            let topSessions = stats?.topSessions(limit: 5) ?? []
+            let topProjects = stats?.topProjects(limit: 20) ?? []
+            let topSessions = stats?.topSessions(limit: 10) ?? []
             let modelTotals = stats?.modelTotals ?? [:]
+            let dayTokens = stats?.dayTokens ?? [:]
             var costSummary: CostSummary?
             if wantsCost, let stats, let prices = await PricingClient.currentTable() {
                 costSummary = prices.summary(
@@ -995,6 +972,7 @@ final class AppState: ObservableObject {
                     modelTotals: modelTotals,
                     topProjects: topProjects,
                     topSessions: topSessions,
+                    dayTokens: dayTokens,
                     costSummary: costSummary,
                     period: shownPeriod,
                     periodOffset: shownOffset,
@@ -1006,7 +984,9 @@ final class AppState: ObservableObject {
     }
 
     var canGoToEarlierPeriod: Bool {
-        PeriodReport.hasEarlierPeriod(period: reportPeriod, periodOffset: reportOffset, rollups: rollups)
+        PeriodReport.hasEarlierPeriod(
+            period: reportPeriod, periodOffset: reportOffset, rollups: rollups, earliestExtraDay: codexEarliestDay
+        )
     }
 
     var canGoToLaterPeriod: Bool {
