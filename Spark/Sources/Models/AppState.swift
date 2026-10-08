@@ -582,11 +582,7 @@ final class AppState: ObservableObject {
             let current = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.0.0"
 
             if CLIVersionClient.isNewer(latest, than: current) {
-                sendNotification(
-                    id: "update-\(latest)",
-                    title: "Spark \(latest) available",
-                    body: "A new version of Spark is available. Open Settings → About to update."
-                )
+                NotificationPoster.post(NoticeWording.appUpdate(version: latest), id: "update-\(latest)")
             }
         } catch {
             // Silently ignore update check failures
@@ -615,10 +611,8 @@ final class AppState: ObservableObject {
             guard lastNotifiedCLIVersion != remote else { return }
 
             lastNotifiedCLIVersion = remote
-            sendNotification(
-                id: "cli-update-\(remote)",
-                title: "Claude Code \(remote) available",
-                body: "You're running \(local). Run `\(method.updateCommand)` to update."
+            NotificationPoster.post(
+                NoticeWording.cliUpdate(latest: remote, installed: local, command: method.updateCommand), id: "cli-update-\(remote)"
             )
         } catch {
             // Silently ignore — non-critical check
@@ -637,45 +631,39 @@ final class AppState: ObservableObject {
         guard notificationsEnabled else { return }
 
         checkUsageNotification(
-            label: "Session",
-            utilization: usageData.sessionUtilization,
-            lastLevel: &lastSessionLevel
+            window: "Session", bucket: usageData.session, utilization: usageData.sessionUtilization, lastLevel: &lastSessionLevel
         )
         checkUsageNotification(
-            label: "Weekly",
-            utilization: usageData.weeklyUtilization,
-            lastLevel: &lastWeeklyLevel
+            window: "Week", bucket: usageData.weekly, utilization: usageData.weeklyUtilization, lastLevel: &lastWeeklyLevel
         )
         checkStatusNotification()
         checkResetNotification()
     }
 
-    private func checkUsageNotification(label: String, utilization: Double, lastLevel: inout UsageLevel) {
+    private func checkUsageNotification(window: String, bucket: UsageBucket?, utilization: Double, lastLevel: inout UsageLevel) {
         let newLevel = levelFor(utilization)
-        if newLevel != lastLevel && newLevel != .ok {
-            let title = "\(label) usage at \(Int(utilization))%"
-            let body: String
-            switch newLevel {
-            case .warning:
-                body = "Claude Code \(label) limit approaching. \(100 - Int(utilization))% remaining."
-            case .critical:
-                body = "Claude Code \(label) limit almost reached! Only \(100 - Int(utilization))% remaining."
-            case .ok:
-                lastLevel = newLevel
-                return
-            }
-            sendNotification(id: "usage-\(label)-\(newLevel.rawValue)", title: title, body: body)
-        }
-        lastLevel = newLevel
+        defer { lastLevel = newLevel }
+        guard newLevel != lastLevel, newLevel != .ok else { return }
+        let notice = NoticeWording.usage(
+            provider: .claude, window: window, value: utilization,
+            tone: UsageTone(value: utilization, warning: warningThreshold, critical: criticalThreshold),
+            resetsAt: bucket?.resetsAtDate, limitIn: window == "Session" ? sessionLimitIn(bucket) : nil
+        )
+        NotificationPoster.post(notice, id: "usage-\(window)-\(newLevel.rawValue)")
+    }
+
+    /// Seconds until the session reaches its limit at the current pace, when that comes before
+    /// the reset. Only with the forecast switched on, like the popover.
+    private func sessionLimitIn(_ session: UsageBucket?) -> TimeInterval? {
+        guard showProjection, let session else { return nil }
+        let projection = SessionProjection.calculate(history: history, currentUtilization: session.utilization, resetsAt: session.resetsAtDate)
+        if case .limitReached(let seconds) = projection { return seconds }
+        return nil
     }
 
     private func checkStatusNotification() {
         if notifyOnStatusChange && status != lastStatusNotification && !status.isHealthy {
-            sendNotification(
-                id: "status-\(status.rawValue)",
-                title: "Claude Status: \(status.displayName)",
-                body: "Claude Code is currently experiencing issues."
-            )
+            NotificationPoster.post(NoticeWording.status(status.displayName), id: "status-\(status.rawValue)")
         }
         lastStatusNotification = status
     }
@@ -688,12 +676,14 @@ final class AppState: ObservableObject {
         if usageData.weeklyUtilization >= 10 { hasSentWeeklyResetNotification = false }
 
         if usageData.sessionUtilization < 5, !hasSentSessionResetNotification {
-            sendNotification(id: "reset-session", title: "Session limit reset", body: "Your Claude Code session usage has been reset.")
+            let notice = NoticeWording.reset(provider: .claude, window: "Session", nextReset: usageData.session?.resetsAtDate)
+            NotificationPoster.post(notice, id: "reset-session")
             hasSentSessionResetNotification = true
         }
 
         if usageData.weeklyUtilization < 5, !hasSentWeeklyResetNotification {
-            sendNotification(id: "reset-weekly", title: "Weekly limit reset", body: "Your Claude Code weekly usage has been reset.")
+            let notice = NoticeWording.reset(provider: .claude, window: "Week", nextReset: usageData.weekly?.resetsAtDate)
+            NotificationPoster.post(notice, id: "reset-weekly")
             hasSentWeeklyResetNotification = true
         }
     }
@@ -729,22 +719,8 @@ final class AppState: ObservableObject {
         reconnectReminderCancellable = nil
     }
 
-    nonisolated private func sendReconnectNotification(id: String) {
-        sendNotification(
-            id: id,
-            title: "Spark disconnected",
-            body: "Keychain access lost. Open Spark and tap Reconnect to re-authenticate."
-        )
-    }
-
-    nonisolated private func sendNotification(id: String, title: String, body: String) {
-        let content = UNMutableNotificationContent()
-        content.title = title
-        content.body = body
-        content.sound = .default
-
-        let request = UNNotificationRequest(identifier: id, content: content, trigger: nil)
-        UNUserNotificationCenter.current().add(request)
+    private func sendReconnectNotification(id: String) {
+        NotificationPoster.post(NoticeWording.disconnected(), id: id)
     }
 
     // MARK: - History

@@ -1,7 +1,6 @@
 import Combine
 import os
 import SwiftUI
-import UserNotifications
 
 /// The Codex provider: credentials, polling and notifications. Kept apart from `AppState`, which
 /// stays the Claude provider, so a Claude-only user runs exactly the code paths they ran before.
@@ -193,32 +192,25 @@ final class CodexState: ObservableObject {
         let warning = defaults.object(forKey: "warningThreshold") as? Double ?? 75
         let critical = defaults.object(forKey: "criticalThreshold") as? Double ?? 90
 
-        for (label, utilization) in Self.windows(of: usage) {
+        for window in Self.windows(of: usage) {
+            let utilization = window.bucket.utilization
             let level: UsageLevel = utilization >= critical ? .critical : utilization >= warning ? .warning : .ok
-            defer { lastLevels[label] = level }
-            guard level != .ok, level != lastLevels[label, default: .ok] else { continue }
-            Self.sendNotification(
-                id: "codex-usage-\(label)-\(level.rawValue)",
-                title: "Codex \(label) usage at \(Int(utilization))%",
-                body: "Codex \(label) limit \(level == .critical ? "almost reached" : "approaching"). "
-                    + "\(100 - Int(utilization))% remaining."
+            defer { lastLevels[window.label] = level }
+            guard level != .ok, level != lastLevels[window.label, default: .ok] else { continue }
+            let notice = NoticeWording.usage(
+                provider: .codex, window: window.label, value: utilization,
+                tone: UsageTone(value: utilization, warning: warning, critical: critical),
+                resetsAt: window.bucket.resetsAtDate, limitIn: nil
             )
+            NotificationPoster.post(notice, id: "codex-usage-\(window.label)-\(level.rawValue)")
         }
     }
 
-    private static func windows(of usage: CodexUsage) -> [(String, Double)] {
-        var result: [(String, Double)] = []
-        if let session = usage.usageData.session { result.append(("Session", session.utilization)) }
-        if let weekly = usage.usageData.weekly { result.append(("Weekly", weekly.utilization)) }
-        result += usage.additionalLimits.map { ($0.label, $0.bucket.utilization) }
+    private static func windows(of usage: CodexUsage) -> [(label: String, bucket: UsageBucket)] {
+        var result: [(label: String, bucket: UsageBucket)] = []
+        if let session = usage.usageData.session { result.append(("Session", session)) }
+        if let weekly = usage.usageData.weekly { result.append(("Week", weekly)) }
+        result += usage.additionalLimits.map { ($0.label, $0.bucket) }
         return result
-    }
-
-    nonisolated private static func sendNotification(id: String, title: String, body: String) {
-        let content = UNMutableNotificationContent()
-        content.title = title
-        content.body = body
-        content.sound = .default
-        UNUserNotificationCenter.current().add(UNNotificationRequest(identifier: id, content: content, trigger: nil))
     }
 }

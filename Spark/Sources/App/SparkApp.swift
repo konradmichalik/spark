@@ -24,6 +24,32 @@ class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDele
         completionHandler([.banner, .sound])
     }
 
+    /// A click on a provider's notification opens the popover on that provider's tab.
+    nonisolated func userNotificationCenter(
+        _ center: UNUserNotificationCenter,
+        didReceive response: UNNotificationResponse,
+        withCompletionHandler completionHandler: @escaping () -> Void
+    ) {
+        let provider = response.notification.request.content.userInfo[NotificationPoster.providerKey] as? String
+        Task { @MainActor in
+            if let provider, UsageProvider(rawValue: provider) != nil {
+                UserDefaults.standard.set(provider, forKey: UsageProvider.selectionKey)
+            }
+            Self.openPopover()
+        }
+        completionHandler()
+    }
+
+    /// The menu bar extra has no API to open its window, so this clicks its status item button.
+    private static func openPopover() {
+        for window in NSApp.windows where window.className.contains("NSStatusBarWindow") {
+            if let button = window.contentView?.firstSubview(of: NSStatusBarButton.self) {
+                button.performClick(nil)
+                return
+            }
+        }
+    }
+
     private func setupContextMenu() {
         let menu = NSMenu()
 
@@ -51,6 +77,16 @@ class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDele
     @objc private func openSettings() {
         NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
         NSApp.activate(ignoringOtherApps: true)
+    }
+}
+
+private extension NSView {
+    func firstSubview<T: NSView>(of type: T.Type) -> T? {
+        if let match = self as? T { return match }
+        for subview in subviews {
+            if let match = subview.firstSubview(of: type) { return match }
+        }
+        return nil
     }
 }
 

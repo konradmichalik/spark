@@ -871,18 +871,7 @@ struct NotificationsTab: View {
             checkPermission()
             guard granted == true else { return }
 
-            let content = UNMutableNotificationContent()
-            content.title = "Spark"
-            content.body = "Test notification successful!"
-            content.sound = .default
-
-            let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 1, repeats: false)
-            let request = UNNotificationRequest(
-                identifier: "test-\(UUID())",
-                content: content,
-                trigger: trigger
-            )
-            try? await UNUserNotificationCenter.current().add(request)
+            NotificationPoster.post(NoticeWording.test, id: "test-\(UUID())")
         }
 
         testSent = true
