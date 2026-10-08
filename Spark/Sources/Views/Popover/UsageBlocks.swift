@@ -70,13 +70,13 @@ struct SessionBlock: View {
     }
 }
 
-/// Grey while the session lands well below the limit, otherwise semibold in the forecast's tone.
+/// Grey while the session lands well below the limit, otherwise in the forecast's tone.
 private struct ForecastLineText: View {
     let line: ForecastLine
 
     var body: some View {
         Text(line.text)
-            .font(.system(size: 11.5, weight: line.tone == .normal ? .regular : .semibold))
+            .font(.system(size: 11.5))
             .monospacedDigit()
             .foregroundStyle(line.tone == .normal ? Theme.inkSecondary : line.tone.color)
             .lineLimit(1)

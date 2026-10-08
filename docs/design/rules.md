@@ -96,7 +96,7 @@ HStack(alignment: .firstTextBaseline, spacing: 3) {
 | Dot columns | Vertical stacks of dots | Session history in graphs |
 
 - Filled dots are `ink`, or `warning` or `accent` by threshold. Unfilled dots are `dotTrack`.
-- The fill takes its colour from the user's thresholds. Projection dots, the time marker and the forecast line take theirs from the forecast: ink (dots at 55 %) while the session lands below 90 %, `warning` from 90 %, `accent` when it reaches the limit before the reset. A forecast line under the session always says where the session lands: grey "~79% at reset", or `accent` "Limit in ~2h 4m · 2h 46m before reset". The forecast uses only the current session and waits for 15 minutes of data ("Forecast after 15 min").
+- The fill takes its colour from the user's thresholds. Projection dots, the time marker and the forecast line take theirs from the forecast: ink while the session lands below 90 %, `warning` from 90 %, `accent` when it reaches the limit before the reset. Hollow dots always draw at 55 % of that colour, the marker and the line at full strength, the line in regular weight. A forecast line under the session always says where the session lands: grey "~79% at reset", or `accent` "Limit in ~2h 4m · 2h 46m before reset". The forecast uses only the current session and waits for 15 minutes of data ("Forecast after 15 min").
 - The weekly series in graphs is always a solid `accent` line over grey dot columns. The two series are told apart by shape, not by a second colour.
 
 ## Layout
