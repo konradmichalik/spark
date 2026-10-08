@@ -78,31 +78,59 @@ struct DotIconView: View {
     }
 }
 
-/// A dot that pulses while something is live, such as an active session. It stays still under
-/// Reduce Motion and when nothing is live (docs/design/rules.md, "Motion").
+/// One cycle of the live dot's halo, pure so it is unit tested. The halo grows from 40 % to
+/// 95 % of the icon and fades over 2.4 s, then snaps back without animation, so every cycle
+/// starts the same (docs/design/rules.md, "Motion").
+enum LiveDotHalo: CaseIterable {
+    case start, end
+
+    static let period = 2.4
+    /// Halo diameter at the start of a cycle, as a share of the icon.
+    static let diameter = 0.4
+
+    var scale: Double { self == .start ? 1 : 0.95 / Self.diameter }
+    var opacity: Double { self == .start ? 0.35 : 0 }
+
+    /// The animation into this phase: the growth runs the whole period, the reset snaps.
+    var animation: Animation? { self == .end ? .easeOut(duration: Self.period) : nil }
+}
+
+/// A dot with a soft halo while something is live, such as an active session, on the overview
+/// row and the Active Sessions screen alike. The halo is a fixed-size layer that only scales
+/// and fades, driven by its own phase loop, so re-renders and animations around it cannot
+/// re-target it. It stays still under Reduce Motion and when nothing is live.
 struct PulsingDot: View {
     let isLive: Bool
     var size: CGFloat = 13
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var isExpanded = false
 
     var body: some View {
         ZStack {
             if isLive {
-                Circle()
-                    .fill(Theme.accent.opacity(isExpanded ? 0 : 0.35))
-                    .frame(width: size * (isExpanded ? 0.95 : 0.4), height: size * (isExpanded ? 0.95 : 0.4))
+                if reduceMotion {
+                    halo(.start)
+                } else {
+                    PhaseAnimator(LiveDotHalo.allCases) { phase in
+                        halo(phase)
+                    } animation: { phase in
+                        phase.animation
+                    }
+                }
             }
             Circle()
                 .fill(isLive ? Theme.accent : Theme.inkSecondary.opacity(0.4))
                 .frame(width: size * 0.42, height: size * 0.42)
         }
         .frame(width: size, height: size)
-        .onAppear {
-            guard isLive, !reduceMotion else { return }
-            withAnimation(.easeOut(duration: 1.4).repeatForever(autoreverses: false)) { isExpanded = true }
-        }
         .accessibilityHidden(true)
+    }
+
+    private func halo(_ phase: LiveDotHalo) -> some View {
+        Circle()
+            .fill(Theme.accent)
+            .frame(width: size * LiveDotHalo.diameter, height: size * LiveDotHalo.diameter)
+            .scaleEffect(phase.scale)
+            .opacity(phase.opacity)
     }
 }
