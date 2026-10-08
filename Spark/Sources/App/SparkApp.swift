@@ -63,16 +63,9 @@ struct SparkApp: App {
 
     var body: some Scene {
         MenuBarExtra {
-            Group {
-                if state.isAuthenticated {
-                    MenuBarView()
-                        .environmentObject(state)
-                        .environmentObject(codex)
-                } else {
-                    NotConnectedView()
-                        .environmentObject(state)
-                }
-            }
+            MenuBarView()
+                .environmentObject(state)
+                .environmentObject(codex)
             .task {
                 guard !hasLaunched else { return }
                 hasLaunched = true

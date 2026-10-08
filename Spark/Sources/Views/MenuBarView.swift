@@ -29,7 +29,11 @@ struct MenuBarView: View {
                 onSelect: select,
                 onReport: openReport
             )
-            if screen == .overview {
+            if screen == .overview, provider == .claude, !state.isAuthenticated {
+                // Without a Claude sign-in the popover still opens, so Codex stays one tab away.
+                NotConnectedScreen()
+                NotConnectedFooter(codexIsActive: codex.isActive)
+            } else if screen == .overview {
                 overview
                 PopoverFooter(lastUpdated: lastUpdated, isLoading: isLoading, onRefresh: refresh)
             } else {
