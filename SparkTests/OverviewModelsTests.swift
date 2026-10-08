@@ -25,8 +25,8 @@ final class OverviewModelsTests: XCTestCase {
         ]
         let columns = HistoryColumns.make(snapshots, now: now, count: 6)
         XCTAssertEqual(columns.count, 6)
-        XCTAssertEqual(columns.first, HistoryColumn(session: 10, weekly: 40))
-        XCTAssertEqual(columns.last, HistoryColumn(session: 45, weekly: 48))
+        XCTAssertEqual(columns.first, HistoryColumn(session: 10, weekly: 40, time: now.addingTimeInterval(-359 * 60)))
+        XCTAssertEqual(columns.last, HistoryColumn(session: 45, weekly: 48, time: now.addingTimeInterval(-60)))
     }
 
     func testEmptySlotsStayEmpty() {

@@ -20,6 +20,8 @@ struct HistoryCard: View {
     let axisLabels: [String]
     let onOpen: () -> Void
 
+    @State private var hovered: Int?
+
     private static let chartHeight: CGFloat = 56
 
     var body: some View {
@@ -59,32 +61,74 @@ struct HistoryCard: View {
     }
 
     private var chart: some View {
-        Canvas { context, size in
-            guard !columns.isEmpty else { return }
-            let pitch = size.width / CGFloat(columns.count)
-            let dot = min(4, pitch - 1.5)
-            let lastFilled = columns.lastIndex { $0.session != nil }
-            for (index, column) in columns.enumerated() {
-                guard let session = column.session else { continue }
-                let rows = Int((min(max(session, 0), 100) / 100 * Double(size.height / 6)).rounded())
-                let colour = index == lastFilled ? Theme.ink : Theme.ink.opacity(0.3)
-                let centerX = pitch * (CGFloat(index) + 0.5)
-                for row in 0..<max(rows, 1) {
-                    let centerY = size.height - 3 - CGFloat(row) * 6
-                    context.fill(Path(ellipseIn: CGRect(x: centerX - dot / 2, y: centerY - dot / 2, width: dot, height: dot)), with: .color(colour))
+        GeometryReader { proxy in
+            Canvas { context, size in draw(in: &context, size: size) }
+                .contentShape(Rectangle())
+                .onContinuousHover { phase in
+                    switch phase {
+                    case .active(let location):
+                        hovered = HistoryHover.index(x: location.x, width: proxy.size.width, columns: columns)
+                    case .ended:
+                        hovered = nil
+                    }
                 }
-            }
-            var line = Path()
-            for (index, column) in columns.enumerated() {
-                guard let weekly = column.weekly else { continue }
-                let point = CGPoint(x: pitch * (CGFloat(index) + 0.5), y: size.height * (1 - min(max(weekly, 0), 100) / 100))
-                if line.isEmpty { line.move(to: point) } else { line.addLine(to: point) }
-            }
-            context.stroke(line, with: .color(Theme.accent), style: StrokeStyle(lineWidth: 1.75, lineCap: .round, lineJoin: .round))
+                .overlay(alignment: .topLeading) { readout(width: proxy.size.width) }
         }
         .frame(height: Self.chartHeight)
         .overlay(alignment: .bottom) { Rectangle().fill(Theme.hairline).frame(height: 1) }
         .accessibilityHidden(true)
+    }
+
+    private func draw(in context: inout GraphicsContext, size: CGSize) {
+        guard !columns.isEmpty else { return }
+        let pitch = size.width / CGFloat(columns.count)
+        let dot = min(4, pitch - 1.5)
+        let highlighted = hovered ?? columns.lastIndex { $0.session != nil }
+        if let hovered {
+            let guideX = pitch * (CGFloat(hovered) + 0.5)
+            context.fill(Path(CGRect(x: guideX - 0.5, y: 0, width: 1, height: size.height)), with: .color(Theme.hairline))
+        }
+        for (index, column) in columns.enumerated() {
+            guard let session = column.session else { continue }
+            let rows = Int((min(max(session, 0), 100) / 100 * Double(size.height / 6)).rounded())
+            let colour = index == highlighted ? Theme.ink : Theme.ink.opacity(0.3)
+            let centerX = pitch * (CGFloat(index) + 0.5)
+            for row in 0..<max(rows, 1) {
+                let centerY = size.height - 3 - CGFloat(row) * 6
+                context.fill(Path(ellipseIn: CGRect(x: centerX - dot / 2, y: centerY - dot / 2, width: dot, height: dot)), with: .color(colour))
+            }
+        }
+        var line = Path()
+        for (index, column) in columns.enumerated() {
+            guard let weekly = column.weekly else { continue }
+            let point = CGPoint(x: pitch * (CGFloat(index) + 0.5), y: size.height * (1 - min(max(weekly, 0), 100) / 100))
+            if line.isEmpty { line.move(to: point) } else { line.addLine(to: point) }
+        }
+        context.stroke(line, with: .color(Theme.accent), style: StrokeStyle(lineWidth: 1.75, lineCap: .round, lineJoin: .round))
+    }
+
+    /// Shown at once, without the tooltip delay, beside the hovered column and on the side with
+    /// more room, so it never covers the column it describes.
+    @ViewBuilder
+    private func readout(width: CGFloat) -> some View {
+        if let hovered, let text = HistoryHover.text(columns[hovered]) {
+            let columnX = width / CGFloat(columns.count) * (CGFloat(hovered) + 0.5)
+            let onLeft = columnX > width / 2
+            VStack(alignment: .leading, spacing: 2) {
+                Text(text.title)
+                    .font(.system(size: 10, design: .monospaced))
+                    .foregroundStyle(Theme.paper.opacity(0.65))
+                Text(text.body)
+                    .font(.system(size: 11))
+                    .monospacedDigit()
+            }
+            .fixedSize()
+            .padding(.horizontal, 8)
+            .padding(.vertical, 5)
+            .tooltipChrome()
+            .padding(onLeft ? .trailing : .leading, onLeft ? width - columnX + 8 : columnX + 8)
+            .frame(width: width, alignment: onLeft ? .trailing : .leading)
+        }
     }
 
     private var axis: some View {

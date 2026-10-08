@@ -23,6 +23,7 @@ struct SessionForecast: Equatable {
 struct HistoryColumn: Equatable {
     let session: Double?
     let weekly: Double?
+    var time: Date?
 }
 
 /// Buckets snapshots of the last `window` into `count` equal slots, oldest first, keeping the
@@ -40,7 +41,7 @@ enum HistoryColumns {
         }
         return (0..<count).map { index in
             guard let snapshot = latest[index] else { return HistoryColumn(session: nil, weekly: nil) }
-            return HistoryColumn(session: snapshot.sessionUtilization, weekly: snapshot.weeklyUtilization)
+            return HistoryColumn(session: snapshot.sessionUtilization, weekly: snapshot.weeklyUtilization, time: snapshot.timestamp)
         }
     }
 }
@@ -168,5 +169,33 @@ enum HistoryAxis {
         formatter.dateStyle = .none
         formatter.timeStyle = .short
         return [-window, -window / 2, 0].map { formatter.string(from: now.addingTimeInterval($0)) }
+    }
+}
+
+/// The hover readout of the history card: which column the pointer is on, and what it says.
+enum HistoryHover {
+    /// The column under `x`, or the nearest one with a value when that slot is empty.
+    static func index(x: CGFloat, width: CGFloat, columns: [HistoryColumn]) -> Int? {
+        guard width > 0, !columns.isEmpty else { return nil }
+        let pointer = min(max(Int(x / width * CGFloat(columns.count)), 0), columns.count - 1)
+        return columns.indices
+            .filter { columns[$0].session != nil || columns[$0].weekly != nil }
+            .min { abs($0 - pointer) < abs($1 - pointer) }
+    }
+
+    static func text(
+        _ column: HistoryColumn, locale: Locale = .current, timeZone: TimeZone = .current
+    ) -> (title: String, body: String)? {
+        guard column.session != nil || column.weekly != nil else { return nil }
+        let formatter = DateFormatter()
+        formatter.locale = locale
+        formatter.timeZone = timeZone
+        formatter.dateStyle = .none
+        formatter.timeStyle = .short
+        let lines = [
+            column.session.map { "Session \(UsageFormat.percent($0, locale: locale))" },
+            column.weekly.map { "Week \(UsageFormat.percent($0, locale: locale))" }
+        ]
+        return (column.time.map(formatter.string) ?? "", lines.compactMap { $0 }.joined(separator: "\n"))
     }
 }
