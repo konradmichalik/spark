@@ -76,13 +76,23 @@ enum CLIVersionClient {
 
     // MARK: - Local CLI
 
-    static func readLocalVersion() async -> String? {
+    /// The first word that starts with a digit: "2.1.294 (Claude Code)" and "codex-cli 0.46.0"
+    /// both name their version that way.
+    static func parseVersion(_ output: String) -> String? {
+        output
+            .split(whereSeparator: { $0.isWhitespace })
+            .first { $0.first?.isNumber == true }
+            .map(String.init)
+    }
+
+    /// Runs `<command> --version` in a login shell, since a menu bar app has a minimal PATH.
+    static func readLocalVersion(command: String = "claude") async -> String? {
         await Task.detached {
             let process = Process()
             let pipe = Pipe()
 
             process.executableURL = URL(fileURLWithPath: "/bin/zsh")
-            process.arguments = ["-lc", "claude --version"]
+            process.arguments = ["-lc", "\(command) --version"]
             process.standardOutput = pipe
             process.standardError = FileHandle.nullDevice
 
@@ -90,12 +100,7 @@ enum CLIVersionClient {
                 try process.run()
                 let data = pipe.fileHandleForReading.readDataToEndOfFile()
                 process.waitUntilExit()
-                guard let output = String(data: data, encoding: .utf8) else { return nil }
-
-                return output
-                    .trimmingCharacters(in: .whitespacesAndNewlines)
-                    .components(separatedBy: " ")
-                    .first
+                return String(data: data, encoding: .utf8).flatMap(parseVersion)
             } catch {
                 log.error("Failed to read local CLI version: \(error.localizedDescription, privacy: .public)")
                 return nil
