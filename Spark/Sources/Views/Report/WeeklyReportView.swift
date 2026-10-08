@@ -8,6 +8,10 @@ struct WeeklyReportView: View {
     static let windowID = "weeklyReport"
 
     @EnvironmentObject var state: AppState
+    @EnvironmentObject private var codex: CodexState
+
+    @State private var selectedScope = ReportScope.all
+    @State private var codexData: CodexReportData?
 
     var body: some View {
         // The header stays outside the scroll view: the period controls are what someone reaches
@@ -17,6 +21,11 @@ struct WeeklyReportView: View {
                 .padding(.horizontal, 20)
                 .frame(minHeight: 52)
             Rectangle().fill(Theme.hairline).frame(height: 1)
+            if ReportScoping.showsFilter(codexShown: codexShown) {
+                PaperSegments(selection: $selectedScope, options: ReportScope.allCases, fillsWidth: true, label: "Provider")
+                    .padding(.horizontal, 20)
+                    .padding(.top, 12)
+            }
             ScrollView {
                 content
                     .padding(20)
@@ -32,31 +41,35 @@ struct WeeklyReportView: View {
             // period they left the window on.
             state.loadWeeklyReport(period: .week, offset: 0)
         }
+        .task(id: codexLoadKey) { await loadCodexData() }
+    }
+
+    /// Codex counts once it is active, or when signed out but its local files still hold use.
+    private var codexShown: Bool { codex.isActive || codexData?.hasUse == true }
+
+    private var scope: ReportScope { ReportScoping.effective(selectedScope, codexShown: codexShown) }
+
+    private var codexLoadKey: String {
+        guard let report = state.weeklyReport else { return "none" }
+        return "\(report.previousStart.timeIntervalSince1970)-\(report.rangeStart.timeIntervalSince1970)-\(codex.isEnabled)"
+    }
+
+    /// A switched-off Codex is not read at all.
+    private func loadCodexData() async {
+        guard let report = state.weeklyReport, codex.isEnabled else {
+            codexData = nil
+            return
+        }
+        let until = report.periodOffset > 0 ? Calendar.current.date(byAdding: .day, value: 1, to: report.rangeEnd) : nil
+        let data = await codex.reportData(previousStart: report.previousStart, start: report.rangeStart, until: until)
+        guard !Task.isCancelled else { return }
+        codexData = data
     }
 
     @ViewBuilder
     private var content: some View {
-        if let report = state.weeklyReport, report.hasData {
-            VStack(alignment: .leading, spacing: 28) {
-                ReportTotals(report: report, showApiCost: state.showApiCost)
-                PaceSection(
-                    days: PaceDaySeries.build(snapshots: state.history, start: report.rangeStart, end: report.rangeEnd),
-                    emptyText: report.periodOffset == 0 ? "Not enough data yet." : "No usage history for that period."
-                )
-                ActivitySection(report: report)
-                HStack(alignment: .top, spacing: 28) {
-                    ModelShareSection(
-                        rows: ModelRow.rows(from: report.modelTotals, costByModel: report.costSummary?.byModel),
-                        emptyText: report.periodOffset == 0 ? "No model usage yet." : "No model usage in that period."
-                    )
-                    .frame(maxWidth: .infinity, alignment: .topLeading)
-                    ReportList(title: "TOP PROJECTS", entries: projects(report))
-                        .frame(maxWidth: .infinity, alignment: .topLeading)
-                }
-                if !report.topSessions.isEmpty {
-                    ReportList(title: "TOP SESSIONS", entries: sessions(report))
-                }
-            }
+        if let report = state.weeklyReport, report.hasData || codexData?.hasUse == true {
+            ReportBody(report: report, scope: scope, codex: codexData, showApiCost: state.showApiCost)
         } else if state.weeklyReport == nil {
             // Covers the gap before `.task` fires and the load itself.
             ProgressView()
@@ -113,97 +126,5 @@ struct WeeklyReportView: View {
     private var periodTitle: String {
         guard let report = state.weeklyReport else { return "" }
         return ReportText.periodTitle(report.period, start: report.rangeStart, end: report.rangeEnd)
-    }
-
-    private func projects(_ report: PeriodReport) -> [ReportEntry] {
-        report.topProjects.map { project in
-            ReportEntry(
-                id: project.key, name: project.displayName, value: formatTokenCount(project.tokens),
-                tooltip: StatisticsText.projectTooltip(tokens: project.tokens, cost: report.costSummary?.byProject[project.key]),
-                path: project.cwd
-            )
-        }
-    }
-
-    private func sessions(_ report: PeriodReport) -> [ReportEntry] {
-        report.topSessions.map { session in
-            ReportEntry(
-                id: session.id, name: session.displayName,
-                detail: session.start.map { Self.sessionTiming(start: $0, duration: session.duration) },
-                value: formatTokenCount(session.tokens),
-                tooltip: StatisticsText.projectTooltip(tokens: session.tokens, cost: report.costSummary?.bySession[session.id])
-            )
-        }
-    }
-
-    /// "Mon 14:20 · 2h 5m". The duration is left out below a minute, where it says nothing.
-    private static func sessionTiming(start: Date, duration: TimeInterval?) -> String {
-        let startText = start.formatted(.dateTime.weekday(.abbreviated).hour().minute())
-        guard let duration, duration >= 60 else { return startText }
-        return "\(startText) · \(duration.shortDuration)"
-    }
-}
-
-/// Tokens, the change against the previous period and the API cost estimate, then the notes
-/// that qualify them.
-private struct ReportTotals: View {
-    let report: PeriodReport
-    let showApiCost: Bool
-
-    private static let cacheHitRateWarningThreshold = 0.9
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            if report.isEmptyWindow {
-                // The month started, but its first day has not closed yet: nothing to compare.
-                DetailNote(text: "No closed days yet this month.")
-            } else {
-                HStack(alignment: .top, spacing: 20) {
-                    ReportTotal(label: "TOKENS", parts: UsageFormat.tokens(report.currentPeriodTokens), tooltip: previousText)
-                    trendTotal
-                    costTotal
-                }
-            }
-            notes
-        }
-    }
-
-    private var previousText: String {
-        "\(formatTokenCount(report.previousPeriodTokens)) tokens the \(report.period == .month ? "month" : "week") before"
-    }
-
-    @ViewBuilder
-    private var trendTotal: some View {
-        let label = ReportText.comparisonLabel(report.period, start: report.rangeStart)
-        if let trend = ReportText.trend(report.trendPercent) {
-            ReportTotal(label: label, parts: trend, tooltip: previousText)
-        } else {
-            VStack(alignment: .leading, spacing: 6) {
-                MicroLabel(text: label)
-                DetailNote(text: "No usage to compare with.")
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-        }
-    }
-
-    @ViewBuilder
-    private var costTotal: some View {
-        if let summary = report.costSummary {
-            ReportTotal(
-                label: "API COST", parts: UsageFormat.cost(summary.total), prefix: "\u{2248}",
-                tooltip: StatisticsText.costTooltip(summary), spokenValue: "about \(formatCost(summary.total))"
-            )
-        }
-    }
-
-    @ViewBuilder
-    private var notes: some View {
-        if report.costSummary == nil, showApiCost {
-            DetailNote(text: "API prices unavailable. Check your connection.")
-        }
-        // Multi-turn use keeps the hit rate near the ceiling, so it only shows when it drops.
-        if let rate = report.cacheHitRate, rate < Self.cacheHitRateWarningThreshold {
-            WarningBanner(message: "Cache hit rate dropped to \(UsageFormat.percent(rate * 100))")
-        }
     }
 }

@@ -1,71 +1,26 @@
 import SwiftUI
 
-/// Which days each provider was used, as one dotted calendar per provider: weeks in rows, weekdays
-/// in columns, the dot's weight the day's fresh tokens against the busiest day of the period.
+/// The days the shown scope was used, as one dotted calendar: weeks in rows, weekdays in columns,
+/// the dot's weight the day's fresh tokens against the busiest day of the period.
 struct ActivitySection: View {
     let report: PeriodReport
-
-    @EnvironmentObject private var codex: CodexState
-    @State private var codexDays: [String: Int] = [:]
+    let dayTokens: [String: Int]
 
     private var calendar: Calendar { .current }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            MicroLabel(text: "ACTIVITY \u{00B7} DAYS WITH USE")
-                .accessibilityAddTraits(.isHeader)
-            ActivityCalendarView(provider: .claude, rows: rows(report.dayTokens), calendar: calendar)
-            if codex.isActive || hasCodexUse {
-                ActivityCalendarView(provider: .codex, rows: rows(codexDays), calendar: calendar)
-            }
-            ActivityLegend()
-        }
-        .task(id: "\(report.calendarStart.timeIntervalSince1970)-\(codex.isEnabled)") {
-            await loadCodexDays()
-        }
-    }
-
-    private var hasCodexUse: Bool {
-        codexDays.values.contains { $0 > 0 }
-    }
-
-    private func rows(_ dayTokens: [String: Int]) -> [[ActivityCell]] {
-        ActivityCalendar.rows(
+        let rows = ActivityCalendar.rows(
             start: report.calendarStart, end: report.calendarEnd, today: Date(), dayTokens: dayTokens, calendar: calendar
         )
-    }
-
-    /// Codex switched off in Settings is not read at all, a signed-out one still shows what its
-    /// rollout files hold.
-    private func loadCodexDays() async {
-        guard codex.isEnabled else {
-            codexDays = [:]
-            return
-        }
-        let days = await codex.dayTokens(since: report.calendarStart)
-        guard !Task.isCancelled else { return }
-        codexDays = days
-    }
-}
-
-private struct ActivityCalendarView: View {
-    let provider: UsageProvider
-    let rows: [[ActivityCell]]
-    let calendar: Calendar
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack(spacing: 6) {
-                PopoverHeader.logo(for: provider)
-                Text(provider.segmentLabel)
-                    .font(.system(size: 13))
-                    .foregroundStyle(Theme.ink)
-            }
-            grid
+        VStack(alignment: .leading, spacing: 10) {
+            MicroLabel(text: "ACTIVITY \u{00B7} DAYS WITH USE")
+                .accessibilityAddTraits(.isHeader)
+            grid(rows)
+            ActivityLegend()
         }
     }
 
-    private var grid: some View {
+    private func grid(_ rows: [[ActivityCell]]) -> some View {
         Grid(horizontalSpacing: 0, verticalSpacing: 0) {
             GridRow {
                 ForEach(Array(ActivityCalendar.weekdayInitials(calendar: calendar).enumerated()), id: \.offset) { _, initial in
@@ -84,7 +39,7 @@ private struct ActivityCalendarView: View {
             }
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(provider.segmentLabel) activity")
+        .accessibilityLabel("Activity")
         .accessibilityValue(ActivityCalendar.summary(rows.flatMap { $0 }, calendar: calendar))
     }
 }

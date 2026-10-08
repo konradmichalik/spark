@@ -25,6 +25,7 @@ struct ReportTotal: View {
 
 /// The day peaks as dot columns with the week as the red line, as in History.
 struct PaceSection: View {
+    var title = "PACE \u{00B7} PEAK PER DAY"
     let days: [PaceDay]
     let emptyText: String
 
@@ -32,7 +33,7 @@ struct PaceSection: View {
         let columns = PaceColumns.make(days)
         VStack(alignment: .leading, spacing: 10) {
             HStack {
-                MicroLabel(text: "PACE \u{00B7} PEAK PER DAY")
+                MicroLabel(text: title)
                     .accessibilityAddTraits(.isHeader)
                 Spacer()
                 legend
