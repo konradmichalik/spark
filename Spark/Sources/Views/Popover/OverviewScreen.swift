@@ -63,7 +63,7 @@ struct ClaudeOverview: View {
     let open: (PopoverScreen) -> Void
 
     var body: some View {
-        if state.status.isIncident {
+        if state.status.isIncident || state.claudeCodeStatus.isIncident {
             StatusRow(state: state)
         }
         if state.needsReconnect {

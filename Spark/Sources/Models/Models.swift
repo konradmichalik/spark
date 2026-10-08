@@ -276,6 +276,18 @@ enum ClaudeServiceStatus: String, Codable, Sendable {
         self == .operational || self == .none
     }
 
+    /// Reads both status page vocabularies: the overall indicator (`none`, `minor`, `major`,
+    /// `critical`) and component statuses (`operational`, `degraded_performance`, …). Treating
+    /// the indicator as a component status turned every real incident into `.unknown`.
+    static func parse(_ raw: String) -> ClaudeServiceStatus {
+        switch raw {
+        case "minor", "maintenance", "under_maintenance": .degradedPerformance
+        case "major": .partialOutage
+        case "critical": .majorOutage
+        default: ClaudeServiceStatus(rawValue: raw) ?? .unknown
+        }
+    }
+
     /// A problem the status page actually reports. `.unknown` only means the page could not be
     /// read, which is no reason to show a notice in the popover.
     var isIncident: Bool {

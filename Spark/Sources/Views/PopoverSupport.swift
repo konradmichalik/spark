@@ -8,29 +8,46 @@ import SwiftUI
 struct StatusRow: View {
     @ObservedObject var state: AppState
 
+    /// A major outage is the one status that earns red; anything milder stays ochre.
+    private var tone: UsageTone {
+        state.status == .majorOutage || state.claudeCodeStatus == .majorOutage ? .critical : .warning
+    }
+
     var body: some View {
-        HStack(spacing: 8) {
-            TablerIconView(state.status.icon, size: 14, color: Theme.warning)
-            Text("Claude: \(state.status.displayName)")
-                .font(.system(size: 12))
-                .foregroundStyle(Theme.ink)
-            Spacer()
-            if !state.claudeCodeStatus.isHealthy {
-                Link(destination: URL(staticString: "https://status.claude.com")) {
-                    HStack(spacing: 3) {
-                        Text("Code: \(state.claudeCodeStatus.displayName)")
-                            .font(.system(size: 11))
-                        TablerIconView(.externalLink, size: 10, color: Theme.inkSecondary)
-                    }
-                    .foregroundStyle(Theme.inkSecondary)
-                }
-                .buttonStyle(.plain)
+        Link(destination: URL(staticString: "https://status.claude.com")) {
+            HStack(spacing: 8) {
+                TablerIconView(worst.icon, size: 14, color: tone.color)
+                Text(headline)
+                    .font(.system(size: 12))
+                    .foregroundStyle(Theme.ink)
+                    .lineLimit(2)
+                Spacer(minLength: 4)
+                TablerIconView(.externalLink, size: 11, color: Theme.inkSecondary)
             }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .frame(minHeight: 40)
+            .background(Theme.card, in: RoundedRectangle(cornerRadius: 10))
+            .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(Theme.hairline))
+            .contentShape(Rectangle())
         }
-        .padding(.horizontal, 12)
-        .frame(minHeight: 40)
-        .background(Theme.card, in: RoundedRectangle(cornerRadius: 10))
-        .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(Theme.hairline))
+        .buttonStyle(.plain)
+        .tooltip(detail, title: "Claude status")
+        .accessibilityLabel(headline)
+        .accessibilityHint("Opens status.claude.com")
+    }
+
+    private var worst: ClaudeServiceStatus {
+        state.status.isIncident ? state.status : state.claudeCodeStatus
+    }
+
+    private var headline: String {
+        let description = state.statusDescription.trimmingCharacters(in: .whitespaces)
+        return state.status.isIncident && !description.isEmpty ? description : "Claude Code: \(worst.displayName)"
+    }
+
+    private var detail: String {
+        "Claude Code: \(state.claudeCodeStatus.displayName)\nAPI: \(state.apiStatus.displayName)\nOpens status.claude.com"
     }
 }
 

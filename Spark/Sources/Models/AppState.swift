@@ -506,11 +506,11 @@ final class AppState: ObservableObject {
                 try await UsageClient.fetchStatus()
             }.value
 
-            status = ClaudeServiceStatus(rawValue: response.status.indicator) ?? .unknown
+            status = ClaudeServiceStatus.parse(response.status.indicator)
             statusDescription = response.status.description
 
             if let comps = response.components {
-                components = comps.map { (name: $0.name, status: ClaudeServiceStatus(rawValue: $0.status) ?? .unknown) }
+                components = comps.map { (name: $0.name, status: ClaudeServiceStatus.parse($0.status)) }
                 let knownAPINames = ["api", "anthropic api"]
                 let knownCodeNames = ["claude.ai", "claude code", "claude for work"]
                 for (name, compStatus) in components {
