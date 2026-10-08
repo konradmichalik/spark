@@ -16,11 +16,7 @@ struct DetailScreen: View {
         case .history:
             HistoryScreen(history: state.history, rollups: state.rollups)
         case .sessions:
-            if state.activeSessions.isEmpty {
-                emptyText("No active sessions")
-            } else {
-                ActiveSessionsView(sessions: state.activeSessions)
-            }
+            SessionsScreen(sessions: state.activeSessions)
         case .statistics:
             statistics
         case .limits:

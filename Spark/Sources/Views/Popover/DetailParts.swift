@@ -69,3 +69,62 @@ struct DetailNote: View {
             .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
+
+/// The row that expands a long list in place.
+struct ShowMoreRow: View {
+    let more: ShowMore
+    @Binding var isExpanded: Bool
+
+    var body: some View {
+        if let label = more.label(expanded: isExpanded) {
+            Button {
+                isExpanded.toggle()
+            } label: {
+                HStack(spacing: 5) {
+                    Text(label)
+                    TablerIconView(.chevronRight, size: 10, color: Theme.inkTertiary)
+                        .rotationEffect(.degrees(isExpanded ? -90 : 90))
+                }
+                .font(.system(size: 11.5))
+                .foregroundStyle(Theme.inkSecondary)
+                .frame(maxWidth: .infinity, minHeight: 30)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+        }
+    }
+}
+
+extension View {
+    /// Reveal in Finder, Open in Terminal and Copy Path for a row that stands for a folder.
+    @ViewBuilder
+    func pathActions(_ path: String?) -> some View {
+        if let path {
+            contextMenu {
+                Button("Reveal in Finder") { PathActions.reveal(path) }
+                Button("Open in Terminal") { PathActions.openInTerminal(path) }
+                Button("Copy Path") {
+                    NSPasteboard.general.clearContents()
+                    NSPasteboard.general.setString(path, forType: .string)
+                }
+            }
+        } else {
+            self
+        }
+    }
+}
+
+enum PathActions {
+    static func reveal(_ path: String) {
+        NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: path)])
+    }
+
+    /// Runs `/usr/bin/open` with the path as an argument, not through a shell, so a path with
+    /// spaces needs no quoting.
+    static func openInTerminal(_ path: String) {
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/open")
+        process.arguments = ["-a", "Terminal", path]
+        try? process.run()
+    }
+}
