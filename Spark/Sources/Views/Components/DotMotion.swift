@@ -125,6 +125,8 @@ private struct Breathing: ViewModifier {
             }
         }
         .task(id: isActive) {
+            // Every activation waits for the layout to settle again, not only the first.
+            isSettled = false
             guard isActive else { return }
             isSettled = await LiveDotHalo.settle()
         }
