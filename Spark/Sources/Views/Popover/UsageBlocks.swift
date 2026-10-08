@@ -3,10 +3,11 @@ import SwiftUI
 /// The uppercase micro label above a value (docs/design/rules.md, "Typography").
 private struct MicroLabel: View {
     let text: String
+    var size: CGFloat = 10
 
     var body: some View {
         Text(text)
-            .font(.system(size: 10, design: .monospaced))
+            .font(.system(size: size, design: .monospaced))
             .tracking(1.5)
             .foregroundStyle(Theme.inkSecondary)
     }
@@ -106,10 +107,10 @@ private struct SessionFact: View {
     let explanation: String
 
     var body: some View {
-        VStack(alignment: alignment, spacing: 2) {
-            MicroLabel(text: label)
+        VStack(alignment: alignment, spacing: 1) {
+            MicroLabel(text: label, size: 9)
             Text(value)
-                .font(.system(size: 12))
+                .font(.system(size: 11))
                 .monospacedDigit()
                 .foregroundStyle(tone == .normal ? Theme.ink : tone.color)
                 .lineLimit(1)

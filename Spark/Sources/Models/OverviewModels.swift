@@ -30,14 +30,8 @@ struct SessionForecast: Equatable {
 
 /// Short values for the overview rows (docs/design/rules.md, "Navigation").
 enum OverviewSummary {
-    static func statisticsValue(tokens: Int?, cost: Double?, messages: Int?) -> String? {
-        let tokenText = tokens.flatMap { $0 > 0 ? "\(formatTokenCount($0)) tok" : nil }
-        let costText = cost.map { cost -> String in
-            let parts = UsageFormat.cost(cost)
-            return "\u{2248} $\(parts.number)\(parts.unit.replacingOccurrences(of: "$", with: ""))"
-        }
-        let parts = [tokenText, costText].compactMap { $0 }
-        if !parts.isEmpty { return parts.joined(separator: " \u{00B7} ") }
+    static func statisticsValue(tokens: Int?, messages: Int?) -> String? {
+        if let tokens, tokens > 0 { return "\(formatTokenCount(tokens)) tokens" }
         guard let messages else { return nil }
         return messages == 1 ? "1 message" : "\(messages) messages"
     }

@@ -96,7 +96,8 @@ struct HistoryCard: View {
         for (position, item) in items.enumerated() {
             let centerX = pitch * (CGFloat(position) + 0.5)
             guard case .column(let index) = item else {
-                let band = CGRect(x: centerX - pitch / 2 + 1, y: 0, width: max(pitch - 2, 2), height: size.height)
+                let bandWidth = min(max(pitch - 2, 2), 6)
+                let band = CGRect(x: centerX - bandWidth / 2, y: 0, width: bandWidth, height: size.height)
                 context.fill(Path(roundedRect: band, cornerRadius: 2), with: .color(Theme.dotTrack.opacity(0.7)))
                 lineIsOpen = false
                 continue
@@ -112,7 +113,13 @@ struct HistoryCard: View {
             }
             guard let weekly = column.weekly else { continue }
             let point = CGPoint(x: centerX, y: size.height * (1 - min(max(weekly, 0), 100) / 100))
-            if lineIsOpen { line.addLine(to: point) } else { line.move(to: point) }
+            if lineIsOpen {
+                line.addLine(to: point)
+            } else {
+                // A segment can be a single point between two gaps; the dot keeps it visible.
+                line.move(to: point)
+                context.fill(Path(ellipseIn: CGRect(x: point.x - 1.5, y: point.y - 1.5, width: 3, height: 3)), with: .color(Theme.accent))
+            }
             lineIsOpen = true
         }
         context.stroke(line, with: .color(Theme.accent), style: StrokeStyle(lineWidth: 1.75, lineCap: .round, lineJoin: .round))
@@ -157,8 +164,13 @@ struct HistoryCard: View {
 
 /// One row of the overview's row group: a label, a short value and a chevron.
 struct OverviewRow: Identifiable {
+    enum Icon {
+        case pulse(isLive: Bool)
+        case dots(DotIcon)
+    }
+
     let screen: PopoverScreen
-    let icon: TablerIcon
+    let icon: Icon
     let label: String
     let value: String?
     var id: PopoverScreen { screen }
@@ -186,7 +198,10 @@ struct OverviewRows: View {
             onOpen(row.screen)
         } label: {
             HStack(spacing: 10) {
-                TablerIconView(row.icon, size: 13, color: Theme.inkSecondary)
+                switch row.icon {
+                case .pulse(let isLive): PulsingDot(isLive: isLive)
+                case .dots(let icon): DotIconView(icon: icon)
+                }
                 Text(row.label).font(.system(size: 12.5)).foregroundStyle(Theme.ink)
                 Spacer()
                 if let value = row.value {

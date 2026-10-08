@@ -104,19 +104,19 @@ struct ClaudeOverview: View {
         var rows: [OverviewRow] = []
         if state.showActiveSessions {
             rows.append(OverviewRow(
-                screen: .sessions, icon: .terminal2, label: "Active sessions", value: "\(state.activeSessions.count)"
+                screen: .sessions, icon: .pulse(isLive: !state.activeSessions.isEmpty),
+                label: "Active sessions", value: "\(state.activeSessions.count)"
             ))
         }
         if state.showStats {
             let label = state.statsPeriod == .today ? "Statistics today" : "Statistics"
             let value = OverviewSummary.statisticsValue(
-                tokens: state.liveStats?.realTokens, cost: state.showApiCost ? state.liveCost?.total : nil,
-                messages: state.liveStats?.messageCount
+                tokens: state.liveStats?.realTokens, messages: state.liveStats?.messageCount
             )
-            rows.append(OverviewRow(screen: .statistics, icon: .chartBar, label: label, value: value))
+            rows.append(OverviewRow(screen: .statistics, icon: .dots(.statistics), label: label, value: value))
         }
         rows.append(OverviewRow(
-            screen: .limits, icon: .layoutGrid, label: "All limits",
+            screen: .limits, icon: .dots(.limits), label: "All limits",
             value: OverviewSummary.limitsValue(extraLimits: extraLimitCount, plan: state.accountTier.displayName)
         ))
         return rows
@@ -179,13 +179,13 @@ struct CodexOverview: View {
         var rows: [OverviewRow] = []
         if showStats, let stats = codex.stats, stats.fileCount > 0 {
             rows.append(OverviewRow(
-                screen: .statistics, icon: .chartBar, label: "Statistics",
-                value: OverviewSummary.statisticsValue(tokens: stats.totalTokens, cost: nil, messages: stats.messageCount)
+                screen: .statistics, icon: .dots(.statistics), label: "Statistics",
+                value: OverviewSummary.statisticsValue(tokens: stats.totalTokens, messages: stats.messageCount)
             ))
         }
         let extra = (codex.usage?.additionalLimits.count ?? 0) + (codex.usage?.creditsBalance == nil ? 0 : 1)
         rows.append(OverviewRow(
-            screen: .limits, icon: .layoutGrid, label: "All limits",
+            screen: .limits, icon: .dots(.limits), label: "All limits",
             value: OverviewSummary.limitsValue(extraLimits: extra, plan: codex.usage?.planDisplayName)
         ))
         return rows

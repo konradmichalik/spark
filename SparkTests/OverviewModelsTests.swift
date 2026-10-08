@@ -50,13 +50,10 @@ final class OverviewModelsTests: XCTestCase {
     }
 
     func testStatisticsValuePrefersCost() {
-        XCTAssertEqual(OverviewSummary.statisticsValue(tokens: 18_400_000, cost: 36.0, messages: 130), "18.4M tok \u{00B7} \u{2248} $36.00")
-        XCTAssertEqual(OverviewSummary.statisticsValue(tokens: 18_400_000, cost: nil, messages: 130), "18.4M tok")
-        XCTAssertEqual(OverviewSummary.statisticsValue(tokens: nil, cost: 116.65, messages: 130), "\u{2248} $117")
-        XCTAssertEqual(OverviewSummary.statisticsValue(tokens: 0, cost: 48_210, messages: nil), "\u{2248} $48.2K")
-        XCTAssertEqual(OverviewSummary.statisticsValue(tokens: nil, cost: nil, messages: 130), "130 messages")
-        XCTAssertEqual(OverviewSummary.statisticsValue(tokens: nil, cost: nil, messages: 1), "1 message")
-        XCTAssertNil(OverviewSummary.statisticsValue(tokens: nil, cost: nil, messages: nil))
+        XCTAssertEqual(OverviewSummary.statisticsValue(tokens: 2_500_000, messages: 130), "2.5M tokens")
+        XCTAssertEqual(OverviewSummary.statisticsValue(tokens: 0, messages: 130), "130 messages")
+        XCTAssertEqual(OverviewSummary.statisticsValue(tokens: nil, messages: 1), "1 message")
+        XCTAssertNil(OverviewSummary.statisticsValue(tokens: nil, messages: nil))
     }
 
     func testLimitsValue() {
