@@ -216,18 +216,25 @@ enum ProjectionResult: Sendable {
 }
 
 enum SessionProjection {
-    /// Calculate projection from history snapshots (last 60 min), current utilization, and reset date.
+    /// Minutes of data the rate needs before it is worth extrapolating to the reset.
+    static let minimumSpan: TimeInterval = 15 * 60
+    private static let sessionLength: TimeInterval = 5 * 3600
+
+    /// Calculate projection from the last 60 minutes of the current session's snapshots, current
+    /// utilization, and reset date. Snapshots from before the session started would mix two
+    /// sessions into one rate, so they are dropped.
     static func calculate(
         history: [UsageSnapshot],
         currentUtilization: Double,
-        resetsAt: Date?
+        resetsAt: Date?,
+        now: Date = Date()
     ) -> ProjectionResult {
         guard let resetsAt else { return .insufficientData }
 
-        let hoursUntilReset = resetsAt.timeIntervalSinceNow / 3600
+        let hoursUntilReset = resetsAt.timeIntervalSince(now) / 3600
         guard hoursUntilReset > 0 else { return .insufficientData }
 
-        let cutoff = Date().addingTimeInterval(-3600) // last 60 minutes
+        let cutoff = max(now.addingTimeInterval(-3600), resetsAt.addingTimeInterval(-sessionLength))
         let recent = history.filter { $0.timestamp > cutoff }
 
         guard recent.count >= 2,
@@ -236,8 +243,9 @@ enum SessionProjection {
             return .insufficientData
         }
 
-        let timeDiffHours = newest.timestamp.timeIntervalSince(oldest.timestamp) / 3600
-        guard timeDiffHours > 0 else { return .insufficientData }
+        let span = newest.timestamp.timeIntervalSince(oldest.timestamp)
+        guard span >= minimumSpan else { return .insufficientData }
+        let timeDiffHours = span / 3600
 
         let rate = (newest.sessionUtilization - oldest.sessionUtilization) / timeDiffHours
         guard rate > 0 else { return .insufficientData }
