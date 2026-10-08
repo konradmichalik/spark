@@ -83,16 +83,16 @@ final class OverviewModelsTests: XCTestCase {
 
     func testFooterStatusText() {
         let now = Date()
-        XCTAssertEqual(PopoverFooter.statusText(isLoading: true, lastUpdated: nil, now: now), "Updating\u{2026}")
-        XCTAssertEqual(PopoverFooter.statusText(isLoading: false, lastUpdated: nil, now: now), "Not updated yet")
-        XCTAssertEqual(PopoverFooter.statusText(isLoading: false, lastUpdated: now.addingTimeInterval(-150), now: now), "Updated 2m ago")
+        XCTAssertEqual(FooterText.status(isLoading: true, lastUpdated: nil, now: now), "Updating\u{2026}")
+        XCTAssertEqual(FooterText.status(isLoading: false, lastUpdated: nil, now: now), "Not updated yet")
+        XCTAssertEqual(FooterText.status(isLoading: false, lastUpdated: now.addingTimeInterval(-150), now: now), "Updated 2m ago")
     }
 
     func testFooterRelativeTime() {
         let now = Date()
-        XCTAssertEqual(PopoverFooter.relative(now.addingTimeInterval(-2), now: now), "just now")
-        XCTAssertEqual(PopoverFooter.relative(now.addingTimeInterval(-30), now: now), "30s ago")
-        XCTAssertEqual(PopoverFooter.relative(now.addingTimeInterval(-150), now: now), "2m ago")
-        XCTAssertEqual(PopoverFooter.relative(now.addingTimeInterval(-7300), now: now), "2h ago")
+        XCTAssertEqual(FooterText.relative(now.addingTimeInterval(-2), now: now), "just now")
+        XCTAssertEqual(FooterText.relative(now.addingTimeInterval(-30), now: now), "30s ago")
+        XCTAssertEqual(FooterText.relative(now.addingTimeInterval(-150), now: now), "2m ago")
+        XCTAssertEqual(FooterText.relative(now.addingTimeInterval(-7300), now: now), "2h ago")
     }
 }

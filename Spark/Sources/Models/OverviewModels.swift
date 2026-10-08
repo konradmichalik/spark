@@ -94,3 +94,21 @@ enum HeadlineLimit {
         [UsageFormat.percent(value, locale: locale), detail].compactMap { $0 }.joined(separator: ". ")
     }
 }
+
+/// The popover footer's refresh text. Kept out of the view: a SwiftUI `View` and its static
+/// members are main-actor isolated on older SDKs, which tests calling it could not reach.
+enum FooterText {
+    static func relative(_ date: Date, now: Date = Date()) -> String {
+        let interval = now.timeIntervalSince(date)
+        if interval < 5 { return "just now" }
+        if interval < 60 { return "\(Int(interval))s ago" }
+        if interval < 3600 { return "\(Int(interval / 60))m ago" }
+        return "\(Int(interval / 3600))h ago"
+    }
+
+    static func status(isLoading: Bool, lastUpdated: Date?, now: Date = Date()) -> String {
+        if isLoading { return "Updating\u{2026}" }
+        guard let lastUpdated else { return "Not updated yet" }
+        return "Updated \(relative(lastUpdated, now: now))"
+    }
+}

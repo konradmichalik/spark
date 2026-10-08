@@ -151,26 +151,12 @@ struct PopoverFooter: View {
     let isLoading: Bool
     let onRefresh: () -> Void
 
-    static func relative(_ date: Date, now: Date = Date()) -> String {
-        let interval = now.timeIntervalSince(date)
-        if interval < 5 { return "just now" }
-        if interval < 60 { return "\(Int(interval))s ago" }
-        if interval < 3600 { return "\(Int(interval / 60))m ago" }
-        return "\(Int(interval / 3600))h ago"
-    }
-
-    static func statusText(isLoading: Bool, lastUpdated: Date?, now: Date = Date()) -> String {
-        if isLoading { return "Updating\u{2026}" }
-        guard let lastUpdated else { return "Not updated yet" }
-        return "Updated \(relative(lastUpdated, now: now))"
-    }
-
     var body: some View {
         HStack {
             Button(action: onRefresh) {
                 HStack(spacing: 6) {
                     TablerIconView(.refresh, size: 13, color: Theme.inkSecondary)
-                    Text(Self.statusText(isLoading: isLoading, lastUpdated: lastUpdated))
+                    Text(FooterText.status(isLoading: isLoading, lastUpdated: lastUpdated))
                         .font(.system(size: 11))
                         .foregroundStyle(Theme.inkSecondary)
                 }
