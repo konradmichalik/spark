@@ -114,14 +114,14 @@ struct SparkApp: App {
             MenuBarLabel(state: state, codex: codex)
         }
         .menuBarExtraStyle(.window)
-        .onChange(of: state.usageData.maxUtilization) {
+        // Every fetch, not just a changed maximum: a session warning can come due while an
+        // already-notified weekly window keeps the maximum where it was.
+        .onChange(of: state.usageData.lastUpdated) {
             state.checkAndNotify()
         }
         .onChange(of: state.status) {
             state.checkAndNotify()
         }
-        // Every fetch, not just a changed maximum: a session warning can come due while an
-        // already-notified weekly window keeps the maximum where it was.
         .onChange(of: codex.usage?.usageData.lastUpdated) {
             codex.checkAndNotify()
         }

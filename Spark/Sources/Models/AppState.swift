@@ -115,8 +115,7 @@ final class AppState: ObservableObject {
     private static let activeSessionsTickInterval: TimeInterval = 30
 
     // Notification tracking
-    private var lastSessionLevel: UsageLevel = .ok
-    private var lastWeeklyLevel: UsageLevel = .ok
+    private var levelTracker = UsageLevelTracker()
     private var lastStatusNotification: ClaudeServiceStatus = .operational
     private var hasSentSessionResetNotification = true
     private var hasSentWeeklyResetNotification = true
@@ -632,26 +631,25 @@ final class AppState: ObservableObject {
     func checkAndNotify() {
         guard notificationsEnabled else { return }
 
-        checkUsageNotification(
-            window: "Session", bucket: usageData.session, utilization: usageData.sessionUtilization, lastLevel: &lastSessionLevel
-        )
-        checkUsageNotification(
-            window: "Week", bucket: usageData.weekly, utilization: usageData.weeklyUtilization, lastLevel: &lastWeeklyLevel
-        )
+        checkUsageNotifications()
         checkStatusNotification()
         checkResetNotification()
     }
 
-    private func checkUsageNotification(window: String, bucket: UsageBucket?, utilization: Double, lastLevel: inout UsageLevel) {
-        let newLevel = levelFor(utilization)
-        defer { lastLevel = newLevel }
-        guard newLevel != lastLevel, newLevel != .ok else { return }
-        let notice = NoticeWording.usage(
-            provider: .claude, window: window, value: utilization,
-            tone: UsageTone(value: utilization, warning: warningThreshold, critical: criticalThreshold),
-            resetsAt: bucket?.resetsAtDate, limitIn: window == "Session" ? sessionLimitIn(bucket) : nil
+    private func checkUsageNotifications() {
+        let crossings = levelTracker.update(
+            [("Session", usageData.sessionUtilization), ("Week", usageData.weeklyUtilization)],
+            warning: warningThreshold, critical: criticalThreshold
         )
-        NotificationPoster.post(notice, id: "usage-\(window)-\(newLevel.rawValue)")
+        for crossing in crossings {
+            let bucket = crossing.key == "Session" ? usageData.session : usageData.weekly
+            let notice = NoticeWording.usage(
+                provider: .claude, window: crossing.key, value: crossing.utilization,
+                tone: UsageTone(value: crossing.utilization, warning: warningThreshold, critical: criticalThreshold),
+                resetsAt: bucket?.resetsAtDate, limitIn: crossing.key == "Session" ? sessionLimitIn(bucket) : nil
+            )
+            NotificationPoster.post(notice, id: "usage-\(crossing.key)-\(crossing.level.rawValue)")
+        }
     }
 
     /// Seconds until the session reaches its limit at the current pace, when that comes before
@@ -688,12 +686,6 @@ final class AppState: ObservableObject {
             NotificationPoster.post(notice, id: "reset-weekly")
             hasSentWeeklyResetNotification = true
         }
-    }
-
-    private func levelFor(_ utilization: Double) -> UsageLevel {
-        if utilization >= criticalThreshold { return .critical }
-        if utilization >= warningThreshold { return .warning }
-        return .ok
     }
 
     // MARK: - Reconnect Reminder
