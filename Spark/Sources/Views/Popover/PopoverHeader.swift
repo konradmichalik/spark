@@ -114,7 +114,7 @@ struct PopoverHeader: View {
         }
         .buttonStyle(.plain)
         .tooltip(tab.tooltip)
-        .accessibilityLabel([tab.provider.segmentLabel, percent].compactMap { $0 }.joined(separator: ", "))
+        .accessibilityLabel(ProviderTabSummary.spokenLabel(name: tab.provider.segmentLabel, percent: percent, tone: tab.tone))
         .accessibilityAddTraits(isSelected ? .isSelected : [])
         .accessibilityHint(tab.tooltip ?? "")
     }

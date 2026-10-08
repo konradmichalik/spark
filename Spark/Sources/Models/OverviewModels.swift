@@ -60,6 +60,16 @@ enum PopoverScreen: Hashable {
 
 /// The tooltip of a provider tab: plan and sign-in path, whichever is known.
 enum ProviderTabSummary {
+    /// What VoiceOver reads for a tab: the alert icon carries a state, so the state is spoken too.
+    static func spokenLabel(name: String, percent: String?, tone: UsageTone) -> String {
+        let state: String? = switch tone {
+        case .normal: nil
+        case .warning: "warning"
+        case .critical: "critical"
+        }
+        return [name, percent, state].compactMap { $0 }.joined(separator: ", ")
+    }
+
     static func tooltip(plan: String?, signIn: String?) -> String? {
         let parts = [plan, signIn].compactMap { $0 }.filter { !$0.isEmpty }
         return parts.isEmpty ? nil : parts.joined(separator: " · ")

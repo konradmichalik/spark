@@ -81,6 +81,13 @@ final class OverviewModelsTests: XCTestCase {
         XCTAssertNil(ProviderTabSummary.codexPlan(""))
     }
 
+    func testTabSpokenLabelNamesTheAlert() {
+        XCTAssertEqual(ProviderTabSummary.spokenLabel(name: "Claude", percent: "82 %", tone: .normal), "Claude, 82 %")
+        XCTAssertEqual(ProviderTabSummary.spokenLabel(name: "Claude", percent: "82 %", tone: .warning), "Claude, 82 %, warning")
+        XCTAssertEqual(ProviderTabSummary.spokenLabel(name: "Codex", percent: "97 %", tone: .critical), "Codex, 97 %, critical")
+        XCTAssertEqual(ProviderTabSummary.spokenLabel(name: "Codex", percent: nil, tone: .normal), "Codex")
+    }
+
     func testFooterStatusText() {
         let now = Date()
         XCTAssertEqual(FooterText.status(isLoading: true, lastUpdated: nil, now: now), "Updating\u{2026}")
