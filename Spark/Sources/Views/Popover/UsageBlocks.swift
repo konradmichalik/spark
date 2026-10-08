@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// The uppercase micro label above a value (docs/design/rules.md, "Typography").
-private struct MicroLabel: View {
+struct MicroLabel: View {
     let text: String
     var size: CGFloat = 10
 

@@ -74,10 +74,12 @@ enum HistoryLayout {
 
 /// The hover readout of the history card.
 enum HistoryHover {
+    /// `includesDate` names the day too, for ranges longer than a day.
     static func text(
-        for item: HistoryItem, in columns: [HistoryColumn], locale: Locale = .current, timeZone: TimeZone = .current
+        for item: HistoryItem, in columns: [HistoryColumn], locale: Locale = .current, timeZone: TimeZone = .current,
+        includesDate: Bool = false
     ) -> (title: String, body: String)? {
-        let format = HistoryAxis.formatter(locale: locale, timeZone: timeZone)
+        let format = HistoryAxis.formatter(locale: locale, timeZone: timeZone, template: includesDate ? "EEEdMMMjmm" : nil)
         switch item {
         case .column(let index):
             guard columns.indices.contains(index), columns[index].hasValue else { return nil }
@@ -103,11 +105,13 @@ enum HistoryHover {
 
 /// Clock times under the history card: at the first, middle and last item of the compressed axis.
 enum HistoryAxis {
+    /// `includesDate` labels days instead of clock times, for ranges longer than a day.
     static func labels(
-        items: [HistoryItem], columns: [HistoryColumn], locale: Locale = .current, timeZone: TimeZone = .current
+        items: [HistoryItem], columns: [HistoryColumn], locale: Locale = .current, timeZone: TimeZone = .current,
+        includesDate: Bool = false
     ) -> [String] {
         guard !items.isEmpty else { return [] }
-        let format = formatter(locale: locale, timeZone: timeZone)
+        let format = formatter(locale: locale, timeZone: timeZone, template: includesDate ? "dMMM" : nil)
         let picks = [(items[0], false), (items[items.count / 2], false), (items[items.count - 1], true)]
         return picks.compactMap { item, isLast in
             let index: Int
@@ -121,17 +125,22 @@ enum HistoryAxis {
         }
     }
 
-    static func formatter(locale: Locale, timeZone: TimeZone) -> DateFormatter {
+    /// The short clock time, or the localized form of `template` when one is given.
+    static func formatter(locale: Locale, timeZone: TimeZone, template: String? = nil) -> DateFormatter {
         let formatter = DateFormatter()
         formatter.locale = locale
         formatter.timeZone = timeZone
-        formatter.dateStyle = .none
-        formatter.timeStyle = .short
+        if let template {
+            formatter.setLocalizedDateFormatFromTemplate(template)
+        } else {
+            formatter.dateStyle = .none
+            formatter.timeStyle = .short
+        }
         return formatter
     }
 }
 
-private extension Array {
+extension Array {
     subscript(safe index: Int) -> Element? {
         indices.contains(index) ? self[index] : nil
     }

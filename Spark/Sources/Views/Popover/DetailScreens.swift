@@ -14,7 +14,7 @@ struct DetailScreen: View {
         case .overview:
             EmptyView()
         case .history:
-            UsageGraphView(history: state.history, rollups: state.rollups)
+            HistoryScreen(history: state.history, rollups: state.rollups)
         case .sessions:
             if state.activeSessions.isEmpty {
                 emptyText("No active sessions")

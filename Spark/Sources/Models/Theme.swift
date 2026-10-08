@@ -100,33 +100,6 @@ private struct RingPalette {
     }
 }
 
-extension View {
-    /// Opaque background when Reduce Transparency is on, material otherwise.
-    ///
-    /// `material` and `opaque` default to the graph surfaces' values; a caller with a different
-    /// opaque tone (a card sitting on a window rather than a graph background, say) passes its own
-    /// Applies an appearance-adaptive background using either an opaque color or a material style.
-    /// - Parameters:
-    ///   - reduceTransparency: Whether to use the opaque background color instead of the material style.
-    ///   - material: The material style used when transparency is enabled.
-    ///   - opaque: The color used when transparency is reduced.
-    ///   - shape: The shape that clips the background.
-    /// - Returns: A view with the selected background applied within the specified shape.
-    func adaptiveBackground(
-        reduceTransparency: Bool,
-        material: some ShapeStyle = .ultraThinMaterial,
-        opaque: Color = Color(nsColor: .windowBackgroundColor),
-        in shape: some InsettableShape = RoundedRectangle(cornerRadius: 4)
-    ) -> some View {
-        background(
-            reduceTransparency
-                ? AnyShapeStyle(opaque)
-                : AnyShapeStyle(material),
-            in: shape
-        )
-    }
-}
-
 extension Date {
     /// The detail line of a reset tooltip, e.g. "Wednesday, 7 October at 13:10".
     var resetDescription: String {
