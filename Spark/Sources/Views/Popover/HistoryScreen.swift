@@ -119,7 +119,7 @@ struct HistoryScreen: View {
     private func volumeFacts(_ summary: VolumeSummary) -> [StatFact] {
         var facts = [StatFact(
             label: "Tokens", parts: UsageFormat.tokens(summary.total),
-            tooltip: "All tokens of the days in this range that have ended, cache reads included."
+            tooltip: TokenWording.volume
         )]
         if let average = summary.dailyAverage {
             facts.append(StatFact(label: "Daily average", parts: UsageFormat.tokens(average)))

@@ -181,7 +181,7 @@ struct CodexOverview: View {
         if showStats, let stats = codex.stats, stats.fileCount > 0 {
             rows.append(OverviewRow(
                 screen: .statistics, icon: .dots(.statistics), label: "Statistics",
-                value: OverviewSummary.statisticsValue(tokens: stats.totalTokens, messages: stats.messageCount)
+                value: OverviewSummary.statisticsValue(tokens: stats.realTokens, messages: stats.messageCount)
             ))
         }
         let extra = (codex.usage?.additionalLimits.count ?? 0) + (codex.usage?.creditsBalance == nil ? 0 : 1)

@@ -46,6 +46,19 @@ enum ActiveSessionText {
 }
 
 /// The words and shares of the Statistics screen.
+/// What the "Tokens" figure counts, said the same way wherever it appears: fresh tokens, never
+/// the cache reads or cached input that a provider replays on every turn.
+enum TokenWording {
+    static let claude = "Fresh tokens: input, output and cache writes. Cache reads are not counted."
+    static let codex = "Fresh tokens: input and output. Cached input is not counted."
+    static let volume = "Fresh tokens of the days in this range that have ended: input, output and cache writes. "
+        + "Cache reads are not counted."
+
+    static func withBreakdown(_ definition: String, _ breakdown: String) -> String {
+        "\(definition)\n\(breakdown)"
+    }
+}
+
 enum StatisticsText {
     static func costTooltip(_ cost: CostSummary) -> String {
         let estimate = "Estimated: tokens priced at API list prices. Not what your subscription costs."

@@ -94,11 +94,11 @@ final class VolumeDaySeriesTests: XCTestCase {
         XCTAssertEqual(days.first?.day, "2026-08-15")
     }
 
-    func testTokensSumEveryRollupBucket() {
+    func testTokensSumEveryBucketExceptCacheReads() {
         let full = DailyRollup(sessionCount: 2, input: 1, output: 2, cacheCreation: 4, cacheRead: 8)
         let days = build(["2026-08-20": full])
 
-        XCTAssertEqual(days.last?.tokens, 15)
+        XCTAssertEqual(days.last?.tokens, 7)
     }
 
     func testPresentRollupWithZeroTokensIsNotEmpty() {

@@ -84,6 +84,7 @@ HStack(alignment: .firstTextBaseline, spacing: 3) {
 
 - Durations are short: `1h 49m`, `3d 18h`. An absolute time goes in a tooltip.
 - API cost is always marked as an estimate (`≈`) and its tooltip says it is priced at API list prices, not the subscription.
+- "Tokens" always means fresh tokens: input, output and cache writes for Claude, input and output for Codex. Cache reads and cached input are never part of a headline figure, a graph or a tile, and the tooltip says so (`TokenWording`).
 
 ## Dot language
 

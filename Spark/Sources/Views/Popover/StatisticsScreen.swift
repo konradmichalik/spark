@@ -43,7 +43,10 @@ struct ClaudeStatisticsScreen: View {
         var facts = [
             StatFact(label: "Messages", parts: UsageFormat.count(live.messageCount)),
             StatFact(label: "Sessions", parts: UsageFormat.count(live.sessionCount)),
-            StatFact(label: "Tokens", parts: UsageFormat.tokens(live.realTokens), tooltip: live.tokenBreakdown)
+            StatFact(
+                label: "Tokens", parts: UsageFormat.tokens(live.realTokens),
+                tooltip: TokenWording.withBreakdown(TokenWording.claude, live.tokenBreakdown)
+            )
         ]
         if state.showApiCost, let cost = state.liveCost {
             let parts = UsageFormat.cost(cost.total)
@@ -81,7 +84,7 @@ struct CodexStatisticsScreen: View {
                 StatTileGrid(facts: [
                     StatFact(label: "Messages", parts: UsageFormat.count(stats.messageCount)),
                     StatFact(label: "Sessions", parts: UsageFormat.count(stats.sessionCount)),
-                    StatFact(label: "Tokens", parts: UsageFormat.tokens(stats.totalTokens), tooltip: tokenBreakdown(stats))
+                    StatFact(label: "Tokens", parts: UsageFormat.tokens(stats.realTokens), tooltip: tokenBreakdown(stats))
                 ])
                 RankedList(title: "TOP MODELS", noun: "models", entries: models(stats))
             } else {
@@ -91,8 +94,9 @@ struct CodexStatisticsScreen: View {
     }
 
     private func tokenBreakdown(_ stats: CodexSessionStats) -> String {
-        "Input \(formatTokenCount(stats.inputTokens)) · Cached \(formatTokenCount(stats.cachedInputTokens))\n"
-            + "Output \(formatTokenCount(stats.outputTokens)) · Reasoning \(formatTokenCount(stats.reasoningTokens))"
+        let input = "Input \(formatTokenCount(stats.inputTokens)) · Cached \(formatTokenCount(stats.cachedInputTokens))"
+        let output = "Output \(formatTokenCount(stats.outputTokens)) · Reasoning \(formatTokenCount(stats.reasoningTokens))"
+        return TokenWording.withBreakdown(TokenWording.codex, "\(input)\n\(output)")
     }
 
     private func models(_ stats: CodexSessionStats) -> [RankedEntry] {

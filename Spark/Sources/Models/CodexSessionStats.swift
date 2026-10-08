@@ -22,6 +22,10 @@ struct CodexSessionStats: Equatable, Sendable {
 
     var totalTokens: Int { inputTokens + cachedInputTokens + outputTokens }
 
+    /// Fresh tokens, without the cached input: the headline figure, defined like Claude's
+    /// `LiveStats.realTokens` so both providers count the same way.
+    var realTokens: Int { inputTokens + outputTokens }
+
     static func parse(directories: [URL], since: Date?) -> CodexSessionStats {
         var result = CodexSessionStats()
         for file in directories.flatMap(rolloutFiles) {
