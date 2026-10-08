@@ -254,6 +254,17 @@ enum SessionProjection {
 
 // MARK: - Claude Status
 
+/// What the popover knows about the service: the overall status and the two components it shows.
+struct ServiceStatusSnapshot: Equatable {
+    var overall: ClaudeServiceStatus
+    var claudeCode: ClaudeServiceStatus
+    var api: ClaudeServiceStatus
+    var description: String
+
+    /// After a failed fetch nothing is known, including components of an earlier incident.
+    static let unavailable = ServiceStatusSnapshot(overall: .unknown, claudeCode: .unknown, api: .unknown, description: "Status unavailable")
+}
+
 enum ClaudeServiceStatus: String, Codable, Sendable {
     case operational = "operational"
     case none = "none"
@@ -286,6 +297,11 @@ enum ClaudeServiceStatus: String, Codable, Sendable {
         case "critical": .majorOutage
         default: ClaudeServiceStatus(rawValue: raw) ?? .unknown
         }
+    }
+
+    /// A notification is for a problem the status page reports, not for a failed fetch (`.unknown`).
+    static func shouldNotify(enabled: Bool, current: ClaudeServiceStatus, last: ClaudeServiceStatus) -> Bool {
+        enabled && current != last && current.isIncident
     }
 
     /// A problem the status page actually reports. `.unknown` only means the page could not be

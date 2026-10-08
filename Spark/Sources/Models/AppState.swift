@@ -529,8 +529,11 @@ final class AppState: ObservableObject {
             if claudeCodeStatus == .unknown { claudeCodeStatus = status }
             if apiStatus == .unknown { apiStatus = status }
         } catch {
-            status = .unknown
-            statusDescription = "Status unavailable"
+            let unavailable = ServiceStatusSnapshot.unavailable
+            status = unavailable.overall
+            claudeCodeStatus = unavailable.claudeCode
+            apiStatus = unavailable.api
+            statusDescription = unavailable.description
         }
     }
 
@@ -662,7 +665,7 @@ final class AppState: ObservableObject {
     }
 
     private func checkStatusNotification() {
-        if notifyOnStatusChange && status != lastStatusNotification && !status.isHealthy {
+        if ClaudeServiceStatus.shouldNotify(enabled: notifyOnStatusChange, current: status, last: lastStatusNotification) {
             NotificationPoster.post(NoticeWording.status(status.displayName), id: "status-\(status.rawValue)")
         }
         lastStatusNotification = status
