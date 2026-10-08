@@ -40,12 +40,15 @@ struct ClaudeStatisticsScreen: View {
     }
 
     private func facts(_ live: LiveStats) -> [StatFact] {
+        let averages = StatisticsAverages(
+            period: live.period, messages: live.messageCount, sessions: live.sessionCount, tokens: live.realTokens
+        )
         var facts = [
-            StatFact(label: "Messages", parts: UsageFormat.count(live.messageCount)),
-            StatFact(label: "Sessions", parts: UsageFormat.count(live.sessionCount)),
+            StatFact(label: "Messages", parts: UsageFormat.count(live.messageCount), tooltip: averages.messages ?? ""),
+            StatFact(label: "Sessions", parts: UsageFormat.count(live.sessionCount), tooltip: averages.sessions ?? ""),
             StatFact(
                 label: "Tokens", parts: UsageFormat.tokens(live.realTokens),
-                tooltip: TokenWording.withBreakdown(TokenWording.claude, live.tokenBreakdown)
+                tooltip: TokenWording.withBreakdown(TokenWording.claude, live.tokenBreakdown, average: averages.tokens)
             )
         ]
         if state.showApiCost, let cost = state.liveCost {
@@ -60,12 +63,10 @@ struct ClaudeStatisticsScreen: View {
 
     private func projects(_ live: LiveStats) -> [RankedEntry] {
         let ranked = live.topProjects(limit: live.projectTotals.count)
-        let largest = ranked.first?.tokens ?? 0
         let costs = state.showApiCost ? state.liveCost?.byProject : nil
         return ranked.map { project in
             RankedEntry(
                 id: project.key, name: project.displayName, tokens: project.tokens,
-                share: StatisticsText.share(project.tokens, of: largest),
                 tooltip: StatisticsText.projectTooltip(tokens: project.tokens, cost: costs?[project.key]), path: project.cwd
             )
         }
@@ -81,11 +82,7 @@ struct CodexStatisticsScreen: View {
         VStack(alignment: .leading, spacing: 14) {
             PeriodSwitch(period: codex.statsPeriod, onSelect: codex.setStatsPeriod)
             if let stats = codex.stats, stats.fileCount > 0 {
-                StatTileGrid(facts: [
-                    StatFact(label: "Messages", parts: UsageFormat.count(stats.messageCount)),
-                    StatFact(label: "Sessions", parts: UsageFormat.count(stats.sessionCount)),
-                    StatFact(label: "Tokens", parts: UsageFormat.tokens(stats.realTokens), tooltip: tokenBreakdown(stats))
-                ])
+                StatTileGrid(facts: facts(stats))
                 RankedList(title: "TOP MODELS", noun: "models", entries: models(stats))
             } else {
                 DetailNote(text: "No local Codex activity in this period.")
@@ -93,18 +90,31 @@ struct CodexStatisticsScreen: View {
         }
     }
 
-    private func tokenBreakdown(_ stats: CodexSessionStats) -> String {
+    private func facts(_ stats: CodexSessionStats) -> [StatFact] {
+        let averages = StatisticsAverages(
+            period: codex.statsPeriod, messages: stats.messageCount, sessions: stats.sessionCount, tokens: stats.realTokens
+        )
+        return [
+            StatFact(label: "Messages", parts: UsageFormat.count(stats.messageCount), tooltip: averages.messages ?? ""),
+            StatFact(label: "Sessions", parts: UsageFormat.count(stats.sessionCount), tooltip: averages.sessions ?? ""),
+            StatFact(
+                label: "Tokens", parts: UsageFormat.tokens(stats.realTokens),
+                tooltip: tokenBreakdown(stats, average: averages.tokens)
+            )
+        ]
+    }
+
+    private func tokenBreakdown(_ stats: CodexSessionStats, average: String?) -> String {
         let input = "Input \(formatTokenCount(stats.inputTokens)) · Cached \(formatTokenCount(stats.cachedInputTokens))"
         let output = "Output \(formatTokenCount(stats.outputTokens)) · Reasoning \(formatTokenCount(stats.reasoningTokens))"
-        return TokenWording.withBreakdown(TokenWording.codex, "\(input)\n\(output)")
+        return TokenWording.withBreakdown(TokenWording.codex, "\(input)\n\(output)", average: average)
     }
 
     private func models(_ stats: CodexSessionStats) -> [RankedEntry] {
         let ranked = StatisticsText.rankedModels(stats)
-        let largest = ranked.first?.tokens ?? 0
         return ranked.map { model in
             RankedEntry(
-                id: model.name, name: model.name, tokens: model.tokens, share: StatisticsText.share(model.tokens, of: largest),
+                id: model.name, name: model.name, tokens: model.tokens,
                 tooltip: StatisticsText.projectTooltip(tokens: model.tokens, cost: nil), path: nil
             )
         }
@@ -150,13 +160,13 @@ struct RankedEntry: Identifiable {
     let id: String
     let name: String
     let tokens: Int
-    let share: Double
     let tooltip: String
     let path: String?
 }
 
-/// A ranked list with a dot bar per entry, the first four shown and the rest in place behind
-/// "Show N more". A long expanded list scrolls instead of growing the popover.
+/// A ranked list in a card, laid out like the Active Sessions rows: name left, tokens right,
+/// hairlines between rows. The first four show and the rest sit in place behind "Show N more".
+/// A long expanded list scrolls instead of growing the popover.
 private struct RankedList: View {
     let title: String
     let noun: String
@@ -175,19 +185,28 @@ private struct RankedList: View {
                 MicroLabel(text: title)
                     .accessibilityAddTraits(.isHeader)
                     .accessibilityLabel("Top \(noun)")
-                if visible.count > Self.scrollThreshold {
-                    ScrollView { rows(visible) }.frame(maxHeight: 230)
-                } else {
-                    rows(visible)
+                PaperCard {
+                    VStack(spacing: 0) {
+                        if visible.count > Self.scrollThreshold {
+                            ScrollView { rows(visible) }.frame(maxHeight: 230)
+                        } else {
+                            rows(visible)
+                        }
+                        if more.isNeeded {
+                            Rectangle().fill(Theme.hairline).frame(height: 1)
+                            ShowMoreRow(more: more, isExpanded: $isExpanded)
+                        }
+                    }
+                    .clipShape(RoundedRectangle(cornerRadius: 10))
                 }
-                ShowMoreRow(more: more, isExpanded: $isExpanded)
             }
         }
     }
 
     private func rows(_ visible: [RankedEntry]) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            ForEach(visible) { entry in
+        VStack(spacing: 0) {
+            ForEach(Array(visible.enumerated()), id: \.element.id) { index, entry in
+                if index > 0 { Rectangle().fill(Theme.hairline).frame(height: 1) }
                 RankedRow(entry: entry)
             }
         }
@@ -197,24 +216,25 @@ private struct RankedList: View {
 private struct RankedRow: View {
     let entry: RankedEntry
 
+    @State private var isHovered = false
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HStack {
-                Text(entry.name)
-                    .font(.system(size: 12))
-                    .foregroundStyle(Theme.ink)
-                    .lineLimit(1)
-                    .truncationMode(.middle)
-                Spacer(minLength: 8)
-                Text(formatTokenCount(entry.tokens))
-                    .font(.system(size: 11, design: .monospaced))
-                    .foregroundStyle(Theme.inkSecondary)
-            }
-            DotBar(value: entry.share, pitch: 4, dotSize: 2.6)
-                .frame(height: 6)
-                .accessibilityHidden(true)
+        HStack(spacing: 10) {
+            Text(entry.name)
+                .font(.system(size: 12.5, weight: .semibold))
+                .foregroundStyle(Theme.ink)
+                .lineLimit(1)
+                .truncationMode(.middle)
+            Spacer(minLength: 8)
+            Text(formatTokenCount(entry.tokens))
+                .font(.system(size: 11.5, design: .monospaced))
+                .foregroundStyle(Theme.ink)
         }
+        .padding(.horizontal, 12)
+        .frame(minHeight: 40)
+        .background(isHovered ? Theme.dotTrack.opacity(0.35) : .clear)
         .contentShape(Rectangle())
+        .onHover { isHovered = $0 }
         .tooltip(entry.tooltip, title: entry.name, delay: .quick)
         .pathActions(entry.path)
         .accessibilityElement(children: .ignore)

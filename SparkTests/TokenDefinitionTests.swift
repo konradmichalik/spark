@@ -23,16 +23,27 @@ final class TokenDefinitionTests: XCTestCase {
 }
 
 final class TokenWordingTests: XCTestCase {
-    func testEveryTokenTooltipNamesWhatIsCounted() {
-        XCTAssertEqual(TokenWording.claude, "Fresh tokens: input, output and cache writes. Cache reads are not counted.")
-        XCTAssertEqual(TokenWording.codex, "Fresh tokens: input and output. Cached input is not counted.")
+    func testEveryTokenTooltipExplainsFreshAgainstCacheTokens() {
+        XCTAssertEqual(
+            TokenWording.claude,
+            "Fresh tokens: input, output and cache writes. Cache reads are not counted: that is context Claude re-reads on every turn, "
+                + "so it is far larger and says little about what you used."
+        )
+        XCTAssertEqual(
+            TokenWording.codex,
+            "Fresh tokens: input and output. Cached input is not counted: that is context Codex re-sends on every turn, "
+                + "so it is far larger and says little about what you used."
+        )
         XCTAssertEqual(
             TokenWording.volume,
-            "Fresh tokens of the days in this range that have ended: input, output and cache writes. Cache reads are not counted."
+            "Fresh tokens of the days in this range that have ended: input, output and cache writes. "
+                + "Cache reads, the context re-read on every turn, are not counted."
         )
     }
 
     func testBreakdownLeadsWithTheDefinition() {
         XCTAssertEqual(TokenWording.withBreakdown(TokenWording.claude, "Input 1K"), "\(TokenWording.claude)\nInput 1K")
+        XCTAssertEqual(TokenWording.withBreakdown("A", "B", average: "C"), "A\nC\nB")
+        XCTAssertEqual(TokenWording.withBreakdown("A", "B", average: nil), "A\nB")
     }
 }

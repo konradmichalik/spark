@@ -49,13 +49,59 @@ enum ActiveSessionText {
 /// What the "Tokens" figure counts, said the same way wherever it appears: fresh tokens, never
 /// the cache reads or cached input that a provider replays on every turn.
 enum TokenWording {
-    static let claude = "Fresh tokens: input, output and cache writes. Cache reads are not counted."
-    static let codex = "Fresh tokens: input and output. Cached input is not counted."
+    static let claude = "Fresh tokens: input, output and cache writes. Cache reads are not counted: that is context Claude re-reads "
+        + "on every turn, so it is far larger and says little about what you used."
+    static let codex = "Fresh tokens: input and output. Cached input is not counted: that is context Codex re-sends "
+        + "on every turn, so it is far larger and says little about what you used."
     static let volume = "Fresh tokens of the days in this range that have ended: input, output and cache writes. "
-        + "Cache reads are not counted."
+        + "Cache reads, the context re-read on every turn, are not counted."
 
-    static func withBreakdown(_ definition: String, _ breakdown: String) -> String {
-        "\(definition)\n\(breakdown)"
+    /// Definition first, then the averages when there are any, then the raw breakdown.
+    static func withBreakdown(_ definition: String, _ breakdown: String, average: String? = nil) -> String {
+        [definition, average, breakdown].compactMap { $0 }.joined(separator: "\n")
+    }
+}
+
+/// The averages behind the Messages, Sessions and Tokens tiles, as the sentence their tooltips
+/// show. Per day only exists for periods with a fixed length; "All" has none.
+struct StatisticsAverages: Equatable {
+    let messages: String?
+    let sessions: String?
+    let tokens: String?
+
+    init(period: StatsPeriod, messages: Int, sessions: Int, tokens: Int, locale: Locale = .current) {
+        let days: Double? = switch period {
+        case .today, .all: nil
+        case .week: 7
+        case .month: 30
+        }
+        func number(_ value: Double) -> String {
+            value.formatted(.number.precision(.fractionLength(0...1)).locale(locale))
+        }
+        func noun(_ count: Double, _ singular: String, _ plural: String) -> String {
+            number(count) == "1" ? singular : plural
+        }
+        let perSession = sessions > 0 ? Double(sessions) : nil
+        self.messages = perSession.flatMap { sessions in
+            let average = Double(messages) / sessions
+            return messages > 0 ? Self.sentence(number(average), noun(average, "message", "messages"), "session") : nil
+        }
+        self.sessions = days.flatMap { days in
+            let average = Double(sessions) / days
+            return sessions > 0 ? Self.sentence(number(average), noun(average, "session", "sessions"), "day") : nil
+        }
+        var tokenLines: [String] = []
+        if let perSession, tokens > 0 {
+            tokenLines.append("Average \(formatTokenCount(Int((Double(tokens) / perSession).rounded()))) tokens per session")
+        }
+        if let days, tokens > 0 {
+            tokenLines.append("Average \(formatTokenCount(Int((Double(tokens) / days).rounded()))) tokens per day")
+        }
+        self.tokens = tokenLines.isEmpty ? nil : tokenLines.joined(separator: "\n")
+    }
+
+    private static func sentence(_ value: String, _ noun: String, _ unit: String) -> String {
+        "Average \(value) \(noun) per \(unit)"
     }
 }
 

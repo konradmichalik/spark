@@ -28,7 +28,7 @@ The detail screens:
 
 - **History**: Limits (session as dot columns, week as a red line) or Volume (tokens per day), over 1 hour to 30 days. Hover the graph for the values at that point. Below it the peak session and the peak week of the range.
 - **Active sessions**: sessions with a transcript write in the last 5 minutes, with how long ago and their context size. Hover a row for its session ID, start time and model. Click to reveal the project in Finder, right-click to open it in Terminal or copy its path.
-- **Statistics**: messages, sessions, tokens and, with **API cost estimate** on under **Settings → Display**, the API cost for Today, 7 days, 30 days or all time, plus the top projects. Codex shows its own counts and top models.
+- **Statistics**: messages, sessions, tokens and, with **API cost estimate** on under **Settings → Display**, the API cost for Today, 7 days, 30 days or all time, plus the top projects as a list like the active sessions. Hover Messages, Sessions or Tokens for the averages per session and per day, and Tokens for what it counts. Codex shows its own counts and top models.
 - **All limits**: the plan, every limit with its bar and time marker, extra usage and Codex credits. Hover a limit for its reset time.
 
 Without a Claude sign-in the Claude tab shows how to connect: load it from the keychain, or add a long-lived token in Settings. Codex keeps working in its own tab.
