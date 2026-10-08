@@ -20,6 +20,7 @@ All colours come from `Theme` tokens with a light and a dark value. No literal c
 | --- | --- | --- | --- |
 | `paper` | `#F2F2EF` | `#1C1C1B` | Popover and window background |
 | `card` | `#FAFAF8` | `#262625` | Cards and row groups |
+| `shadow` | black at 22 % | black at 22 % | The tooltip's drop shadow |
 | `ink` | `#111111` | `#EDEDE8` | Text, filled dots, primary marks |
 | `inkSecondary` | `#5C5C58` | `#A3A39D` | Secondary text, labels |
 | `inkTertiary` | `#6E6E69` | `#8F8F8A` | Axis labels, chevrons |

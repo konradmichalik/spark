@@ -11,11 +11,6 @@ struct DailyRollup: Codable, Equatable, Sendable {
     var output = 0
     var cacheCreation = 0
     var cacheRead = 0
-    /// Total tokens per raw model ID — mirrors `TranscriptCache`'s per-model dimension, kept
-    /// deliberately as its own copy rather than reusing `DayAggregate` directly, so history.json's
-    /// persistence schema evolves independently of the transcript-scan cache's internal format.
-    var modelTotals: [String: Int] = [:]
-
     var totalTokens: Int { input + output + cacheCreation + cacheRead }
 
     /// Excludes cache reads — reused context, not fresh consumption. Mirrors
@@ -35,8 +30,7 @@ struct DailyRollup: Codable, Equatable, Sendable {
                 input: bucket.input,
                 output: bucket.output,
                 cacheCreation: bucket.cacheCreation,
-                cacheRead: bucket.cacheRead,
-                modelTotals: bucket.perModel.mapValues { $0.total }
+                cacheRead: bucket.cacheRead
             )
         }
         return result
