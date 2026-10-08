@@ -24,6 +24,12 @@ enum TooltipLayout {
 
         return CGPoint(x: x, y: y)
     }
+
+    /// Width of the tooltip text: its unwrapped width, rounded up so it never wraps by a
+    /// fraction, and wrapped at `maxWidth` when it is longer.
+    static func textWidth(ideal: CGFloat) -> CGFloat {
+        min(max(ideal, 0).rounded(.up), maxWidth)
+    }
 }
 
 extension View {
@@ -160,15 +166,52 @@ private struct TooltipHostModifier: ViewModifier {
     }
 }
 
+private struct TooltipTextWidthKey: PreferenceKey {
+    static let defaultValue: CGFloat = 0
+
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = max(value, nextValue())
+    }
+}
+
 private struct TooltipBubble: View {
     let request: TooltipRequest
     let container: CGSize
 
     @State private var size: CGSize = .zero
+    @State private var idealTextWidth: CGFloat = 0
 
     var body: some View {
         let origin = TooltipLayout.origin(anchor: request.anchor, size: size, container: container)
 
+        text
+            .fixedSize(horizontal: false, vertical: true)
+            .frame(width: TooltipLayout.textWidth(ideal: idealTextWidth), alignment: .leading)
+            // An unwrapped copy measures the text, so a short tooltip shrinks to it.
+            .background(
+                text.fixedSize().hidden().background(
+                    GeometryReader { proxy in
+                        Color.clear.preference(key: TooltipTextWidthKey.self, value: proxy.size.width)
+                    }
+                )
+            )
+            .onPreferenceChange(TooltipTextWidthKey.self) { idealTextWidth = $0 }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 7)
+            .tooltipChrome()
+            .background(
+                GeometryReader { proxy in
+                    Color.clear.preference(key: TooltipSizeKey.self, value: proxy.size)
+                }
+            )
+            .onPreferenceChange(TooltipSizeKey.self) { size = $0 }
+            // Hidden until measured, otherwise it flashes at the wrong spot or width for one frame.
+            .opacity(size == .zero || idealTextWidth == 0 ? 0 : 1)
+            .offset(x: origin.x, y: origin.y)
+            .accessibilityHidden(true)
+    }
+
+    private var text: some View {
         VStack(alignment: .leading, spacing: 3) {
             if let title = request.title {
                 Text(title.uppercased())
@@ -183,20 +226,5 @@ private struct TooltipBubble: View {
             }
         }
         .multilineTextAlignment(.leading)
-        .fixedSize(horizontal: false, vertical: true)
-        .frame(maxWidth: TooltipLayout.maxWidth, alignment: .leading)
-        .padding(.horizontal, 10)
-        .padding(.vertical, 7)
-        .tooltipChrome()
-        .background(
-            GeometryReader { proxy in
-                Color.clear.preference(key: TooltipSizeKey.self, value: proxy.size)
-            }
-        )
-        .onPreferenceChange(TooltipSizeKey.self) { size = $0 }
-        // Hidden until measured, otherwise it flashes at the wrong spot for one frame.
-        .opacity(size == .zero ? 0 : 1)
-        .offset(x: origin.x, y: origin.y)
-        .accessibilityHidden(true)
     }
 }
