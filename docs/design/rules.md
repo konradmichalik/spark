@@ -187,15 +187,16 @@ Motion is added only when `accessibilityReduceMotion` is off. Start from no moti
 
 | Where | What | Duration |
 | --- | --- | --- |
-| Dot bar and ring | Dots fill in sequence, on first open and on a new value | 300 ms total |
-| Hero value | `.contentTransition(.numericText())` | 250 ms |
-| Projection | Hollow dots breathe, only when the limit is reached before the reset | 2 s loop |
+| Dot bar and ring | Filled dots appear in sequence, 25 ms apart and closer when more must fit, on appear and when the value rises; a falling value shows at once. Session bar, ring, week bar, All Limits bars | 300 ms total |
+| Hero value | `.contentTransition(.numericText())` on the session number (bars and ring) and the week value, when the whole percent changes | 250 ms |
+| Projection | Hollow dots breathe between full and 35 % opacity, only when the forecast reaches the limit before the reset, bar and ring | 2 s loop |
 | Level 2 | Push from the right, header fixed | 220 ms |
-| Active session dot | Soft halo | 2.4 s loop |
-| Tooltip | Fade and 4pt rise after 400 ms delay, 150 ms on usage blocks (the whole block is the hover target) | 120 ms |
-| Live dot | Halo grows from 40 % to 95 % of the icon and fades, repeating, only while sessions are active | 1.4 s |
+| Live dot | Soft halo grows from 40 % to 95 % of the icon and fades, then restarts, only while the session is active. Overview row and Active Sessions rows alike, never in the menu bar | 2.4 s loop |
+| Tooltip | Fades in with a 4 pt rise after the 400 ms delay, 150 ms on usage blocks (the whole block is the hover target); hides at once | 120 ms |
 | Tabs | Selected background slides | 200 ms |
-| Menu bar | A newly filled dot fades in | 250 ms |
+| Menu bar | When the value rises, the new dots fade in over two in-between images and the final one, started by the value change only. No loop, no `TimelineView` in the label | 3 × 84 ms |
+
+Loops (live dot, projection) run as their own phase loops on layers that only scale or fade, so re-renders and animations around them cannot re-target them, and each starts from the same state. Under Reduce Motion everything shows its end state at once.
 
 Nothing else moves. No looping animation without a reason the user cares about.
 
