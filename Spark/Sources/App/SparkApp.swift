@@ -136,6 +136,7 @@ struct SparkApp: App {
         Window("Usage Report", id: WeeklyReportView.windowID) {
             WeeklyReportView()
                 .environmentObject(state)
+                .environmentObject(codex)
                 .tooltipHost()
         }
         .windowResizability(.contentMinSize)

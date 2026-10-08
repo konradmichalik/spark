@@ -43,6 +43,7 @@ struct WeeklyReportView: View {
                     days: PaceDaySeries.build(snapshots: state.history, start: report.rangeStart, end: report.rangeEnd),
                     emptyText: report.periodOffset == 0 ? "Not enough data yet." : "No usage history for that period."
                 )
+                ActivitySection(report: report)
                 HStack(alignment: .top, spacing: 28) {
                     ModelShareSection(
                         rows: ModelRow.rows(from: report.modelTotals, costByModel: report.costSummary?.byModel),
