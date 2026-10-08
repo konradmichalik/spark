@@ -39,6 +39,8 @@ struct DotRing: View {
     var projected: Double?
     var marker: Double?
     var tone: UsageTone = .normal
+    /// Colours the hollow dots and the marker: grey (ink) when normal, else the tone's colour.
+    var projectionTone: UsageTone = .normal
     var count = 40
     var gap = 2
     var dotSize: CGFloat = 6
@@ -55,7 +57,7 @@ struct DotRing: View {
                 case .filled:
                     context.fill(Path(ellipseIn: rect), with: .color(tone.color))
                 case .projected:
-                    context.stroke(Path(ellipseIn: rect.insetBy(dx: 0.6, dy: 0.6)), with: .color(Theme.ink.opacity(0.55)), lineWidth: 1.2)
+                    context.stroke(Path(ellipseIn: rect.insetBy(dx: 0.6, dy: 0.6)), with: .color(projectionColor), lineWidth: 1.2)
                 case .track:
                     context.fill(Path(ellipseIn: rect), with: .color(Theme.dotTrack))
                 }
@@ -66,10 +68,18 @@ struct DotRing: View {
                 var tick = Path()
                 tick.move(to: inner)
                 tick.addLine(to: outer)
-                context.stroke(tick, with: .color(Theme.ink), style: StrokeStyle(lineWidth: 2, lineCap: .round))
+                context.stroke(tick, with: .color(markerColor), style: StrokeStyle(lineWidth: 2, lineCap: .round))
             }
         }
         .accessibilityElement()
         .accessibilityValue(UsageFormat.percent(value))
+    }
+
+    private var projectionColor: Color {
+        projectionTone == .normal ? Theme.ink.opacity(0.55) : projectionTone.color
+    }
+
+    private var markerColor: Color {
+        projectionTone == .normal ? Theme.ink : projectionTone.color
     }
 }

@@ -34,6 +34,8 @@ struct DotBar: View {
     var projected: Double?
     var marker: Double?
     var tone: UsageTone = .normal
+    /// Colours the hollow dots and the marker: grey (ink) when normal, else the tone's colour.
+    var projectionTone: UsageTone = .normal
     var pitch: CGFloat = 6
     var dotSize: CGFloat = 3.8
 
@@ -51,17 +53,25 @@ struct DotBar: View {
                 case .filled:
                     context.fill(Path(ellipseIn: rect), with: .color(tone.color))
                 case .projected:
-                    context.stroke(Path(ellipseIn: rect.insetBy(dx: 0.6, dy: 0.6)), with: .color(Theme.ink.opacity(0.55)), lineWidth: 1.2)
+                    context.stroke(Path(ellipseIn: rect.insetBy(dx: 0.6, dy: 0.6)), with: .color(projectionColor), lineWidth: 1.2)
                 case .track:
                     context.fill(Path(ellipseIn: rect), with: .color(Theme.dotTrack))
                 }
             }
             if let markerIndex = layout.markerIndex {
                 let markerX = pitch * CGFloat(markerIndex) + pitch / 2 - 1
-                context.fill(Path(roundedRect: CGRect(x: markerX, y: 0, width: 2, height: size.height), cornerRadius: 1), with: .color(Theme.ink))
+                context.fill(Path(roundedRect: CGRect(x: markerX, y: 0, width: 2, height: size.height), cornerRadius: 1), with: .color(markerColor))
             }
         }
         .accessibilityElement()
         .accessibilityValue(UsageFormat.percent(value))
+    }
+
+    private var projectionColor: Color {
+        projectionTone == .normal ? Theme.ink.opacity(0.55) : projectionTone.color
+    }
+
+    private var markerColor: Color {
+        projectionTone == .normal ? Theme.ink : projectionTone.color
     }
 }

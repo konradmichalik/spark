@@ -49,7 +49,10 @@ struct SessionBlock: View {
             .foregroundStyle(toneColor(tone))
             .lineLimit(1)
             .minimumScaleFactor(0.6)
-            DotBar(value: value, projected: forecast.projected, marker: elapsed.map { $0 * 100 }, tone: tone)
+            DotBar(
+                value: value, projected: forecast.projected, marker: elapsed.map { $0 * 100 }, tone: tone,
+                projectionTone: forecast.tone
+            )
                 .frame(height: 10)
             if let forecastLine {
                 ForecastLineText(line: forecastLine)
@@ -67,15 +70,15 @@ struct SessionBlock: View {
     }
 }
 
-/// Grey when the session lands below the limit, red with semibold weight when it does not.
+/// Grey while the session lands well below the limit, otherwise semibold in the forecast's tone.
 private struct ForecastLineText: View {
     let line: ForecastLine
 
     var body: some View {
         Text(line.text)
-            .font(.system(size: 11.5, weight: line.isWarning ? .semibold : .regular))
+            .font(.system(size: 11.5, weight: line.tone == .normal ? .regular : .semibold))
             .monospacedDigit()
-            .foregroundStyle(line.isWarning ? Theme.accent : Theme.inkSecondary)
+            .foregroundStyle(line.tone == .normal ? Theme.inkSecondary : line.tone.color)
             .lineLimit(1)
             .minimumScaleFactor(0.8)
     }
@@ -159,7 +162,10 @@ struct RingsBlock: View {
 
     private var ring: some View {
         ZStack {
-            DotRing(value: value, projected: forecast.projected, marker: elapsed.map { $0 * 100 }, tone: tone)
+            DotRing(
+                value: value, projected: forecast.projected, marker: elapsed.map { $0 * 100 }, tone: tone,
+                projectionTone: forecast.tone
+            )
             HStack(alignment: .firstTextBaseline, spacing: 1) {
                 Text(String(Int(value.rounded())))
                     .font(.doto(size: 38))
@@ -191,7 +197,7 @@ struct RingsBlock: View {
         WeekBlock(value: 48, resetIn: "3d 18h", resetDate: nil, elapsed: 0.5, tone: .normal)
         SessionBlock(
             value: 92, resetIn: "1h 5m", resetDate: nil, forecast: SessionForecast(.limitReached(1200)),
-            elapsed: 0.78, tone: .critical, forecastLine: ForecastLine(text: "Limit in ~20m \u{00B7} 45m before reset", isWarning: true),
+            elapsed: 0.78, tone: .critical, forecastLine: ForecastLine(text: "Limit in ~20m \u{00B7} 45m before reset", tone: .critical),
             detail: "Limit in ~20m"
         )
     }
@@ -203,7 +209,7 @@ struct RingsBlock: View {
 #Preview("Ring") {
     RingsBlock(
         value: 92, resetIn: "1h 5m", forecast: SessionForecast(.limitReached(1200)), elapsed: 0.78,
-        tone: .critical, forecastLine: ForecastLine(text: "Limit in ~20m", isWarning: true), detail: nil,
+        tone: .critical, forecastLine: ForecastLine(text: "Limit in ~20m", tone: .critical), detail: nil,
         week: WeekBlock(value: 65, resetIn: "3d 12h", resetDate: nil, elapsed: 0.5, tone: .normal)
     )
     .padding(14)

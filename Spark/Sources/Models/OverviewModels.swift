@@ -11,6 +11,14 @@ struct SessionForecast: Equatable {
         self.reachesLimit = reachesLimit
     }
 
+    /// The forecast's own colour, for hollow dots, marker and forecast line: grey while the
+    /// session lands below 90 %, ochre from 90 %, red when it reaches the limit before the reset.
+    var tone: UsageTone {
+        if reachesLimit { return .critical }
+        guard let projected else { return .normal }
+        return projected >= 90 ? .warning : .normal
+    }
+
     init(_ projection: ProjectionResult) {
         switch projection {
         case .safe(let value): self.init(projected: min(max(value, 0), 100), reachesLimit: false)
@@ -200,23 +208,24 @@ enum HistoryHover {
 /// limit hits and how long before the reset that is.
 struct ForecastLine: Equatable {
     let text: String
-    let isWarning: Bool
+    let tone: UsageTone
 
     static func make(
         projection: ProjectionResult, secondsToReset: TimeInterval?, elapsedInWindow: TimeInterval?, locale: Locale = .current
     ) -> ForecastLine? {
         switch projection {
         case .safe(let projected):
-            return ForecastLine(text: "~\(UsageFormat.percent(projected.rounded(), locale: locale)) at reset", isWarning: false)
+            let text = "~\(UsageFormat.percent(projected.rounded(), locale: locale)) at reset"
+            return ForecastLine(text: text, tone: SessionForecast(projection).tone)
         case .limitReached(let seconds):
             var text = "Limit in ~\(seconds.shortDuration)"
             if let secondsToReset, secondsToReset - seconds >= 60 {
                 text += " \u{00B7} \((secondsToReset - seconds).shortDuration) before reset"
             }
-            return ForecastLine(text: text, isWarning: true)
+            return ForecastLine(text: text, tone: .critical)
         case .insufficientData:
             guard let elapsedInWindow, elapsedInWindow < SessionProjection.minimumSpan else { return nil }
-            return ForecastLine(text: "Forecast after \(Int(SessionProjection.minimumSpan / 60)) min", isWarning: false)
+            return ForecastLine(text: "Forecast after \(Int(SessionProjection.minimumSpan / 60)) min", tone: .normal)
         }
     }
 }
