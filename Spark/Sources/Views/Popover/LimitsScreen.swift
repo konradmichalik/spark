@@ -1,27 +1,14 @@
 import SwiftUI
 
-/// The All Limits screen (boards 7 and 8): the plan, every limit as a dot bar with its value and
-/// time marker, and below a hairline what is paid on top of the plan. Resets live in tooltips.
+/// The More Limits screen: the limits the overview does not show (model weeks, extra Codex
+/// windows) as dot bars with value and time marker, and below a hairline what is paid on top of
+/// the plan. Resets live in tooltips.
 struct LimitsScreen: View {
-    let plan: String?
     let sections: LimitSections
     let emptyText: String?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            if let plan {
-                HStack(alignment: .firstTextBaseline) {
-                    Text("Plan")
-                        .font(.system(size: 12))
-                        .foregroundStyle(Theme.inkSecondary)
-                    Spacer()
-                    Text(plan.uppercased())
-                        .font(.system(size: 11, design: .monospaced))
-                        .tracking(1)
-                        .foregroundStyle(Theme.ink)
-                }
-                .accessibilityElement(children: .combine)
-            }
             ForEach(sections.limits) { line in
                 LimitLineView(line: line)
             }

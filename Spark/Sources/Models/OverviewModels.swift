@@ -36,9 +36,10 @@ enum OverviewSummary {
         return messages == 1 ? "1 message" : "\(messages) messages"
     }
 
-    static func limitsValue(extraLimits: Int, plan: String?) -> String? {
-        if extraLimits > 0 { return "\(extraLimits) more" }
-        return plan
+    /// The value of the "More limits" row; without any further limit the row is not shown.
+    static func moreLimitsValue(count: Int) -> String? {
+        guard count > 0 else { return nil }
+        return count == 1 ? "1 limit" : "\(count) limits"
     }
 }
 
@@ -52,7 +53,7 @@ enum PopoverScreen: Hashable {
         case .history: "History"
         case .sessions: "Active sessions"
         case .statistics: "Statistics"
-        case .limits: "All limits"
+        case .limits: "More limits"
         }
     }
 }

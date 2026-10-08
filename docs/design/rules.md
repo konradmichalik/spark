@@ -90,7 +90,7 @@ HStack(alignment: .firstTextBaseline, spacing: 3) {
 
 | Element | Shape | Used for |
 | --- | --- | --- |
-| Dot bar | One row of dots, 6pt pitch (session) or 4pt (week and limits) | Usage on level 1 and in All Limits |
+| Dot bar | One row of dots, 6pt pitch (session) or 4pt (week and limits) | Usage on level 1 and in More Limits |
 | Dot ring | 40 dots for the session with a two-dot gap at twelve o'clock, so start and end stay visible | Display style "Ring". The week stays a dot bar beside it |
 | Menu bar ring | 12 dots, the last partial dot at proportional opacity | Menu bar glyph |
 | Hollow dots | Outline only, from current value to projected value | Session projection |
@@ -118,7 +118,7 @@ HStack(alignment: .firstTextBaseline, spacing: 3) {
 
 ## Navigation
 
-- **Two levels, never three.** Level 1 is the overview of the selected provider. Level 2 screens are pushed inside the popover: History, Active Sessions, Statistics, All Limits.
+- **Two levels, never three.** Level 1 is the overview of the selected provider. Level 2 screens are pushed inside the popover: History, Active Sessions, Statistics, More Limits.
 - On level 2 the tab row becomes a breadcrumb at the same height: `‹ [logo] Claude / History`. Plain text, hairline below, no pill.
 - Anything clickable on level 1 that leads deeper is a card or a row with a chevron. The whole card is the hit target.
 - Each row leads with a 13pt icon in the dot language: a pulsing `accent` dot for active sessions (still when none is active or under Reduce Motion), three dot bars for statistics, a partly filled dot octagon for all limits. The statistics row shows the token count, never the API cost; the cost lives on the statistics screen.
@@ -134,7 +134,7 @@ HStack(alignment: .firstTextBaseline, spacing: 3) {
 - History shows the peak session and the peak week of the range under the graph, both in percent. A weekly reset does not lower the peak.
 - Stat tiles go two to a row. With the API cost estimate switched off in Settings, Tokens takes the whole second row.
 - "Show N more" appears only when at least two entries are hidden; a single extra entry is shown right away. An expanded list of more than ten entries scrolls.
-- All Limits sets extra usage and credits apart with a hairline outside a card, the one exception to "hairlines only inside a card". A warning or critical percentage there carries an alert icon, because 13pt ochre text alone does not reach 4.5:1.
+- More Limits lists only what the overview does not show: the model weeks the user enabled (Claude) and extra windows (Codex). Session and week are never repeated, Claude's extra usage sits under the week on the overview once something was spent, and the plan is in the tab tooltip. The row only exists when there is at least one such limit. Codex credits are set apart with a hairline outside a card, the one exception to "hairlines only inside a card". A warning or critical percentage there carries an alert icon, because 13pt ochre text alone does not reach 4.5:1.
 - Without a Claude sign-in the popover still opens. The Claude tab shows the not-connected state and other providers stay usable in their tabs.
 
 ## Tooltips
@@ -212,7 +212,7 @@ Nothing else moves. No looping animation without a reason the user cares about.
 ## Copy
 
 - The app is English. Sentence case for labels and buttons.
-- Name things the same way everywhere: Session, Week, History, Active Sessions, Statistics, All Limits, API cost.
+- Name things the same way everywhere: Session, Week, History, Active Sessions, Statistics, More Limits, API cost.
 - Provider and window in that order, separated by ` · `.
 
 ## Brand

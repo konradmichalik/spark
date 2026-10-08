@@ -81,6 +81,9 @@ struct ClaudeOverview: View {
                 warning: state.warningThreshold, critical: state.criticalThreshold, style: state.usageDisplayStyle
             )
         }
+        if let extra = AllLimits.extraUsageLine(state.usageData.extraUsage, warning: state.warningThreshold, critical: state.criticalThreshold) {
+            ExtraUsageBlock(line: extra)
+        }
         if state.showGraph, !state.history.isEmpty {
             HistoryCard(columns: HistoryColumns.make(state.history, now: Date())) { open(.history) }
         }
@@ -116,22 +119,11 @@ struct ClaudeOverview: View {
             )
             rows.append(OverviewRow(screen: .statistics, icon: .dots(.statistics), label: label, value: value))
         }
-        rows.append(OverviewRow(
-            screen: .limits, icon: .dots(.limits), label: "All limits",
-            value: OverviewSummary.limitsValue(extraLimits: extraLimitCount, plan: state.accountTier.displayName)
-        ))
+        let more = state.moreLimits
+        if let value = OverviewSummary.moreLimitsValue(count: more.limits.count + more.extras.count) {
+            rows.append(OverviewRow(screen: .limits, icon: .dots(.limits), label: "More limits", value: value))
+        }
         return rows
-    }
-
-    private var extraLimitCount: Int {
-        let data = state.usageData
-        let models = [
-            state.showSonnetUsage && data.weeklySonnet != nil,
-            state.showOpusUsage && data.weeklyOpus != nil,
-            state.showFableUsage && data.weeklyFable != nil,
-            data.extraUsage?.hasSpend == true
-        ]
-        return models.filter { $0 }.count
     }
 }
 
@@ -184,11 +176,12 @@ struct CodexOverview: View {
                 value: OverviewSummary.statisticsValue(tokens: stats.realTokens, messages: stats.messageCount)
             ))
         }
-        let extra = (codex.usage?.additionalLimits.count ?? 0) + (codex.usage?.creditsBalance == nil ? 0 : 1)
-        rows.append(OverviewRow(
-            screen: .limits, icon: .dots(.limits), label: "All limits",
-            value: OverviewSummary.limitsValue(extraLimits: extra, plan: codex.usage?.planDisplayName)
-        ))
+        if let usage = codex.usage {
+            let more = AllLimits.codex(usage, warning: warning, critical: critical)
+            if let value = OverviewSummary.moreLimitsValue(count: more.limits.count + more.extras.count) {
+                rows.append(OverviewRow(screen: .limits, icon: .dots(.limits), label: "More limits", value: value))
+            }
+        }
         return rows
     }
 }

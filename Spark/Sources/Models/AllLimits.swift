@@ -1,6 +1,6 @@
 import Foundation
 
-/// One line of the All Limits screen: a label, the value with its dot bar, and the reset in a
+/// One line of the More Limits screen: a label, the value with its dot bar, and the reset in a
 /// tooltip. `detail` replaces the percent for lines that are an amount rather than a share.
 struct LimitLine: Equatable, Identifiable {
     let label: String
@@ -13,15 +13,15 @@ struct LimitLine: Equatable, Identifiable {
     var id: String { label }
 }
 
-/// The limits of a plan, then the lines that are paid on top of it (extra usage, credits),
-/// which the screen sets apart.
+/// The limits the overview does not show, then the lines that are paid on top of the plan
+/// (Codex credits), which the screen sets apart. Session, week and Claude's extra usage live
+/// on the overview itself.
 struct LimitSections: Equatable {
     let limits: [LimitLine]
     let extras: [LimitLine]
 }
 
 enum AllLimits {
-    private static let fiveHours: TimeInterval = 5 * 3600
     private static let sevenDays: TimeInterval = 7 * 86_400
 
     static func claude(
@@ -32,8 +32,6 @@ enum AllLimits {
             usageLine(label, bucket, window: window, warning: warning, critical: critical, now: now, locale: locale)
         }
         var limits: [LimitLine] = []
-        if let session = data.session { limits.append(line("Session · 5h", session, fiveHours)) }
-        if let weekly = data.weekly { limits.append(line("Week · all models", weekly, sevenDays)) }
         for family in models {
             let label = "Week · \(name(of: family))"
             if let bucket = bucket(of: family, in: data) {
@@ -47,7 +45,7 @@ enum AllLimits {
                 ))
             }
         }
-        return LimitSections(limits: limits, extras: extraUsage(data.extraUsage, warning: warning, critical: critical))
+        return LimitSections(limits: limits, extras: [])
     }
 
     static func codex(
@@ -57,9 +55,10 @@ enum AllLimits {
             usageLine(label, bucket, window: window, warning: warning, critical: critical, now: now, locale: locale)
         }
         var limits: [LimitLine] = []
-        if let session = usage.usageData.session { limits.append(line("Session · 5h", session, fiveHours)) }
-        if let weekly = usage.usageData.weekly { limits.append(line("Week", weekly, sevenDays)) }
-        for limit in usage.additionalLimits {
+        // Without a session and a week the overview leads with the first additional limit
+        // (`HeadlineLimit`), so it is not listed twice.
+        let leadsOverview = usage.usageData.session == nil && usage.usageData.weekly == nil
+        for limit in usage.additionalLimits.dropFirst(leadsOverview ? 1 : 0) {
             limits.append(line(limit.label, limit.bucket, TimeInterval(limit.windowSeconds)))
         }
         let credits = usage.creditsBalance.map {
@@ -82,13 +81,14 @@ enum AllLimits {
         )
     }
 
-    private static func extraUsage(_ extra: ExtraUsage?, warning: Double, critical: Double) -> [LimitLine] {
-        guard let extra, extra.hasSpend, let spend = extra.spendWithLimit else { return [] }
+    /// The pay-as-you-go line under the week on the overview, only once something was spent.
+    static func extraUsageLine(_ extra: ExtraUsage?, warning: Double, critical: Double) -> LimitLine? {
+        guard let extra, extra.hasSpend, let spend = extra.spendWithLimit else { return nil }
         let share = extra.utilization ?? extra.spendAmount.flatMap { spent in extra.limitAmount.map { spent / $0 * 100 } }
-        return [LimitLine(
+        return LimitLine(
             label: "Extra usage", value: share, tone: UsageTone(value: share ?? 0, warning: warning, critical: critical),
             tooltip: "Billed on top of the plan, up to the monthly limit", detail: spend
-        )]
+        )
     }
 
     private static func name(of family: ModelFamily) -> String {
@@ -107,5 +107,14 @@ enum AllLimits {
         case .fable: data.weeklyFable
         case .other: nil
         }
+    }
+}
+
+extension AppState {
+    /// The limits behind the "More limits" row and screen: the model weeks the user enabled.
+    var moreLimits: LimitSections {
+        let models = [(ModelFamily.sonnet, showSonnetUsage), (.opus, showOpusUsage), (.fable, showFableUsage)].filter(\.1).map(\.0)
+        let local = liveStats.map { live in Dictionary(uniqueKeysWithValues: models.map { ($0, live.tokens(for: $0)) }) } ?? [:]
+        return AllLimits.claude(usageData, models: models, localTokens: local, warning: warningThreshold, critical: criticalThreshold)
     }
 }

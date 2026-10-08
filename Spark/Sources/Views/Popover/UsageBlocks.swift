@@ -178,6 +178,40 @@ struct WeekBlock: View {
     }
 }
 
+/// Pay-as-you-go spend under the week, shown once something was spent: the amount against its
+/// cap, with a thin dot bar for the share of the cap. The same shape as the week block.
+struct ExtraUsageBlock: View {
+    let line: LimitLine
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(alignment: .firstTextBaseline) {
+                MicroLabel(text: "EXTRA USAGE")
+                Spacer()
+                if let detail = line.detail {
+                    Text(detail)
+                        .font(.system(size: 12, weight: .semibold))
+                        .monospacedDigit()
+                        .foregroundStyle(toneColor(line.tone))
+                }
+            }
+            if let value = line.value {
+                DotBar(value: value, tone: line.tone, pitch: 4, dotSize: 2.6, animatesFill: true)
+                    .frame(height: 8)
+            }
+        }
+        // A taller hover target than the text and dots themselves.
+        .padding(.vertical, 3)
+        .contentShape(Rectangle())
+        .tooltip(line.tooltip, title: "Extra usage", delay: .quick)
+        .padding(.vertical, -3)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Extra usage")
+        .accessibilityValue(line.detail ?? "")
+        .accessibilityHint(line.tooltip ?? "")
+    }
+}
+
 /// The "Ring" display style: the session as one dot ring with the number inside, the reset and
 /// forecast beside it, and the week as the same block the bars style uses. The burn rate sits in
 /// the ring's tooltip, there is no room for a third fact.

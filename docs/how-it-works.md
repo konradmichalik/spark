@@ -28,7 +28,7 @@ Spark/Sources/
   Views/Settings/    SettingsView and one file per tab, the shared settings rows and cards
   Views/Report/      WeeklyReportView and its sections
   Views/Popover/     PopoverHeader, the overview and the detail screens (History, Active Sessions,
-              Statistics, All Limits, Not connected)
+              Statistics, More Limits, Not connected)
   Views/Components/  DotBar, DotRing, PaperSegments, PaperButtonStyle, WarningBanner, Tooltip,
               TablerIcon, NotificationRingImage
 ```

@@ -57,16 +57,16 @@ final class OverviewModelsTests: XCTestCase {
     }
 
     func testLimitsValue() {
-        XCTAssertEqual(OverviewSummary.limitsValue(extraLimits: 2, plan: "Max 5x"), "2 more")
-        XCTAssertEqual(OverviewSummary.limitsValue(extraLimits: 0, plan: "Plus"), "Plus")
-        XCTAssertNil(OverviewSummary.limitsValue(extraLimits: 0, plan: nil))
+        XCTAssertEqual(OverviewSummary.moreLimitsValue(count: 2), "2 limits")
+        XCTAssertEqual(OverviewSummary.moreLimitsValue(count: 1), "1 limit")
+        XCTAssertNil(OverviewSummary.moreLimitsValue(count: 0))
     }
 
     func testScreenTitles() {
         XCTAssertEqual(PopoverScreen.history.title, "History")
         XCTAssertEqual(PopoverScreen.sessions.title, "Active sessions")
         XCTAssertEqual(PopoverScreen.statistics.title, "Statistics")
-        XCTAssertEqual(PopoverScreen.limits.title, "All limits")
+        XCTAssertEqual(PopoverScreen.limits.title, "More limits")
     }
 
     func testTabTooltip() {
