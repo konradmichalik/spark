@@ -183,6 +183,11 @@ final class CodexState: ObservableObject {
         }
     }
 
+    func earliestActivityDay() async -> String? {
+        let directories = [CodexHome.sessionsDirectory, CodexHome.current.appendingPathComponent("archived_sessions")]
+        return await Task.detached { CodexEarliestDay.dayKey(in: directories) }.value
+    }
+
     /// What the usage report needs from Codex: fresh tokens per day from `previousStart` on (for the
     /// calendar and the trend) and per model for the shown period. A separate scan from
     /// `refreshStats`, off the main actor, and a newer request cancels the previous one.

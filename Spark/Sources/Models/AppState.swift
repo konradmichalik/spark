@@ -84,6 +84,9 @@ final class AppState: ObservableObject {
     /// every appearance (via `loadWeeklyReport(offset: 0)`), so reopening the window never
     /// strands the user on a past period they navigated to earlier.
     @Published private(set) var reportOffset = 0
+    /// First day with local Codex activity (a day key), so the report can go back for a Codex-only
+    /// user. Set by the report window, nil while Codex is off or has no files.
+    @Published var codexEarliestDay: String?
 
     // MARK: - OAuth Token (Keychain)
 
@@ -986,7 +989,9 @@ final class AppState: ObservableObject {
     }
 
     var canGoToEarlierPeriod: Bool {
-        PeriodReport.hasEarlierPeriod(period: reportPeriod, periodOffset: reportOffset, rollups: rollups)
+        PeriodReport.hasEarlierPeriod(
+            period: reportPeriod, periodOffset: reportOffset, rollups: rollups, earliestExtraDay: codexEarliestDay
+        )
     }
 
     var canGoToLaterPeriod: Bool {

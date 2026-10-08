@@ -42,6 +42,9 @@ struct WeeklyReportView: View {
             // period they left the window on.
             state.loadWeeklyReport(period: .week, offset: 0)
         }
+        .task(id: codex.isEnabled) {
+            state.codexEarliestDay = codex.isEnabled ? await codex.earliestActivityDay() : nil
+        }
         .task(id: codexLoadKey) { await loadCodexData() }
     }
 

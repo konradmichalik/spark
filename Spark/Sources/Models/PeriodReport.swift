@@ -155,10 +155,12 @@ struct PeriodReport {
         period: ReportPeriod = .week,
         periodOffset: Int,
         rollups: [String: DailyRollup],
+        earliestExtraDay: String? = nil,
         now: Date = Date(),
         calendar: Calendar = .current
     ) -> Bool {
-        guard let earliestRollupDay = rollups.keys.min() else { return false }
+        // `earliestExtraDay` is the first day another provider (Codex) has activity.
+        guard let earliestRollupDay = ([rollups.keys.min(), earliestExtraDay].compactMap { $0 }).min() else { return false }
         let shownStart = periodRange(period: period, offset: periodOffset, rollups: rollups, now: now, calendar: calendar).start
         return earliestRollupDay < TranscriptCache.dayKey(for: shownStart, calendar: calendar)
     }
