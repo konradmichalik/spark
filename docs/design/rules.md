@@ -167,7 +167,7 @@ Motion is added only when `accessibilityReduceMotion` is off. Start from no moti
 | Projection | Hollow dots breathe, only when the limit is reached before the reset | 2 s loop |
 | Level 2 | Push from the right, header fixed | 220 ms |
 | Active session dot | Soft halo | 2.4 s loop |
-| Tooltip | Fade and 4pt rise after 400 ms delay | 120 ms |
+| Tooltip | Fade and 4pt rise after 400 ms delay, 150 ms on usage blocks (the whole block is the hover target) | 120 ms |
 | Tabs | Selected background slides | 200 ms |
 | Menu bar | A newly filled dot fades in | 250 ms |
 

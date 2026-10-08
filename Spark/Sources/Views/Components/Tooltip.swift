@@ -29,8 +29,10 @@ enum TooltipLayout {
 extension View {
     /// Shows `text` after a short hover, like the system tooltip, with an optional bold `title`
     /// above it. Nothing is shown when both are `nil` or empty.
-    func tooltip(_ text: String?, title: String? = nil) -> some View {
-        modifier(TooltipModifier(title: title.flatMap { $0.isEmpty ? nil : $0 }, text: text.flatMap { $0.isEmpty ? nil : $0 }))
+    func tooltip(_ text: String?, title: String? = nil, delay: TooltipDelay = .standard) -> some View {
+        modifier(TooltipModifier(
+            title: title.flatMap { $0.isEmpty ? nil : $0 }, text: text.flatMap { $0.isEmpty ? nil : $0 }, delay: delay.duration
+        ))
     }
 
     /// Draws the tooltips requested by `.tooltip` on views inside it. Apply once per window root.
@@ -49,12 +51,25 @@ extension View {
     }
 }
 
+/// How long the pointer rests before a tooltip shows (docs/design/rules.md, "Motion").
+enum TooltipDelay {
+    /// Long enough that a pointer passing over a control stays quiet.
+    case standard
+    /// For data marks whose tooltip is the explanation the user is looking for.
+    case quick
+
+    var duration: Duration {
+        switch self {
+        case .standard: .milliseconds(400)
+        case .quick: .milliseconds(150)
+        }
+    }
+}
+
 // MARK: - Plumbing
 
 private enum TooltipHost {
     static let space = "tooltipHost"
-    /// Long enough that a pointer passing over a control stays quiet (docs/design/rules.md, "Motion").
-    static let delay: Duration = .milliseconds(400)
 }
 
 private struct TooltipRequest: Equatable {
@@ -85,6 +100,7 @@ private struct TooltipSizeKey: PreferenceKey {
 private struct TooltipModifier: ViewModifier {
     let title: String?
     let text: String?
+    let delay: Duration
 
     @State private var isShown = false
     @State private var showTask: Task<Void, Never>?
@@ -116,7 +132,7 @@ private struct TooltipModifier: ViewModifier {
     private func scheduleShow() {
         showTask?.cancel()
         showTask = Task { @MainActor in
-            try? await Task.sleep(for: TooltipHost.delay)
+            try? await Task.sleep(for: delay)
             guard !Task.isCancelled else { return }
             isShown = true
         }

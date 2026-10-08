@@ -38,7 +38,6 @@ struct SessionBlock: View {
                         .font(.system(size: 11.5))
                         .monospacedDigit()
                         .foregroundStyle(Theme.inkSecondary)
-                        .tooltip(resetDate?.resetDescription)
                 }
             }
             HStack(alignment: .firstTextBaseline, spacing: 3) {
@@ -56,12 +55,12 @@ struct SessionBlock: View {
             .minimumScaleFactor(0.6)
             DotBar(value: value, projected: forecast.projected, marker: elapsed.map { $0 * 100 }, tone: tone)
                 .frame(height: 10)
-                .contentShape(Rectangle())
-                .tooltip(
-                    BarTooltip.text(window: "5-hour", forecast: detail, elapsed: elapsed, reset: resetDate?.resetDescription),
-                    title: "Session"
-                )
         }
+        .contentShape(Rectangle())
+        .tooltip(
+            BarTooltip.text(window: "5-hour", forecast: detail, elapsed: elapsed, reset: resetDate?.resetDescription),
+            title: "Session", delay: .quick
+        )
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Session")
         .accessibilityValue(HeadlineLimit.accessibilityValue(value, detail: detail))
@@ -105,12 +104,12 @@ struct WeekBlock: View {
             }
             DotBar(value: value, marker: elapsed.map { $0 * 100 }, tone: tone, pitch: 4, dotSize: 2.6)
                 .frame(height: 8)
-                .contentShape(Rectangle())
-                .tooltip(
-                    BarTooltip.text(window: window, forecast: nil, elapsed: elapsed, reset: resetDescription),
-                    title: label.capitalized
-                )
         }
+        .contentShape(Rectangle())
+        .tooltip(
+            BarTooltip.text(window: window, forecast: nil, elapsed: elapsed, reset: resetDescription),
+            title: label.capitalized, delay: .quick
+        )
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(label.capitalized)
         .accessibilityValue(UsageFormat.percent(value))
@@ -176,7 +175,7 @@ struct RingsBlock: View {
         .accessibilityValue(HeadlineLimit.accessibilityValue(value, detail: detail))
         .tooltip(
             BarTooltip.text(window: "5-hour", forecast: detail, elapsed: elapsed, reset: resetIn.map { "in \($0)" }),
-            title: "Session"
+            title: "Session", delay: .quick
         )
     }
 }
