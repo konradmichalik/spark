@@ -2,20 +2,10 @@
 import XCTest
 
 final class PeriodReportCalendarTests: XCTestCase {
-    private var calendar: Calendar = {
-        var calendar = Calendar(identifier: .gregorian)
-        // swiftlint:disable:next force_unwrapping
-        calendar.timeZone = TimeZone(identifier: "Europe/Berlin")!
-        return calendar
-    }()
+    private let calendar = TestCalendar.berlin()
 
     private func date(_ day: String) -> Date {
-        let formatter = DateFormatter()
-        formatter.calendar = calendar
-        formatter.timeZone = calendar.timeZone
-        formatter.dateFormat = "yyyy-MM-dd HH:mm"
-        // swiftlint:disable:next force_unwrapping
-        return formatter.date(from: "\(day) 12:00")!
+        TestCalendar.date(day, calendar: calendar)
     }
 
     private func key(_ date: Date) -> String { TranscriptCache.dayKey(for: date, calendar: calendar) }

@@ -2,21 +2,12 @@
 import XCTest
 
 final class ActivityCalendarTests: XCTestCase {
-    private func makeCalendar(firstWeekday: Int = 2, timeZone: String = "Europe/Berlin") -> Calendar {
-        var calendar = Calendar(identifier: .gregorian)
-        // swiftlint:disable:next force_unwrapping
-        calendar.timeZone = TimeZone(identifier: timeZone)!
-        calendar.firstWeekday = firstWeekday
-        return calendar
+    private func makeCalendar(firstWeekday: Int = 2) -> Calendar {
+        TestCalendar.berlin(firstWeekday: firstWeekday)
     }
 
     private func day(_ string: String, calendar: Calendar) -> Date {
-        let formatter = DateFormatter()
-        formatter.calendar = calendar
-        formatter.timeZone = calendar.timeZone
-        formatter.dateFormat = "yyyy-MM-dd HH:mm"
-        // swiftlint:disable:next force_unwrapping
-        return formatter.date(from: "\(string) 12:00")!
+        TestCalendar.date(string, calendar: calendar)
     }
 
     private func rows(
@@ -35,14 +26,14 @@ final class ActivityCalendarTests: XCTestCase {
         XCTAssertEqual(result.count, 5)
         XCTAssertTrue(result.allSatisfy { $0.count == 7 })
         XCTAssertEqual(result[0].map(\.isOutsideRange), [true, true, true, false, false, false, false])
-        XCTAssertEqual(result[0][3].key, "2026-10-01")
+        XCTAssertEqual(result[0][3].dayKey, "2026-10-01")
         XCTAssertEqual(result[4].map(\.isOutsideRange), [false, false, false, false, false, false, true], "Trailing cells pad the last row")
     }
 
     func testWeekOfSevenDaysSpansTwoRowsUnlessAligned() {
         let aligned = rows("2026-10-05", "2026-10-11", today: "2026-10-20")
         XCTAssertEqual(aligned.count, 1)
-        XCTAssertEqual(aligned[0].map(\.key).first, "2026-10-05")
+        XCTAssertEqual(aligned[0].map(\.dayKey).first, "2026-10-05")
         let unaligned = rows("2026-10-03", "2026-10-09", today: "2026-10-20")
         XCTAssertEqual(unaligned.count, 2)
     }
@@ -71,7 +62,7 @@ final class ActivityCalendarTests: XCTestCase {
         // 2026-10-04 is a Sunday: a Sunday-first week starts on it.
         let result = rows("2026-10-04", "2026-10-10", today: "2026-10-20", calendar: calendar)
         XCTAssertEqual(result.count, 1)
-        XCTAssertEqual(result[0].first?.key, "2026-10-04")
+        XCTAssertEqual(result[0].first?.dayKey, "2026-10-04")
         XCTAssertEqual(ActivityCalendar.weekdayInitials(calendar: calendar, locale: Locale(identifier: "en_US")).first, "S")
     }
 
@@ -84,9 +75,9 @@ final class ActivityCalendarTests: XCTestCase {
         // Europe/Berlin leaves summer time on 2026-10-25 (a 25-hour day).
         let result = rows("2026-10-19", "2026-11-01", today: "2026-12-01")
         XCTAssertEqual(result.count, 2)
-        XCTAssertEqual(result.flatMap { $0 }.map(\.key).first, "2026-10-19")
-        XCTAssertEqual(result.flatMap { $0 }.map(\.key).last, "2026-11-01")
-        XCTAssertEqual(Set(result.flatMap { $0 }.map(\.key)).count, 14)
+        XCTAssertEqual(result.flatMap { $0 }.map(\.dayKey).first, "2026-10-19")
+        XCTAssertEqual(result.flatMap { $0 }.map(\.dayKey).last, "2026-11-01")
+        XCTAssertEqual(Set(result.flatMap { $0 }.map(\.dayKey)).count, 14)
     }
 
     func testStartAfterEndGivesNoRows() {

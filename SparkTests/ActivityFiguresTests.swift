@@ -2,20 +2,10 @@
 import XCTest
 
 final class ActivityFiguresTests: XCTestCase {
-    private var calendar: Calendar = {
-        var calendar = Calendar(identifier: .gregorian)
-        // swiftlint:disable:next force_unwrapping
-        calendar.timeZone = TimeZone(identifier: "Europe/Berlin")!
-        return calendar
-    }()
+    private let calendar = TestCalendar.berlin()
 
     private func date(_ day: String) -> Date {
-        let formatter = DateFormatter()
-        formatter.calendar = calendar
-        formatter.timeZone = calendar.timeZone
-        formatter.dateFormat = "yyyy-MM-dd HH:mm"
-        // swiftlint:disable:next force_unwrapping
-        return formatter.date(from: "\(day) 12:00")!
+        TestCalendar.date(day, calendar: calendar)
     }
 
     private func figures(_ start: String, _ end: String, today: String, _ tokens: [String: Int]) -> ActivityFigures {
@@ -52,7 +42,7 @@ final class ActivityFiguresTests: XCTestCase {
 
     func testTieGoesToTheMostRecentDay() {
         let result = figures("2026-10-05", "2026-10-11", today: "2026-10-11", ["2026-10-06": 50, "2026-10-09": 50, "2026-10-07": 10])
-        XCTAssertEqual(result.busiest?.key, "2026-10-09")
+        XCTAssertEqual(result.busiest?.dayKey, "2026-10-09")
     }
 
     func testSingleDay() {
@@ -66,10 +56,10 @@ final class ActivityFiguresTests: XCTestCase {
         let codex = ["2026-10-06": 5, "2026-10-07": 40]
         let all = figures("2026-10-05", "2026-10-11", today: "2026-10-11", ReportScoping.dayTokens(.all, claude: claude, codex: codex))
         XCTAssertEqual(all.longestStreak, 3)
-        XCTAssertEqual(all.busiest?.key, "2026-10-07")
+        XCTAssertEqual(all.busiest?.dayKey, "2026-10-07")
         let claudeOnly = figures("2026-10-05", "2026-10-11", today: "2026-10-11", ReportScoping.dayTokens(.claude, claude: claude, codex: codex))
         XCTAssertEqual(claudeOnly.activeDays, 2)
-        XCTAssertEqual(claudeOnly.busiest?.key, "2026-10-06")
+        XCTAssertEqual(claudeOnly.busiest?.dayKey, "2026-10-06")
     }
 
     func testWording() {
