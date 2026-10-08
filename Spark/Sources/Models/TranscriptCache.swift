@@ -128,6 +128,7 @@ enum TranscriptCache {
             for (day, bucket) in updated.dailyBuckets
             where isWithin(day: day, cutoffDayKey: cutoffDayKey, upperCutoffDayKey: upperCutoffDayKey) {
                 accumulate(bucket: bucket, project: project, into: &totals)
+                if bucket.real > 0 { totals.activeDays.insert(day) }
                 if let pathSessionId, let project {
                     totals.addSession(pathSessionId, project: project, bucket: bucket, activity: updated.activity)
                 }

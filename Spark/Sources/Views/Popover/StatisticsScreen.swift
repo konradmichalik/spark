@@ -41,7 +41,7 @@ struct ClaudeStatisticsScreen: View {
 
     private func facts(_ live: LiveStats) -> [StatFact] {
         let averages = StatisticsAverages(
-            period: live.period, messages: live.messageCount, sessions: live.sessionCount, tokens: live.realTokens
+            activeDays: live.activeDayCount, messages: live.messageCount, sessions: live.sessionCount, tokens: live.realTokens
         )
         var facts = [
             StatFact(label: "Messages", parts: UsageFormat.count(live.messageCount), tooltip: averages.messages ?? ""),
@@ -92,7 +92,7 @@ struct CodexStatisticsScreen: View {
 
     private func facts(_ stats: CodexSessionStats) -> [StatFact] {
         let averages = StatisticsAverages(
-            period: codex.statsPeriod, messages: stats.messageCount, sessions: stats.sessionCount, tokens: stats.realTokens
+            activeDays: stats.activeDays.count, messages: stats.messageCount, sessions: stats.sessionCount, tokens: stats.realTokens
         )
         return [
             StatFact(label: "Messages", parts: UsageFormat.count(stats.messageCount), tooltip: averages.messages ?? ""),

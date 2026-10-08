@@ -71,6 +71,8 @@ struct LiveStats: Sendable {
     let modelTokenTotals: [String: ModelTokenTotals]
     let projectModelTotals: [String: [String: ModelTokenTotals]]
     let sessionTotals: [String: SessionTotals]
+    /// Days of the period on which tokens were used; the divisor of "per active day" averages.
+    let activeDayCount: Int
 
     init(
         period: StatsPeriod,
@@ -85,7 +87,8 @@ struct LiveStats: Sendable {
         projectDisplayNames: [String: String] = [:],
         modelTokenTotals: [String: ModelTokenTotals] = [:],
         projectModelTotals: [String: [String: ModelTokenTotals]] = [:],
-        sessionTotals: [String: SessionTotals] = [:]
+        sessionTotals: [String: SessionTotals] = [:],
+        activeDayCount: Int = 0
     ) {
         self.period = period
         self.messageCount = messageCount
@@ -100,6 +103,7 @@ struct LiveStats: Sendable {
         self.modelTokenTotals = modelTokenTotals
         self.projectModelTotals = projectModelTotals
         self.sessionTotals = sessionTotals
+        self.activeDayCount = activeDayCount
     }
 
     var totalTokens: Int { inputTokens + outputTokens + cacheCreationTokens + cacheReadTokens }
@@ -246,7 +250,8 @@ enum LiveStatsParser {
             projectDisplayNames: transcripts.projectDisplayNames,
             modelTokenTotals: transcripts.modelTotals,
             projectModelTotals: transcripts.projectModelTotals,
-            sessionTotals: transcripts.sessionTotals
+            sessionTotals: transcripts.sessionTotals,
+            activeDayCount: transcripts.activeDays.count
         )
     }
 

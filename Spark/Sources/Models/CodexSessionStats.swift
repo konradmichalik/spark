@@ -17,6 +17,8 @@ struct CodexSessionStats: Equatable, Sendable {
     var outputTokens = 0
     var reasoningTokens = 0
     var modelTokens: [String: Int] = [:]
+    /// Day keys with fresh tokens, the divisor of "per active day" averages.
+    var activeDays: Set<String> = []
     /// Rollout files found at all, regardless of period. Zero means Codex never ran locally.
     var fileCount = 0
 
@@ -54,6 +56,7 @@ struct CodexSessionStats: Equatable, Sendable {
         outputTokens += other.outputTokens
         reasoningTokens += other.reasoningTokens
         modelTokens.merge(other.modelTokens, uniquingKeysWith: +)
+        activeDays.formUnion(other.activeDays)
     }
 
     private static func rolloutFiles(in directory: URL) -> [URL] {
@@ -103,13 +106,13 @@ private struct RolloutAccumulator {
             markActive()
         case ("event_msg", "token_count"):
             guard let total = entry.payload?.info?.totalTokenUsage else { return }
-            countDelta(to: total, inPeriod: isInPeriod(entry.timestamp))
+            countDelta(to: total, at: entry.timestamp, inPeriod: isInPeriod(entry.timestamp))
         default:
             return
         }
     }
 
-    private mutating func countDelta(to total: RolloutTokenUsage, inPeriod: Bool) {
+    private mutating func countDelta(to total: RolloutTokenUsage, at timestamp: String?, inPeriod: Bool) {
         // A lower total means a fresh counter (e.g. after a fork): count it from zero.
         if total.input < previous.input || total.output < previous.output {
             previous = RolloutTokenUsage()
@@ -126,6 +129,7 @@ private struct RolloutAccumulator {
         stats.outputTokens += output
         stats.reasoningTokens += max(total.reasoning - previous.reasoning, 0)
         stats.modelTokens[model ?? "unknown", default: 0] += input + output
+        if let date = timestamp.flatMap(Self.parseDate) { stats.activeDays.insert(TranscriptCache.dayKey(for: date)) }
         markActive()
     }
 

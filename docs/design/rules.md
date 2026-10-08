@@ -142,7 +142,7 @@ HStack(alignment: .firstTextBaseline, spacing: 3) {
 - One component, one style: ink background, paper text, uppercase SF Mono title, one to three lines.
 - No actions inside a tooltip.
 - At most one tooltip visible.
-- The Statistics tiles carry their averages in tooltips (per session, and per day for 7 days and 30 days), and the Tokens tooltip explains fresh tokens against cache reads. Top projects and top models are a card of rows like the active sessions, without bars.
+- The Statistics tiles carry their averages in tooltips (per session, and per active day once more than one day had tokens; idle days never count), and the Tokens tooltip explains fresh tokens against cache reads. Top projects and top models are a card of rows like the active sessions, without bars.
 - Tooltips carry the secondary facts so the screen does not have to: plan and sign-in path on a tab, projection and burn rate on the session bar, reset times on limits, session ID and model on a session row, the meaning of API cost.
 
 ## States

@@ -189,6 +189,9 @@ struct SessionTotals: Equatable, Sendable {
 /// name, and `projectDisplayNames` maps that same key to its resolved `cwd`, where one was found.
 struct TranscriptTotals: Equatable, Sendable {
     var sessionIds: Set<String> = []
+    /// Day keys with fresh tokens in the period. Idle days are left out so averages per day
+    /// describe the days the user actually worked.
+    var activeDays: Set<String> = []
     var input = 0
     var output = 0
     var cacheCreation = 0

@@ -67,6 +67,21 @@ final class CodexSessionStatsTests: XCTestCase {
         XCTAssertEqual(stats.fileCount, 1)
     }
 
+    func testActiveDaysAreTheDaysWithFreshTokens() throws {
+        _ = try writeRollout("rollout-d1.jsonl", in: "2026/10/05", lines: [
+            turnContext("2026-10-05T10:00:00.000Z", model: "gpt-5.5"),
+            tokenCount("2026-10-05T10:00:10.000Z", input: 1000, cached: 0, output: 100)
+        ])
+        _ = try writeRollout("rollout-d2.jsonl", in: "2026/10/07", lines: [
+            turnContext("2026-10-07T10:00:00.000Z", model: "gpt-5.5"),
+            userMessage("2026-10-07T10:00:01.000Z"),
+            tokenCount("2026-10-07T10:00:10.000Z", input: 500, cached: 0, output: 50),
+            tokenCount("2026-10-07T10:00:11.000Z", input: 500, cached: 0, output: 50)
+        ])
+        let stats = CodexSessionStats.parse(directories: [tempDir], since: nil)
+        XCTAssertEqual(stats.activeDays.count, 2)
+    }
+
     /// A session resumed today counts only what happened since the cutoff, not its whole history.
     func testOnlyCountsActivityAfterCutoff() throws {
         _ = try writeRollout("rollout-b.jsonl", in: "2026/10/05", lines: [

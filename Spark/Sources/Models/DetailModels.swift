@@ -63,18 +63,14 @@ enum TokenWording {
 }
 
 /// The averages behind the Messages, Sessions and Tokens tiles, as the sentence their tooltips
-/// show. Per day only exists for periods with a fixed length; "All" has none.
+/// show. Per day counts only the days on which tokens were used, so idle days do not water the
+/// average down; with a single active day it would repeat the totals and is left out.
 struct StatisticsAverages: Equatable {
     let messages: String?
     let sessions: String?
     let tokens: String?
 
-    init(period: StatsPeriod, messages: Int, sessions: Int, tokens: Int, locale: Locale = .current) {
-        let days: Double? = switch period {
-        case .today, .all: nil
-        case .week: 7
-        case .month: 30
-        }
+    init(activeDays: Int, messages: Int, sessions: Int, tokens: Int, locale: Locale = .current) {
         func number(_ value: Double) -> String {
             value.formatted(.number.precision(.fractionLength(0...1)).locale(locale))
         }
@@ -82,20 +78,21 @@ struct StatisticsAverages: Equatable {
             number(count) == "1" ? singular : plural
         }
         let perSession = sessions > 0 ? Double(sessions) : nil
+        let perDay = activeDays > 1 ? Double(activeDays) : nil
         self.messages = perSession.flatMap { sessions in
             let average = Double(messages) / sessions
             return messages > 0 ? Self.sentence(number(average), noun(average, "message", "messages"), "session") : nil
         }
-        self.sessions = days.flatMap { days in
+        self.sessions = perDay.flatMap { days in
             let average = Double(sessions) / days
-            return sessions > 0 ? Self.sentence(number(average), noun(average, "session", "sessions"), "day") : nil
+            return sessions > 0 ? Self.sentence(number(average), noun(average, "session", "sessions"), "active day") : nil
         }
         var tokenLines: [String] = []
         if let perSession, tokens > 0 {
             tokenLines.append("Average \(formatTokenCount(Int((Double(tokens) / perSession).rounded()))) tokens per session")
         }
-        if let days, tokens > 0 {
-            tokenLines.append("Average \(formatTokenCount(Int((Double(tokens) / days).rounded()))) tokens per day")
+        if let perDay, tokens > 0 {
+            tokenLines.append("Average \(formatTokenCount(Int((Double(tokens) / perDay).rounded()))) tokens per active day")
         }
         self.tokens = tokenLines.isEmpty ? nil : tokenLines.joined(separator: "\n")
     }
