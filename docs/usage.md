@@ -28,7 +28,7 @@ The detail screens:
 
 - **History**: Limits (session as dot columns, week as a red line) or Volume (tokens per day), over 1 hour to 30 days. Hover the graph for the values at that point. Below it the peak session and the weekly points added in the range.
 - **Active sessions**: sessions with a transcript write in the last 5 minutes, with how long ago and their context size. Hover a row for its session ID, start time and model. Click to reveal the project in Finder, right-click to open it in Terminal or copy its path.
-- **Statistics**: messages, sessions, tokens and, with **API Cost Estimate** on in Settings, the API cost for Today, 7 days, 30 days or all time, plus the top projects. Codex shows its own counts and top models.
+- **Statistics**: messages, sessions, tokens and, with **API cost estimate** on under **Settings → Display**, the API cost for Today, 7 days, 30 days or all time, plus the top projects. Codex shows its own counts and top models.
 - **All limits**: the plan, every limit with its bar and time marker, extra usage and Codex credits. Hover a limit for its reset time.
 
 Without a Claude sign-in the Claude tab shows how to connect: load it from the keychain, or add a long-lived token in Settings. Codex keeps working in its own tab.
@@ -37,9 +37,25 @@ Without a Claude sign-in the Claude tab shows how to connect: load it from the k
 
 With a Codex ChatGPT sign-in present, the popover gets a **Claude | Codex** switch. The menu bar shows the provider of the tab you opened last, so switching tabs is how you choose what it reports. If Codex is selected but has no data yet, the icon shows Claude's value, dimmed.
 
-Each tab also shows that provider's session usage, colored from the warning threshold up, so both can be read without switching. Turn it off under **Settings → Display → Session Usage in Provider Tabs**.
+Each tab also shows that provider's session usage, colored from the warning threshold up, so both can be read without switching. Turn it off under **Settings → Display → Session usage in the tabs**. **Provider colour in the tabs** switches off the faint tint of the selected Claude tab.
 
-If a Codex plan lacks the window picked under **Displayed Value** (Pro has no 5-hour window, Free only a 30-day one), Spark uses that plan's highest window instead of showing 0%.
+If a Codex plan lacks the window picked under **Displayed value** (Pro has no 5-hour window, Free only a 30-day one), Spark uses that plan's highest window instead of showing 0%.
+
+## Settings
+
+- **General**: refresh mode, launch at login and the data export.
+- **Menu Bar**: the glyph style and the value next to it. With Codex off, the menu bar always shows Claude.
+- **Display**: bars or ring in the popover, what the popover shows (history, forecast, active sessions, statistics, top projects, API cost estimate), the extra limits under All limits, and the provider tab options.
+- **Connections**: one card per provider with its status, plan and sign-in path. Claude's long-lived token sits behind the disclosure on its card. Codex shows `codex login` and **Check again** when it has no valid sign-in.
+- **Notifications**: thresholds, events and a test notification.
+
+## Notifications
+
+A notification's title names the provider and the window, then the value (`Claude · Session at 78%`). The body says the one thing to act on: when the limit comes at the current pace, or what is left until the reset. Usage notifications carry a twelve-dot ring with the value, ochre for warning and red for critical; a reset carries an empty ring. Each provider has its own thread in Notification Center, and a click opens the popover on that provider's tab.
+
+## Usage report
+
+The calendar button in the popover header opens the report for the current week or month. It shows the tokens, the change against the period before and the API cost estimate (hover a number for the details), the pace as each day's session peak in dot columns with the week as a red line, each model's share, and the top projects and sessions. Lists show three entries and expand with **Show N more**. Right-click a project to reveal it in Finder.
 
 ## Smart refresh
 
@@ -55,4 +71,4 @@ If a Codex plan lacks the window picked under **Displayed Value** (Pro has no 5-
 
 ## Data export
 
-**Settings → General → Data Export → Export data for external apps** (off by default) writes the current usage state to `~/Library/Application Support/Spark/data.json` on every refresh, for external consumers such as a Stream Deck plugin. Turning it off deletes the file.
+**Settings → General → Data export → Export data for other apps** (off by default) writes the current usage state to `~/Library/Application Support/Spark/data.json` on every refresh, for external consumers such as a Stream Deck plugin. Turning it off deletes the file.

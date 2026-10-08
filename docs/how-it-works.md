@@ -24,11 +24,13 @@ Spark/Sources/
   Models/     Models.swift, AppState.swift, StatsModels.swift, Theme.swift,
               CodexState.swift, CodexUsage.swift, CodexSessionStats.swift, MenuBarReading.swift
   Services/   UsageClient.swift, KeychainService.swift, CodexAuthReader.swift, CodexUsageClient.swift
-  Views/      MenuBarView, SettingsView, WeeklyReportView, ClaudeLogoShape
+  Views/      MenuBarView, ClaudeLogoShape
+  Views/Settings/    SettingsView and one file per tab, the shared settings rows and cards
+  Views/Report/      WeeklyReportView and its sections
   Views/Popover/     PopoverHeader, the overview and the detail screens (History, Active Sessions,
               Statistics, All Limits, Not connected)
-  Views/Components/  DotBar, DotRing, PaperSegments, Tooltip, TablerIcon and the settings
-              controls (SectionHeader, SectionCard, SegmentPicker)
+  Views/Components/  DotBar, DotRing, PaperSegments, PaperButtonStyle, WarningBanner, Tooltip,
+              TablerIcon, NotificationRingImage
 ```
 
 > [!NOTE]

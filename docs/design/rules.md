@@ -27,6 +27,7 @@ All colours come from `Theme` tokens with a light and a dark value. No literal c
 | `dotTrack` | ink at 15 % | ink at 16 % | Unfilled dots |
 | `accent` | `#D71921` | `#FF5A5F` | Brand red |
 | `warning` | `#B07800` | `#F0B429` | Warning ochre |
+| `claudeLogo` | `#C96442` | `#C96442` | Claude's logo and the faint tint of its selected tab, nothing else |
 
 - **Red is the brand colour and is not configurable.** It marks the logo's centre dot, the weekly line in graphs, and any value at or above the critical threshold.
 - **Ochre marks values between the warning and the critical threshold.** Nothing else is ochre.
@@ -164,7 +165,19 @@ Other providers stay usable when one is disconnected.
 - Title: provider and window, then the value: `Claude · Session at 78%`.
 - Body: the one thing to act on, usually the projection or the time to reset.
 - Usage notifications attach a generated twelve-dot ring with the value, coloured by state. Resets attach an empty ink ring. System messages have no attachment.
-- One `threadIdentifier` per provider. A click opens the popover on that provider's tab.
+- One `threadIdentifier` per provider (`claude`, `codex`), and `spark` for messages about Spark itself. A click opens the popover on that provider's tab.
+- The ring attachment is a 64pt tile on `card`, rendered in the app's current appearance. The value in its centre is SF Pro bold, not Doto: at that size Doto stops reading.
+- Wording lives in `NoticeWording` (`Spark/Sources/Models/SparkNotice.swift`), never inline at the trigger.
+
+## Windows
+
+- Settings and the usage report use the popover's tokens: `paper` background, `card` with a hairline outline, sentence-case section titles in `inkSecondary`. Rows inside a settings card are separated by hairlines.
+- Switches are ink. Segmented choices use `PaperSegments`, buttons `PaperButtonStyle`: a hairline fill, or ink for the one main action.
+- A choice between looks (bars or ring, menu bar style) is a pair of preview cards; the selected one is outlined in ink.
+- A connection card leads with the provider's logo, its name and a status line (state, plan, sign-in path). The status dot is ink when connected, `accent` when the sign-in expired, `warning` when none was found and `dotTrack` when switched off; the words always say the same, so the dot is never the only signal. There is no green.
+- Claude has no show switch on its card: Claude cannot be hidden.
+- The report's lists sit outside a card, so their rows are spaced, not ruled. They show three entries and "Show N more".
+- The report has no provider switch yet. Codex keeps no daily rollups, so there is nothing to compare a Codex period against.
 
 ## Motion
 
