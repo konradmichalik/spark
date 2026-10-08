@@ -56,7 +56,11 @@ struct SessionBlock: View {
             .minimumScaleFactor(0.6)
             DotBar(value: value, projected: forecast.projected, marker: elapsed.map { $0 * 100 }, tone: tone)
                 .frame(height: 10)
-                .tooltip(detail, title: "Forecast")
+                .contentShape(Rectangle())
+                .tooltip(
+                    BarTooltip.text(window: "5-hour", forecast: detail, elapsed: elapsed, reset: resetDate?.resetDescription),
+                    title: "Session"
+                )
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Session")
@@ -79,6 +83,7 @@ private struct LimitWarning: View {
 /// Week on the overview: label and value on one line, a thin dot bar with the time marker below.
 struct WeekBlock: View {
     var label = "WEEK"
+    var window = "weekly"
     let value: Double
     let resetIn: String?
     let resetDate: Date?
@@ -90,15 +95,22 @@ struct WeekBlock: View {
             HStack(alignment: .firstTextBaseline) {
                 MicroLabel(text: label)
                 Spacer()
-                Text(UsageFormat.percent(value))
-                    .font(.system(size: 15, weight: .semibold))
-                    .monospacedDigit()
-                    .foregroundStyle(toneColor(tone))
+                HStack(alignment: .firstTextBaseline, spacing: 2) {
+                    Text(String(Int(value.rounded())))
+                        .font(.doto(size: 24))
+                    Text("%")
+                        .font(.system(size: 12, weight: .semibold))
+                }
+                .foregroundStyle(toneColor(tone))
             }
             DotBar(value: value, marker: elapsed.map { $0 * 100 }, tone: tone, pitch: 4, dotSize: 2.6)
                 .frame(height: 8)
+                .contentShape(Rectangle())
+                .tooltip(
+                    BarTooltip.text(window: window, forecast: nil, elapsed: elapsed, reset: resetDescription),
+                    title: label.capitalized
+                )
         }
-        .tooltip(resetDescription, title: label.capitalized)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(label.capitalized)
         .accessibilityValue(UsageFormat.percent(value))
@@ -106,7 +118,7 @@ struct WeekBlock: View {
     }
 
     private var resetDescription: String? {
-        resetDate?.resetDescription ?? resetIn.map { "Reset in \($0)" }
+        resetDate?.resetDescription ?? resetIn.map { "in \($0)" }
     }
 }
 
@@ -162,7 +174,10 @@ struct RingsBlock: View {
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Session")
         .accessibilityValue(HeadlineLimit.accessibilityValue(value, detail: detail))
-        .tooltip(detail, title: "Forecast")
+        .tooltip(
+            BarTooltip.text(window: "5-hour", forecast: detail, elapsed: elapsed, reset: resetIn.map { "in \($0)" }),
+            title: "Session"
+        )
     }
 }
 

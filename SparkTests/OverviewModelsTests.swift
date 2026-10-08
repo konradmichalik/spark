@@ -89,17 +89,13 @@ final class OverviewModelsTests: XCTestCase {
 
     func testForecastDetailLines() {
         XCTAssertEqual(
-            ForecastDetail.text(projection: .safe(79), utilization: 45, secondsToReset: 2 * 3600, tokensPerMinute: 25_500, elapsed: 0.54),
-            "~79% at reset, rising ~17%/h\n25.5K tokens per minute, last 15 min\nMarker: 54% of the 5h window has passed"
+            ForecastDetail.text(projection: .safe(79), utilization: 45, secondsToReset: 2 * 3600, tokensPerMinute: 25_500),
+            "~79% at reset, rising ~17%/h\n25.5K tokens per minute, last 15 min"
         )
         XCTAssertEqual(
-            ForecastDetail.text(projection: .limitReached(1800), utilization: 90, secondsToReset: 3600, tokensPerMinute: nil, elapsed: nil),
+            ForecastDetail.text(projection: .limitReached(1800), utilization: 90, secondsToReset: 3600, tokensPerMinute: nil),
             "Limit in ~30m, rising ~20%/h"
         )
-        XCTAssertNil(ForecastDetail.text(projection: .insufficientData, utilization: 10, secondsToReset: nil, tokensPerMinute: nil, elapsed: nil))
-        XCTAssertEqual(
-            ForecastDetail.text(projection: .safe(30), utilization: 30, secondsToReset: nil, tokensPerMinute: nil, elapsed: 0.2),
-            "~30% at reset\nMarker: 20% of the 5h window has passed"
-        )
+        XCTAssertNil(ForecastDetail.text(projection: .insufficientData, utilization: 10, secondsToReset: nil, tokensPerMinute: nil))
     }
 }

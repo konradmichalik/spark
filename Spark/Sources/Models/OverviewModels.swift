@@ -92,8 +92,7 @@ enum ForecastDetail {
         projection: ProjectionResult,
         utilization: Double,
         secondsToReset: TimeInterval?,
-        tokensPerMinute: Int?,
-        elapsed: Double?
+        tokensPerMinute: Int?
     ) -> String? {
         var lines: [String] = []
         switch projection {
@@ -108,9 +107,6 @@ enum ForecastDetail {
         }
         if let tokensPerMinute {
             lines.append("\(formatTokenCount(tokensPerMinute)) tokens per minute, last \(Int(BurnRate.window / 60)) min")
-        }
-        if !lines.isEmpty, let elapsed {
-            lines.append("Marker: \(Int((elapsed * 100).rounded()))% of the 5h window has passed")
         }
         return lines.isEmpty ? nil : lines.joined(separator: "\n")
     }
@@ -148,5 +144,29 @@ enum HeadlineLimit {
     /// Tooltips only show on hover, so VoiceOver gets the forecast through the value.
     static func accessibilityValue(_ value: Double, detail: String?, locale: Locale = .current) -> String {
         [UsageFormat.percent(value, locale: locale), detail].compactMap { $0 }.joined(separator: ". ")
+    }
+}
+
+/// The explaining tooltip of a dot bar: what the fill means, then the hollow dots, the marker
+/// and the reset, each only when the bar shows it.
+enum BarTooltip {
+    static func text(window: String, forecast: String?, elapsed: Double?, reset: String?) -> String {
+        var lines = ["Share of the \(window) limit used"]
+        if let forecast { lines.append("Hollow dots: \(forecast)") }
+        if let elapsed { lines.append("Marker: \(Int((elapsed * 100).rounded()))% of the window has passed") }
+        if let reset { lines.append("Resets \(reset)") }
+        return lines.joined(separator: "\n")
+    }
+}
+
+/// Clock times under the history card: start, middle and end of the window.
+enum HistoryAxis {
+    static func labels(now: Date, window: TimeInterval, locale: Locale = .current, timeZone: TimeZone = .current) -> [String] {
+        let formatter = DateFormatter()
+        formatter.locale = locale
+        formatter.timeZone = timeZone
+        formatter.dateStyle = .none
+        formatter.timeStyle = .short
+        return [-window, -window / 2, 0].map { formatter.string(from: now.addingTimeInterval($0)) }
     }
 }

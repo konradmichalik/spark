@@ -17,6 +17,7 @@ private struct OverviewCard<Content: View>: View {
 /// The whole card opens the history.
 struct HistoryCard: View {
     let columns: [HistoryColumn]
+    let axisLabels: [String]
     let onOpen: () -> Void
 
     private static let chartHeight: CGFloat = 56
@@ -88,11 +89,10 @@ struct HistoryCard: View {
 
     private var axis: some View {
         HStack {
-            Text("\u{2212}6h")
-            Spacer()
-            Text("\u{2212}3h")
-            Spacer()
-            Text("now")
+            ForEach(Array(axisLabels.enumerated()), id: \.offset) { index, label in
+                if index > 0 { Spacer() }
+                Text(label)
+            }
         }
         .font(.system(size: 10, design: .monospaced))
         .foregroundStyle(Theme.inkTertiary)

@@ -83,7 +83,10 @@ struct ClaudeOverview: View {
             )
         }
         if state.showGraph, !state.history.isEmpty {
-            HistoryCard(columns: HistoryColumns.make(state.history, now: Date())) { open(.history) }
+            let now = Date()
+            HistoryCard(columns: HistoryColumns.make(state.history, now: now), axisLabels: HistoryAxis.labels(now: now, window: 6 * 3600)) {
+                open(.history)
+            }
         }
         OverviewRows(rows: rows, onOpen: open)
     }
@@ -99,9 +102,7 @@ struct ClaudeOverview: View {
             projection: projection,
             utilization: session.utilization,
             secondsToReset: session.resetsAtDate.map { $0.timeIntervalSinceNow },
-            tokensPerMinute: state.showProjection ? state.burnRate?.tokensPerMinute : nil,
-            elapsed: Pace.calculate(utilization: session.utilization, resetsAt: session.resetsAtDate, windowLength: fiveHours)?
-                .elapsedFraction
+            tokensPerMinute: state.showProjection ? state.burnRate?.tokensPerMinute : nil
         )
     }
 
@@ -161,7 +162,8 @@ struct CodexOverview: View {
         } else if let usage = codex.usage,
                   let headline = HeadlineLimit.withoutSession(weekly: usage.usageData.weekly, others: usage.additionalLimits) {
             WeekBlock(
-                label: headline.label, value: headline.bucket.utilization, resetIn: headline.bucket.timeUntilReset,
+                label: headline.label, window: headline.label == "WEEK" ? "weekly" : headline.label.lowercased(),
+                value: headline.bucket.utilization, resetIn: headline.bucket.timeUntilReset,
                 resetDate: headline.bucket.resetsAtDate,
                 elapsed: Pace.calculate(
                     utilization: headline.bucket.utilization, resetsAt: headline.bucket.resetsAtDate, windowLength: headline.window
