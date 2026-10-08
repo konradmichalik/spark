@@ -11,7 +11,7 @@ struct StatusTab: View {
             ) {
                 SettingsCard {
                     HStack(spacing: 10) {
-                        DotIconView(icon: state.status.dotIcon, size: 15, color: statusColor(state.status, healthy: Theme.ink))
+                        StatusDotView(dot: state.status.dot, size: 15)
                         Text(state.statusDescription)
                             .font(.system(size: 13, weight: .semibold))
                             .foregroundStyle(Theme.ink)
@@ -53,20 +53,10 @@ struct StatusTab: View {
         }
     }
 
-    /// Red only for a major outage, ochre for anything milder, grey while unknown.
-    private func statusColor(_ status: ClaudeServiceStatus, healthy: Color) -> Color {
-        switch status {
-        case .operational, .none: healthy
-        case .majorOutage: Theme.accent
-        case .unknown: Theme.inkSecondary
-        case .degradedPerformance, .partialOutage: Theme.warning
-        }
-    }
-
     /// A component in trouble gets an ochre icon; its status is spelled out in ink beside it.
     private func componentRow(_ component: (name: String, status: ClaudeServiceStatus)) -> some View {
         HStack(spacing: 8) {
-            DotIconView(icon: component.status.dotIcon, size: 13, color: statusColor(component.status, healthy: Theme.inkTertiary))
+            StatusDotView(dot: component.status.dot, size: 13, healthyColor: Theme.inkTertiary)
             Text(component.name)
                 .font(.system(size: 13))
                 .foregroundStyle(Theme.ink)

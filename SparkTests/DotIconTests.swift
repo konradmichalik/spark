@@ -23,24 +23,20 @@ final class DotIconTests: XCTestCase {
     }
 }
 
-final class StatusDotIconTests: XCTestCase {
-    func testEveryStatusHasADotIcon() {
-        XCTAssertEqual(ClaudeServiceStatus.operational.dotIcon, .statusOK)
-        XCTAssertEqual(ClaudeServiceStatus.none.dotIcon, .statusOK)
-        XCTAssertEqual(ClaudeServiceStatus.degradedPerformance.dotIcon, .statusDegraded)
-        XCTAssertEqual(ClaudeServiceStatus.partialOutage.dotIcon, .statusDegraded)
-        XCTAssertEqual(ClaudeServiceStatus.majorOutage.dotIcon, .statusOutage)
-        XCTAssertEqual(ClaudeServiceStatus.unknown.dotIcon, .statusUnknown)
+final class StatusDotTests: XCTestCase {
+    func testHealthyStatusIsAQuietFilledDot() {
+        for status in [ClaudeServiceStatus.operational, .none] {
+            XCTAssertEqual(status.dot, StatusDot(tone: .normal, isHollow: false, pulses: false))
+        }
     }
 
-    func testStatusIconsAreDistinctAndInsideTheGrid() {
-        let icons: [DotIcon] = [.statusOK, .statusDegraded, .statusOutage, .statusUnknown]
-        let patterns = icons.map { icon in icon.dots.map { "\($0.column),\($0.row)" }.sorted().joined(separator: ";") }
-        XCTAssertEqual(Set(patterns).count, icons.count)
-        for icon in icons {
-            for dot in icon.dots {
-                XCTAssertTrue((0..<icon.grid).contains(dot.column) && (0..<icon.grid).contains(dot.row), "\(icon) \(dot)")
-            }
-        }
+    func testIncidentsPulseInTheirTone() {
+        XCTAssertEqual(ClaudeServiceStatus.degradedPerformance.dot, StatusDot(tone: .warning, isHollow: false, pulses: true))
+        XCTAssertEqual(ClaudeServiceStatus.partialOutage.dot, StatusDot(tone: .warning, isHollow: false, pulses: true))
+        XCTAssertEqual(ClaudeServiceStatus.majorOutage.dot, StatusDot(tone: .critical, isHollow: false, pulses: true))
+    }
+
+    func testUnknownIsAHollowDotThatStaysStill() {
+        XCTAssertEqual(ClaudeServiceStatus.unknown.dot, StatusDot(tone: .normal, isHollow: true, pulses: false))
     }
 }

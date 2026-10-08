@@ -294,12 +294,14 @@ enum ClaudeServiceStatus: String, Codable, Sendable {
         self == .degradedPerformance || self == .partialOutage || self == .majorOutage
     }
 
-    var dotIcon: DotIcon {
+    /// The status as one dot: quiet while healthy, pulsing in ochre or red during an incident,
+    /// hollow while it cannot be read.
+    var dot: StatusDot {
         switch self {
-        case .operational, .none: .statusOK
-        case .degradedPerformance, .partialOutage: .statusDegraded
-        case .majorOutage: .statusOutage
-        case .unknown: .statusUnknown
+        case .operational, .none: StatusDot(tone: .normal, isHollow: false, pulses: false)
+        case .degradedPerformance, .partialOutage: StatusDot(tone: .warning, isHollow: false, pulses: true)
+        case .majorOutage: StatusDot(tone: .critical, isHollow: false, pulses: true)
+        case .unknown: StatusDot(tone: .normal, isHollow: true, pulses: false)
         }
     }
 
@@ -363,4 +365,10 @@ enum ClaudeCodeInstallMethod: String, Sendable {
         case .other: "claude update"
         }
     }
+}
+
+struct StatusDot: Equatable {
+    let tone: UsageTone
+    let isHollow: Bool
+    let pulses: Bool
 }

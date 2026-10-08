@@ -8,15 +8,10 @@ import SwiftUI
 struct StatusRow: View {
     @ObservedObject var state: AppState
 
-    /// A major outage is the one status that earns red; anything milder stays ochre.
-    private var tone: UsageTone {
-        state.status == .majorOutage || state.claudeCodeStatus == .majorOutage ? .critical : .warning
-    }
-
     var body: some View {
         Link(destination: URL(staticString: "https://status.claude.com")) {
             HStack(spacing: 8) {
-                DotIconView(icon: worst.dotIcon, size: 14, color: tone.color)
+                StatusDotView(dot: worst.dot, size: 14)
                 Text(headline)
                     .font(.system(size: 12))
                     .foregroundStyle(Theme.ink)

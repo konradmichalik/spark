@@ -1,22 +1,14 @@
 import SwiftUI
 
-/// Small icons drawn in the dot language: the overview rows on a 4 × 4 grid, the service status
-/// on a 5 × 5 grid (docs/design/rules.md, "Dot language").
+/// Small icons drawn in the dot language for the overview rows, on a 4 × 4 grid
+/// (docs/design/rules.md, "Dot language").
 enum DotIcon: CaseIterable {
     case statistics, limits
-    case statusOK, statusDegraded, statusOutage, statusUnknown
 
     struct Dot: Equatable {
         let column: Int
         let row: Int
         let isFilled: Bool
-    }
-
-    var grid: Int {
-        switch self {
-        case .statistics, .limits: 4
-        default: 5
-        }
     }
 
     var dots: [Dot] {
@@ -30,31 +22,7 @@ enum DotIcon: CaseIterable {
             // An octagon of eight dots, filled clockwise from the top, like a partly used ring.
             let ring = [(1, 0), (2, 0), (3, 1), (3, 2), (2, 3), (1, 3), (0, 2), (0, 1)]
             return ring.enumerated().map { index, cell in Dot(column: cell.0, row: cell.1, isFilled: index < 5) }
-        default:
-            return statusDots
         }
-    }
-
-    /// Service status patterns, all dots filled.
-    private var statusDots: [Dot] {
-        let filled: [(Int, Int)]
-        switch self {
-        case .statusOK:
-            // A closed ring.
-            filled = [(1, 0), (2, 0), (3, 0), (4, 1), (4, 2), (4, 3), (3, 4), (2, 4), (1, 4), (0, 3), (0, 2), (0, 1)]
-        case .statusDegraded:
-            // A triangle with a dot inside.
-            filled = [(2, 0), (1, 1), (3, 1), (1, 2), (2, 2), (3, 2), (0, 3), (4, 3), (0, 4), (1, 4), (2, 4), (3, 4), (4, 4)]
-        case .statusOutage:
-            // A cross.
-            filled = [(0, 0), (1, 1), (2, 2), (3, 3), (4, 4), (4, 0), (3, 1), (1, 3), (0, 4)]
-        case .statusUnknown:
-            // A question mark.
-            filled = [(0, 1), (1, 0), (2, 0), (3, 0), (4, 1), (3, 2), (2, 2), (2, 4)]
-        case .statistics, .limits:
-            filled = []
-        }
-        return filled.map { Dot(column: $0.0, row: $0.1, isFilled: true) }
     }
 }
 
@@ -65,7 +33,7 @@ struct DotIconView: View {
 
     var body: some View {
         Canvas { context, canvas in
-            let pitch = canvas.width / CGFloat(icon.grid)
+            let pitch = canvas.width / 4
             let dot = pitch * 0.62
             for item in icon.dots {
                 let center = CGPoint(x: pitch * (CGFloat(item.column) + 0.5), y: pitch * (CGFloat(item.row) + 0.5))
@@ -102,6 +70,8 @@ enum LiveDotHalo: CaseIterable {
 struct PulsingDot: View {
     let isLive: Bool
     var size: CGFloat = 13
+    var color: Color = Theme.accent
+    var restingColor: Color = Theme.inkSecondary.opacity(0.4)
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -119,7 +89,7 @@ struct PulsingDot: View {
                 }
             }
             Circle()
-                .fill(isLive ? Theme.accent : Theme.inkSecondary.opacity(0.4))
+                .fill(isLive ? color : restingColor)
                 .frame(width: size * 0.42, height: size * 0.42)
         }
         .frame(width: size, height: size)
@@ -128,9 +98,30 @@ struct PulsingDot: View {
 
     private func halo(_ phase: LiveDotHalo) -> some View {
         Circle()
-            .fill(Theme.accent)
+            .fill(color)
             .frame(width: size * LiveDotHalo.diameter, height: size * LiveDotHalo.diameter)
             .scaleEffect(phase.scale)
             .opacity(phase.opacity)
+    }
+}
+
+/// The service status as one dot (docs/design/rules.md, "Dot language"). A healthy status is a
+/// plain dot in `healthyColor`, an incident pulses in its tone, an unreadable status is a ring.
+struct StatusDotView: View {
+    let dot: StatusDot
+    var size: CGFloat = 14
+    var healthyColor: Color = Theme.ink
+
+    var body: some View {
+        if dot.isHollow {
+            Circle()
+                .strokeBorder(Theme.inkSecondary, lineWidth: 1.5)
+                .frame(width: size * 0.42, height: size * 0.42)
+                .frame(width: size, height: size)
+                .accessibilityHidden(true)
+        } else {
+            let color = dot.tone == .normal ? healthyColor : dot.tone.color
+            PulsingDot(isLive: dot.pulses, size: size, color: color, restingColor: color)
+        }
     }
 }
