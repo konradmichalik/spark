@@ -31,9 +31,10 @@ struct DotBarLayout: Equatable {
         dots.indices.filter { dots[$0] == .projected }
     }
 
-    /// The dots with the hollow ones taken out, for the layer that never breathes.
-    static func baseDots(_ dots: [Dot]) -> [Dot] {
-        dots.map { $0 == .projected ? .track : $0 }
+    /// The dots for the layer that never breathes: a hollow dot is `nil`, so nothing is drawn
+    /// under its outline and its centre stays empty.
+    static func baseDots(_ dots: [Dot]) -> [Dot?] {
+        dots.map { $0 == .projected ? nil : $0 }
     }
 
     static func count(width: CGFloat, pitch: CGFloat) -> Int {
@@ -84,6 +85,7 @@ struct DotBar: View {
             )
             let midY = size.height / 2
             for (position, dot) in DotBarLayout.baseDots(frame.dots(of: layout)).enumerated() {
+                guard let dot else { continue }
                 let centerX = pitch * CGFloat(position) + pitch / 2
                 let rect = CGRect(x: centerX - dotSize / 2, y: midY - dotSize / 2, width: dotSize, height: dotSize)
                 context.fill(Path(ellipseIn: rect), with: .color(dot == .filled ? tone.color : Theme.dotTrack))

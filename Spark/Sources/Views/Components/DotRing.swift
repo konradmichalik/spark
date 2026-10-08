@@ -79,6 +79,7 @@ struct DotRing: View {
             let center = CGPoint(x: size.width / 2, y: size.height / 2)
             let points = DotRingLayout.points(count: count, radius: radius, center: center, gap: gap)
             for (position, dot) in DotBarLayout.baseDots(frame.dots(of: layout)).enumerated() {
+                guard let dot else { continue }
                 let rect = CGRect(x: points[position].x - dotSize / 2, y: points[position].y - dotSize / 2, width: dotSize, height: dotSize)
                 context.fill(Path(ellipseIn: rect), with: .color(dot == .filled ? tone.color : Theme.dotTrack))
             }
