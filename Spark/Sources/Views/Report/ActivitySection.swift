@@ -15,6 +15,23 @@ struct ActivitySection: View {
         VStack(alignment: .leading, spacing: 10) {
             MicroLabel(text: "ACTIVITY \u{00B7} DAYS WITH USE")
                 .accessibilityAddTraits(.isHeader)
+            // Side by side while the window is wide enough, the figures under the calendar otherwise.
+            ViewThatFits(in: .horizontal) {
+                HStack(alignment: .top, spacing: 28) {
+                    calendarBlock(rows)
+                    ActivityFiguresView(figures: ActivityFigures(cells: rows.flatMap { $0 }), calendar: calendar)
+                        .frame(maxWidth: .infinity, alignment: .topLeading)
+                }
+                VStack(alignment: .leading, spacing: 16) {
+                    calendarBlock(rows)
+                    ActivityFiguresView(figures: ActivityFigures(cells: rows.flatMap { $0 }), calendar: calendar)
+                }
+            }
+        }
+    }
+
+    private func calendarBlock(_ rows: [[ActivityCell]]) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
             grid(rows)
             ActivityLegend()
         }
@@ -94,5 +111,74 @@ private struct ActivityLegend: View {
         .font(.system(size: 11))
         .foregroundStyle(Theme.inkSecondary)
         .accessibilityHidden(true)
+    }
+}
+
+/// Active days, the longest streak and the busiest day, each one element for VoiceOver.
+private struct ActivityFiguresView: View {
+    let figures: ActivityFigures
+    let calendar: Calendar
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            figure("ACTIVE DAYS", tooltip: "Days with fresh tokens in this period.", spoken: "\(figures.activeDays) of \(figures.totalDays) days") {
+                numberLine(figures.activeDays, text: "of \(figures.totalDays) days")
+            }
+            figure(
+                "LONGEST STREAK", tooltip: "The longest run of days in a row with use.",
+                spoken: "\(figures.longestStreak) \(ActivityFigures.streakUnit(figures.longestStreak))"
+            ) {
+                numberLine(figures.longestStreak, text: ActivityFigures.streakUnit(figures.longestStreak))
+            }
+            figure("BUSIEST DAY", tooltip: "The day with the most fresh tokens.", spoken: busiestSpoken) { busiest }
+        }
+    }
+
+    private var busiestSpoken: String {
+        guard let day = figures.busiest else { return "No use" }
+        return "\(ActivityCalendar.tooltipTitle(day, calendar: calendar)), \(ActivityCalendar.tooltipBody(day))"
+    }
+
+    @ViewBuilder
+    private var busiest: some View {
+        if let day = figures.busiest {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(ActivityCalendar.tooltipTitle(day, calendar: calendar))
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(Theme.ink)
+                Text(ActivityCalendar.tooltipBody(day))
+                    .font(.system(size: 11, design: .monospaced))
+                    .foregroundStyle(Theme.inkSecondary)
+            }
+        } else {
+            Text("No use")
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(Theme.ink)
+        }
+    }
+
+    private func numberLine(_ value: Int, text: String) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 5) {
+            DotoValue(parts: NumberParts(number: String(value), unit: ""), size: 32)
+            Text(text)
+                .font(.system(size: 12))
+                .foregroundStyle(Theme.inkSecondary)
+        }
+    }
+
+    private func figure<Content: View>(
+        _ label: String, tooltip: String, spoken: String, @ViewBuilder content: () -> Content
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            MicroLabel(text: label)
+            content()
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .contentShape(Rectangle())
+        .tooltip(tooltip, title: label, delay: .quick)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(label.capitalized)
+        .accessibilityValue(spoken)
+        .accessibilityHint(tooltip)
     }
 }
