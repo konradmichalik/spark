@@ -70,25 +70,16 @@ struct ExtraUsage: Codable, Sendable {
         return Self.currencyFormatter(currency, decimalPlaces: decimalPlaces).string(from: NSNumber(value: amount))
     }
 
-    /// Spent amount with its cap, e.g. "39,88 / 40,00 €" (currency symbol on the limit
-    /// only). Falls back to the bare spent amount when no limit is known. Nil when nothing spent.
-    var formattedSpendWithLimit: String? {
-        guard let parts = formattedParts else { return nil }
-        guard let limit = parts.limit else { return formattedSpend }
-        return "\(parts.spend) / \(limit)"
-    }
-
-    /// Screen-reader phrasing of the spend, e.g. "39,88 of 40,00 €" — avoids the visual
-    /// "/" so VoiceOver reads it naturally. Mirrors `formattedSpendWithLimit`.
-    var spendAccessibilityValue: String? {
+    /// The spend with its cap, e.g. "39,88 of 40,00 €", shown on All Limits and read the same
+    /// way by VoiceOver. Falls back to the bare spent amount when no limit is known.
+    var spendWithLimit: String? {
         guard let parts = formattedParts else { return nil }
         guard let limit = parts.limit else { return formattedSpend }
         return "\(parts.spend) of \(limit)"
     }
 
     /// The spent amount (no currency symbol) and, when a limit exists, the limit as a
-    /// full currency string — both honoring `decimal_places`. Shared by the visible and
-    /// accessible spend strings so their formatting can't drift apart.
+    /// full currency string, both honoring `decimal_places`.
     private var formattedParts: (spend: String, limit: String?)? {
         guard let spend = spendAmount else { return nil }
         let digits = decimalPlaces ?? 2

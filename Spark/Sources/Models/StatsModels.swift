@@ -109,10 +109,6 @@ struct LiveStats: Sendable {
     /// `tokenBreakdown`, e.g. in a hover tooltip.
     var realTokens: Int { inputTokens + outputTokens + cacheCreationTokens }
 
-    var formattedTokens: String {
-        formatTokenCount(realTokens)
-    }
-
     var tokenBreakdown: String {
         "Input \(formatTokenCount(inputTokens)) · Output \(formatTokenCount(outputTokens)) · " +
         "Cache write \(formatTokenCount(cacheCreationTokens)) · Cache read \(formatTokenCount(cacheReadTokens))"

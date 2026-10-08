@@ -71,7 +71,7 @@ final class StatsModelsTests: XCTestCase {
             cacheCreationTokens: 0,
             cacheReadTokens: 0
         )
-        XCTAssertEqual(stats.formattedTokens, "1.2M")
+        XCTAssertEqual(formatTokenCount(stats.realTokens), "1.2M")
     }
 
     func testFormattedTokensUsesBillionsNotation() {
@@ -84,7 +84,7 @@ final class StatsModelsTests: XCTestCase {
             cacheCreationTokens: 200_000_000,
             cacheReadTokens: 0
         )
-        XCTAssertEqual(stats.formattedTokens, "1.3B")
+        XCTAssertEqual(formatTokenCount(stats.realTokens), "1.3B")
     }
 
     func testFormattedTokensExcludesCacheReads() {
@@ -102,7 +102,7 @@ final class StatsModelsTests: XCTestCase {
         )
         XCTAssertEqual(stats.totalTokens, 5_068_246_411)
         XCTAssertEqual(stats.realTokens, 70_826_528)
-        XCTAssertEqual(stats.formattedTokens, "70.8M")
+        XCTAssertEqual(formatTokenCount(stats.realTokens), "70.8M")
     }
 
     // MARK: - Per-model token attribution

@@ -1,8 +1,8 @@
 import SwiftUI
 
 // A tooltip drawn inside the window instead of the system `.help()` one: it matches the
-// existing hover tooltips (`RingTooltip`), and is positioned against
-// the window so it can never be cut off at the edge of the menu bar popover. A view using
+// graph readouts, and is positioned against the window so it can never be cut off at the edge
+// of the menu bar popover. A view using
 // `.tooltip` needs a `.tooltipHost()` on one of its ancestors, which draws the bubble.
 
 enum TooltipLayout {
@@ -40,7 +40,7 @@ extension View {
         modifier(TooltipHostModifier())
     }
 
-    /// The bubble behind a tooltip, shared with `RingTooltip` so both look the same: ink
+    /// The bubble behind a tooltip, shared with the graph readouts so both look the same: ink
     /// background, paper text (docs/design/rules.md, "Tooltips"). Opaque, so it needs no
     /// Reduce Transparency variant.
     func tooltipChrome() -> some View {

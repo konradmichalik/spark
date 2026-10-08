@@ -83,7 +83,7 @@ enum AllLimits {
     }
 
     private static func extraUsage(_ extra: ExtraUsage?, warning: Double, critical: Double) -> [LimitLine] {
-        guard let extra, extra.hasSpend, let spend = extra.spendAccessibilityValue else { return [] }
+        guard let extra, extra.hasSpend, let spend = extra.spendWithLimit else { return [] }
         let share = extra.utilization ?? extra.spendAmount.flatMap { spent in extra.limitAmount.map { spent / $0 * 100 } }
         return [LimitLine(
             label: "Extra usage", value: share, tone: UsageTone(value: share ?? 0, warning: warning, critical: critical),
