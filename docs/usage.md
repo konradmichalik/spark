@@ -24,6 +24,15 @@ The popover opens on an overview of the selected provider:
 
 A detail screen opens in place. The header stays, and the breadcrumb (`‹ Claude / History`) leads back. Switching the provider tab or closing the popover returns to the overview.
 
+The detail screens:
+
+- **History**: Limits (session as dot columns, week as a red line) or Volume (tokens per day), over 1 hour to 30 days. Hover the graph for the values at that point. Below it the peak session and the weekly points added in the range.
+- **Active sessions**: sessions with a transcript write in the last 5 minutes, with how long ago and their context size. Hover a row for its session ID, start time and model. Click to reveal the project in Finder, right-click to open it in Terminal or copy its path.
+- **Statistics**: messages, sessions, tokens and, with **API Cost Estimate** on in Settings, the API cost for Today, 7 days, 30 days or all time, plus the top projects. Codex shows its own counts and top models.
+- **All limits**: the plan, every limit with its bar and time marker, extra usage and Codex credits. Hover a limit for its reset time.
+
+Without a Claude sign-in the Claude tab shows how to connect: load it from the keychain, or add a long-lived token in Settings. Codex keeps working in its own tab.
+
 ## Claude and Codex
 
 With a Codex ChatGPT sign-in present, the popover gets a **Claude | Codex** switch. The menu bar shows the provider of the tab you opened last, so switching tabs is how you choose what it reports. If Codex is selected but has no data yet, the icon shows Claude's value, dimmed.

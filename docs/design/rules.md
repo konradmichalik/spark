@@ -124,6 +124,15 @@ HStack(alignment: .firstTextBaseline, spacing: 3) {
 - Provider tabs show logo, name and session value and are never truncated. A fifth provider goes into a "More" tab.
 - The selected tab is persisted and is the provider the menu bar shows.
 
+## Detail screens
+
+- Switches use `PaperSegments`: a trough with the selected segment raised as a card for modes and periods, small mono chips with the selected one in ink for graph ranges.
+- History shows the peak session and the weekly points added in the range under the graph. A weekly reset is not subtracted, so a range across a reset still reads as usage.
+- Stat tiles go two to a row. With the API cost estimate switched off in Settings, Tokens takes the whole second row.
+- "Show N more" appears only when at least two entries are hidden; a single extra entry is shown right away. An expanded list of more than ten entries scrolls.
+- All Limits sets extra usage and credits apart with a hairline outside a card, the one exception to "hairlines only inside a card". A warning or critical percentage there carries an alert icon, because 13pt ochre text alone does not reach 4.5:1.
+- Without a Claude sign-in the popover still opens. The Claude tab shows the not-connected state and other providers stay usable in their tabs.
+
 ## Tooltips
 
 - One component, one style: ink background, paper text, uppercase SF Mono title, one to three lines.
