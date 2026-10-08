@@ -12,8 +12,6 @@ enum AboutText {
 
 struct AboutTab: View {
     @EnvironmentObject var state: AppState
-    @EnvironmentObject var codex: CodexState
-    @State private var codexVersion: String?
     @State private var updateState: UpdateCheckState = .idle
     @State private var showClearRollupsConfirmation = false
 
@@ -29,12 +27,9 @@ struct AboutTab: View {
                 .font(.doto(size: 34, weight: 800))
                 .foregroundStyle(Theme.ink)
             secondary("Version \(appVersion)")
-            cliVersion
-            codexVersionLine
             Text("AI coding usage in your menu bar.")
                 .font(.system(size: 13))
                 .foregroundStyle(Theme.inkSecondary)
-            configDirectories
             HStack(spacing: 8) {
                 Link(destination: URL(staticString: "https://konradmichalik.github.io/spark/")) {
                     TablerLabel("Website", icon: .world, tint: Theme.ink)
@@ -58,49 +53,6 @@ struct AboutTab: View {
         Text(text)
             .font(.system(size: 11))
             .foregroundStyle(Theme.inkSecondary)
-    }
-
-    @ViewBuilder
-    private var cliVersion: some View {
-        if let local = state.localCLIVersion {
-            let latest = state.latestCLIVersion.flatMap { CLIVersionClient.isNewer($0, than: local) ? $0 : nil }
-            VStack(spacing: 3) {
-                HStack(spacing: 4) {
-                    secondary("Claude Code \(local) \u{00B7} via \(state.claudeCodeInstallMethod.displayLabel)")
-                    if let latest {
-                        Text("\u{2192} \(latest) available")
-                            .font(.system(size: 11, weight: .semibold))
-                            .foregroundStyle(Theme.ink)
-                    }
-                }
-                if latest != nil {
-                    CommandText(state.claudeCodeInstallMethod.updateCommand)
-                }
-            }
-        }
-    }
-
-    @ViewBuilder
-    private var codexVersionLine: some View {
-        if codex.isEnabled, let codexVersion {
-            secondary("Codex CLI \(codexVersion)")
-        }
-    }
-
-    /// Where each provider keeps the data Spark reads; Codex only while it is switched on.
-    private var configDirectories: some View {
-        VStack(spacing: 3) {
-            if let claudeDir = ClaudeConfigDirectory.resolveCurrent().primary {
-                secondary("Claude Code data: \(claudeDir.path)")
-            }
-            if codex.isEnabled {
-                secondary("Codex data: \(CodexHome.current.path)")
-            }
-        }
-        .textSelection(.enabled)
-        .task(id: codex.isEnabled) {
-            codexVersion = codex.isEnabled ? await CLIVersionClient.readLocalVersion(command: "codex") : nil
-        }
     }
 
     private var credits: some View {

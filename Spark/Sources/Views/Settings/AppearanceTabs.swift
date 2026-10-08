@@ -97,16 +97,6 @@ struct DisplayTab: View {
             }
             .onChange(of: state.showApiCost) { state.refreshLiveStats() }
 
-            SettingsSection(title: "More limits") {
-                SettingsCard {
-                    SettingsToggle(title: "Sonnet", subtitle: "Weekly Sonnet limit.", isOn: $state.showSonnetUsage)
-                    SettingsDivider()
-                    SettingsToggle(title: "Opus", subtitle: "Weekly Opus limit.", isOn: $state.showOpusUsage)
-                    SettingsDivider()
-                    SettingsToggle(title: "Fable", subtitle: "Weekly Fable limit.", isOn: $state.showFableUsage)
-                }
-            }
-
             if codex.isActive {
                 SettingsSection(title: "Provider tabs") {
                     SettingsCard {

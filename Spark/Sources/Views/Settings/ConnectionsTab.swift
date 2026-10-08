@@ -47,6 +47,7 @@ struct ClaudeConnectionCard: View {
     @EnvironmentObject var state: AppState
     @State private var authError: String?
     @State private var showsToken = false
+    @State private var showsModelLimits = false
 
     private var line: ConnectionLine {
         ConnectionSummary.claude(
@@ -73,8 +74,20 @@ struct ClaudeConnectionCard: View {
                         .buttonStyle(.paper)
                 }
             }
+            ClaudeCLIFacts()
             SettingsDivider()
-            tokenDisclosure
+            CardDisclosure(
+                title: "Weekly model limits", value: ClaudeModelLimitToggles.summary(state), isOpen: $showsModelLimits,
+                openHint: "Hides the model limit switches", closedHint: "Shows the model limit switches"
+            )
+            if showsModelLimits {
+                ClaudeModelLimitToggles()
+            }
+            SettingsDivider()
+            CardDisclosure(
+                title: "Long-lived token instead of the keychain", value: state.authMethod == .longLivedToken ? "On" : "Off",
+                isOpen: $showsToken, openHint: "Hides the token settings", closedHint: "Shows the token settings"
+            )
             if showsToken {
                 LongLivedTokenForm()
                     .padding(.horizontal, 14)
@@ -110,30 +123,6 @@ struct ClaudeConnectionCard: View {
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
-    }
-
-    private var tokenDisclosure: some View {
-        Button {
-            showsToken.toggle()
-        } label: {
-            HStack(spacing: 8) {
-                Text("Long-lived token instead of the keychain")
-                    .font(.system(size: 13))
-                    .foregroundStyle(Theme.ink)
-                Spacer()
-                Text(state.authMethod == .longLivedToken ? "On" : "Off")
-                    .font(.system(size: 12))
-                    .foregroundStyle(Theme.inkSecondary)
-                TablerIconView(.chevronRight, size: 12, color: Theme.inkTertiary)
-                    .rotationEffect(.degrees(showsToken ? -90 : 90))
-            }
-            .padding(.horizontal, 14)
-            .frame(minHeight: 44)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .accessibilityValue(state.authMethod == .longLivedToken ? "On" : "Off")
-        .accessibilityHint(showsToken ? "Hides the token settings" : "Shows the token settings")
     }
 }
 

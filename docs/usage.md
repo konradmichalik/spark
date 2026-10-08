@@ -45,10 +45,10 @@ If a Codex plan lacks the window picked under **Displayed value** (Pro has no 5-
 
 - **General**: refresh mode, launch at login and the data export.
 - **Menu Bar**: the glyph style and the value next to it. With Codex off, the menu bar always shows Claude.
-- **Display**: bars or ring in the popover, what the popover shows (history, forecast, active sessions, statistics, top projects, API cost estimate), the model weeks listed under More limits, and the provider tab options.
-- **Connections**: one card per provider with its status, plan and sign-in path. Claude's long-lived token sits behind the disclosure on its card. Codex shows `codex login` and **Check again** when it has no valid sign-in.
+- **Display**: bars or ring in the popover, what the popover shows (history, forecast, active sessions, statistics, top projects, API cost estimate) and the provider tab options.
+- **Connections**: one card per provider with its status, plan, sign-in path, installed CLI version and the folder its data is read from (Codex's only while it is on). Claude's card also holds the update hint, the model weeks (Sonnet, Opus, Fable) listed under More limits, and the long-lived token, each behind a disclosure. Codex shows `codex login` and **Check again** when it has no valid sign-in.
 - **Notifications**: thresholds, events and a test notification.
-- **About**: the Spark version and update check, the installed Claude Code and Codex CLI versions, the folder each provider's data is read from, and the daily totals. Spark keeps one token total per day for Claude Code so reports reach back past the days Claude Code keeps its transcripts; **Export daily totals** and **Clear daily totals** manage them.
+- **About**: the Spark version and update check, and the daily totals. Spark keeps one token total per day for Claude Code so reports reach back past the days Claude Code keeps its transcripts; **Export daily totals** and **Clear daily totals** manage them.
 
 ## Notifications
 
