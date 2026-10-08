@@ -13,8 +13,9 @@ final class TranscriptActiveDaysTests: XCTestCase {
         try? FileManager.default.removeItem(at: tempDir)
     }
 
+    /// Fixed stamps, three days apart at midday, so the test does not depend on the clock.
     private func iso(daysAgo: Int) -> String {
-        ISO8601DateFormatter().string(from: Date().addingTimeInterval(TimeInterval(-daysAgo * 24 * 3600)))
+        ["2026-10-07T10:00:00Z", "2026-10-06T10:00:00Z", "2026-10-05T10:00:00Z", "2026-10-04T10:00:00Z"][daysAgo]
     }
 
     private func assistant(_ id: String, input: Int, output: Int, daysAgo: Int) -> String {
