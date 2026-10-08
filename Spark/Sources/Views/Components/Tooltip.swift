@@ -180,6 +180,13 @@ private struct TooltipBubble: View {
 
     @State private var size: CGSize = .zero
     @State private var idealTextWidth: CGFloat = 0
+    @State private var hasRisen = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    private var isMeasured: Bool { size != .zero && idealTextWidth != 0 }
+    /// Fades in and rises 4 pt once measured; under Reduce Motion it is simply there. It hides
+    /// at once, the host removes it.
+    private var isRisen: Bool { reduceMotion || hasRisen }
 
     var body: some View {
         let origin = TooltipLayout.origin(anchor: request.anchor, size: size, container: container)
@@ -206,8 +213,12 @@ private struct TooltipBubble: View {
             )
             .onPreferenceChange(TooltipSizeKey.self) { size = $0 }
             // Hidden until measured, otherwise it flashes at the wrong spot or width for one frame.
-            .opacity(size == .zero || idealTextWidth == 0 ? 0 : 1)
-            .offset(x: origin.x, y: origin.y)
+            .opacity(isMeasured && isRisen ? 1 : 0)
+            .offset(x: origin.x, y: origin.y + (isRisen ? 0 : 4))
+            .onChange(of: isMeasured) {
+                guard isMeasured, !reduceMotion else { return }
+                withAnimation(.easeOut(duration: 0.12)) { hasRisen = true }
+            }
             .accessibilityHidden(true)
     }
 
