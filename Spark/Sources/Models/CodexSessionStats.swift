@@ -31,7 +31,8 @@ struct CodexSessionStats: Equatable, Sendable {
     /// Day keys with fresh tokens, the divisor of "per active day" averages.
     var activeDays: Set<String> { Set(dayTokens.filter { $0.value > 0 }.keys) }
 
-    static func parse(directories: [URL], since: Date?) -> CodexSessionStats {
+    /// `until` bounds a past period, so it does not also pick up what came after it.
+    static func parse(directories: [URL], since: Date?, until: Date? = nil) -> CodexSessionStats {
         var result = CodexSessionStats()
         for file in directories.flatMap(rolloutFiles) {
             // `CodexState.refreshStats` cancels a scan that a newer one superseded.
@@ -40,13 +41,13 @@ struct CodexSessionStats: Equatable, Sendable {
             // A file untouched since the cutoff cannot hold activity inside the period.
             if let since, let modified = modificationDate(of: file), modified < since { continue }
             guard let content = try? String(contentsOf: file, encoding: .utf8) else { continue }
-            result.add(parseFile(content: content, since: since))
+            result.add(parseFile(content: content, since: since, until: until))
         }
         return result
     }
 
-    static func parseFile(content: String, since: Date?) -> CodexSessionStats {
-        var accumulator = RolloutAccumulator(since: since)
+    static func parseFile(content: String, since: Date?, until: Date? = nil) -> CodexSessionStats {
+        var accumulator = RolloutAccumulator(since: since, until: until)
         content.enumerateLines { line, _ in accumulator.consume(line) }
         return accumulator.stats
     }
@@ -83,6 +84,7 @@ struct CodexSessionStats: Equatable, Sendable {
 /// Walks one rollout file line by line, keeping the last cumulative totals and current model.
 private struct RolloutAccumulator {
     let since: Date?
+    let until: Date?
     var stats = CodexSessionStats()
     /// One decoder per file instead of one per line: rollouts hold thousands of matching lines.
     private let decoder = JSONDecoder()
@@ -90,8 +92,9 @@ private struct RolloutAccumulator {
     private var model: String?
     private var hasActivity = false
 
-    init(since: Date?) {
+    init(since: Date?, until: Date?) {
         self.since = since
+        self.until = until
     }
 
     mutating func consume(_ line: String) {
@@ -147,9 +150,11 @@ private struct RolloutAccumulator {
 
     /// Lines without a parsable timestamp only count when there is no cutoff.
     private func isInPeriod(_ timestamp: String?) -> Bool {
-        guard let since else { return true }
+        guard since != nil || until != nil else { return true }
         guard let date = timestamp.flatMap(Self.parseDate) else { return false }
-        return date >= since
+        if let since, date < since { return false }
+        if let until, date >= until { return false }
+        return true
     }
 
     /// Value-type format styles: cheap to reuse, unlike a fresh `ISO8601DateFormatter` per line.

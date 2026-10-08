@@ -35,7 +35,7 @@ final class CodexState: ObservableObject {
     private var consecutiveRateLimits = 0
     private var lastLevels: [String: UsageLevel] = [:]
     private var statsTask: Task<Void, Never>?
-    private var reportDaysTask: Task<[String: Int], Never>?
+    private var reportDataTask: Task<CodexReportData, Never>?
 
     /// Arguments only seed state for tests; the app starts empty and fills in via `onLaunch()`.
     init(usage: CodexUsage? = nil, isAvailable: Bool = false) {
@@ -183,14 +183,18 @@ final class CodexState: ObservableObject {
         }
     }
 
-    /// Fresh tokens per day key since `since`, for the report's activity calendar. A separate scan
-    /// from `refreshStats`: the report period is independent of the popover's stats period. A newer
-    /// request cancels the previous scan, and the scan runs off the main actor.
-    func dayTokens(since: Date) async -> [String: Int] {
+    /// What the usage report needs from Codex: fresh tokens per day from `previousStart` on (for the
+    /// calendar and the trend) and per model for the shown period. A separate scan from
+    /// `refreshStats`, off the main actor, and a newer request cancels the previous one.
+    func reportData(previousStart: Date, start: Date, until: Date?) async -> CodexReportData {
         let directories = [CodexHome.sessionsDirectory, CodexHome.current.appendingPathComponent("archived_sessions")]
-        reportDaysTask?.cancel()
-        let task = Task.detached { CodexSessionStats.parse(directories: directories, since: since).dayTokens }
-        reportDaysTask = task
+        reportDataTask?.cancel()
+        let task = Task.detached {
+            let days = CodexSessionStats.parse(directories: directories, since: previousStart, until: until).dayTokens
+            let models = CodexSessionStats.parse(directories: directories, since: start, until: until).modelTokens
+            return CodexReportData(dayTokens: days, modelTokens: models)
+        }
+        reportDataTask = task
         return await task.value
     }
 

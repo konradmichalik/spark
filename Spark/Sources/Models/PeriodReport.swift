@@ -46,6 +46,9 @@ struct PeriodReport {
     /// The shown window's first and last calendar day.
     let rangeStart: Date
     let rangeEnd: Date
+    /// The same for the period before, which Codex's trend is summed over.
+    let previousStart: Date
+    let previousEnd: Date
     /// The days the activity calendar draws. Unlike `rangeStart` and `rangeEnd` it includes today
     /// for the current period, and the current week is the last seven days ending today.
     let calendarStart: Date
@@ -101,6 +104,8 @@ struct PeriodReport {
             periodOffset: periodOffset,
             rangeStart: range.start,
             rangeEnd: range.end,
+            previousStart: previousRange.start,
+            previousEnd: previousRange.end,
             calendarStart: calendarRange.start,
             calendarEnd: calendarRange.end
         )
