@@ -95,6 +95,7 @@ HStack(alignment: .firstTextBaseline, spacing: 3) {
 | Menu bar ring | 12 dots, the last partial dot at proportional opacity | Menu bar glyph |
 | Hollow dots | Outline only, from current value to projected value | Session projection |
 | Time marker | 2pt vertical stroke, or a short radial tick outside a ring | Share of the window already elapsed, on the session and the week |
+| Activity calendar | One dot per day, weeks in rows and weekdays in columns (first weekday of the system calendar). Levels by fresh tokens against the provider's busiest day of the period: no use is a 4pt `dotTrack` dot, then 8pt ink at 35 %, 60 % and 100 %. Today gets a 1pt ink ring, days after today are not drawn | Usage report, one calendar per provider |
 | Dot columns | Vertical stacks of dots | Session history in graphs. Three or more empty columns in a row collapse into one `dotTrack` band at most 6pt wide, and the week line breaks there. A week point alone between two gaps is drawn as a dot |
 
 - Filled dots are `ink`, or `warning` or `accent` by threshold. Unfilled dots are `dotTrack`.
@@ -181,6 +182,7 @@ Other providers stay usable when one is disconnected.
 - A connection card leads with the provider's logo, its name and a status line (state, plan, sign-in path). The status dot is ink when connected, `accent` when the sign-in expired, `warning` when none was found and `dotTrack` when switched off; the words always say the same, so the dot is never the only signal. There is no green.
 - Claude has no show switch on its card: Claude cannot be hidden.
 - The report's lists sit outside a card, so their rows are spaced, not ruled. They show three entries and "Show N more".
+- The report's activity calendar sits after the pace graph, one calendar per provider, labelled with its logo and name and never coloured by provider. A day's tooltip (150 ms) gives the date and its fresh tokens, or "No use". A legend line ("Less" to "More") sits under the calendars. Codex's calendar is hidden when Codex is off or signed out and has no local data in the period. Each calendar is one VoiceOver element that names the active days and the busiest day, and nothing in it moves.
 - The report has no provider switch yet. Codex keeps no daily rollups, so there is nothing to compare a Codex period against.
 
 ## Motion

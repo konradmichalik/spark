@@ -55,7 +55,7 @@ A notification's title names the provider and the window, then the value (`Claud
 
 ## Usage report
 
-The calendar button in the popover header opens the report for the current week or month. It shows the tokens, the change against the period before and the API cost estimate (hover a number for the details), the pace as each day's session peak in dot columns with the week as a red line, each model's share, and the top projects and sessions. Lists show three entries and expand with **Show N more**. Right-click a project to reveal it in Finder.
+The calendar button in the popover header opens the report for the current week or month. It shows the tokens, the change against the period before and the API cost estimate (hover a number for the details), the pace as each day's session peak in dot columns with the week as a red line, an activity calendar per provider (one dot per day, weeks in rows, the dot's weight showing that day's tokens against the busiest day, a ring for today, hover a day for its tokens), each model's share, and the top projects and sessions. Lists show three entries and expand with **Show N more**. Right-click a project to reveal it in Finder.
 
 ## Smart refresh
 
