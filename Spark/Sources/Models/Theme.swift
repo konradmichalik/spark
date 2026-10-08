@@ -22,9 +22,7 @@ enum Theme {
 
     /// Trend-down accent (Weekly Report). Paired with `sparkOrangeIcon` for trend-up so both
     /// directions read as an intentional accent rather than one themed color and one raw SwiftUI
-    /// `.orange`/`.green`. Kept distinct from `paceColor`'s budget-tier green, which signals
-    /// "comfortably under budget" rather than "lower than last period" — same contrast-safe
-    /// per-appearance construction as `sparkOrangeIcon`.
+    /// `.orange`/`.green`. Same contrast-safe per-appearance construction as `sparkOrangeIcon`.
     static let trendDown = Color(nsColor: NSColor(name: nil) { appearance in
         let isDark = appearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
         return isDark
@@ -38,18 +36,6 @@ enum Theme {
     static let graphSonnet = Color(hue: 0.80, saturation: 0.50, brightness: 0.80)
     static let graphOpus = Color(hue: 0.12, saturation: 0.70, brightness: 0.85)
     static let graphFable = Color(hue: 0.45, saturation: 0.55, brightness: 0.80)
-
-    /// Six-tier color for a `Pace.Tier`, from comfortably under budget to badly overspending.
-    static func paceColor(for tier: Pace.Tier) -> Color {
-        switch tier {
-        case .comfortable: Color(hue: 0.35, saturation: 0.70, brightness: 0.75)
-        case .onTrack: Color(hue: 0.50, saturation: 0.65, brightness: 0.75)
-        case .warming: Color(hue: 0.14, saturation: 0.80, brightness: 0.90)
-        case .pressing: Color(hue: 0.08, saturation: 0.85, brightness: 0.90)
-        case .critical: Color(hue: 0.0, saturation: 0.80, brightness: 0.85)
-        case .runaway: Color(hue: 0.78, saturation: 0.55, brightness: 0.75)
-        }
-    }
 
     /// Returns a distinct color per ring, based on utilization thresholds.
     /// ringIndex: 0 = outermost (Session), 1 = middle (Weekly), 2 = innermost (Sonnet)

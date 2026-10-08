@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 private let fiveHours: TimeInterval = 5 * 3600
@@ -207,6 +208,28 @@ struct ReconnectPrompt: View {
                 .font(.caption)
                 .buttonStyle(.borderless)
                 .foregroundColor(Theme.sparkOrange)
+        }
+    }
+}
+
+/// Spark never refreshes the Codex token itself (that would sign the CLI out), so an expired
+/// sign-in can only be fixed in the CLI.
+struct CodexSignInPrompt: View {
+    var body: some View {
+        HStack(spacing: 6) {
+            TablerIconView(.refreshAlert, size: 12, color: .orange)
+            Text("Codex sign-in expired. Run codex login.")
+                .font(.caption)
+                .foregroundColor(.secondary)
+            Spacer()
+            Button("Copy") {
+                NSPasteboard.general.clearContents()
+                NSPasteboard.general.setString("codex login", forType: .string)
+            }
+            .font(.caption)
+            .buttonStyle(.borderless)
+            .foregroundColor(Theme.sparkOrange)
+            .accessibilityLabel("Copy codex login command")
         }
     }
 }
