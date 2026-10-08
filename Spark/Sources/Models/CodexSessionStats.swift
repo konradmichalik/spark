@@ -17,8 +17,8 @@ struct CodexSessionStats: Equatable, Sendable {
     var outputTokens = 0
     var reasoningTokens = 0
     var modelTokens: [String: Int] = [:]
-    /// Day keys with fresh tokens, the divisor of "per active day" averages.
-    var activeDays: Set<String> = []
+    /// Fresh tokens per day key (`TranscriptCache.dayKey(for:)`), the input of the report's activity calendar.
+    var dayTokens: [String: Int] = [:]
     /// Rollout files found at all, regardless of period. Zero means Codex never ran locally.
     var fileCount = 0
 
@@ -27,6 +27,9 @@ struct CodexSessionStats: Equatable, Sendable {
     /// Fresh tokens, without the cached input: the headline figure, defined like Claude's
     /// `LiveStats.realTokens` so both providers count the same way.
     var realTokens: Int { inputTokens + outputTokens }
+
+    /// Day keys with fresh tokens, the divisor of "per active day" averages.
+    var activeDays: Set<String> { Set(dayTokens.filter { $0.value > 0 }.keys) }
 
     static func parse(directories: [URL], since: Date?) -> CodexSessionStats {
         var result = CodexSessionStats()
@@ -56,7 +59,7 @@ struct CodexSessionStats: Equatable, Sendable {
         outputTokens += other.outputTokens
         reasoningTokens += other.reasoningTokens
         modelTokens.merge(other.modelTokens, uniquingKeysWith: +)
-        activeDays.formUnion(other.activeDays)
+        dayTokens.merge(other.dayTokens, uniquingKeysWith: +)
     }
 
     private static func rolloutFiles(in directory: URL) -> [URL] {
@@ -124,12 +127,15 @@ private struct RolloutAccumulator {
         let output = total.output - previous.output
         guard input > 0 || output > 0 else { return }
 
-        stats.inputTokens += max(input - cached, 0)
+        let fresh = max(input - cached, 0)
+        stats.inputTokens += fresh
         stats.cachedInputTokens += cached
         stats.outputTokens += output
         stats.reasoningTokens += max(total.reasoning - previous.reasoning, 0)
         stats.modelTokens[model ?? "unknown", default: 0] += input + output
-        if let date = timestamp.flatMap(Self.parseDate) { stats.activeDays.insert(TranscriptCache.dayKey(for: date)) }
+        if let date = timestamp.flatMap(Self.parseDate) {
+            stats.dayTokens[TranscriptCache.dayKey(for: date), default: 0] += fresh + output
+        }
         markActive()
     }
 

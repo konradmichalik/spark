@@ -955,6 +955,7 @@ final class AppState: ObservableObject {
             let topProjects = stats?.topProjects(limit: 20) ?? []
             let topSessions = stats?.topSessions(limit: 10) ?? []
             let modelTotals = stats?.modelTotals ?? [:]
+            let dayTokens = stats?.dayTokens ?? [:]
             var costSummary: CostSummary?
             if wantsCost, let stats, let prices = await PricingClient.currentTable() {
                 costSummary = prices.summary(
@@ -973,6 +974,7 @@ final class AppState: ObservableObject {
                     modelTotals: modelTotals,
                     topProjects: topProjects,
                     topSessions: topSessions,
+                    dayTokens: dayTokens,
                     costSummary: costSummary,
                     period: shownPeriod,
                     periodOffset: shownOffset,

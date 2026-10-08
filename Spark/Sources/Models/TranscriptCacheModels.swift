@@ -189,13 +189,14 @@ struct SessionTotals: Equatable, Sendable {
 /// name, and `projectDisplayNames` maps that same key to its resolved `cwd`, where one was found.
 struct TranscriptTotals: Equatable, Sendable {
     var sessionIds: Set<String> = []
-    /// Day keys with fresh tokens in the period. Idle days are left out so averages per day
-    /// describe the days the user actually worked.
-    var activeDays: Set<String> = []
+    /// Fresh tokens per day key in the period. Idle days are left out, so the keys are the days
+    /// the user actually worked.
+    var dayTokens: [String: Int] = [:]
     var input = 0
     var output = 0
     var cacheCreation = 0
     var cacheRead = 0
+    var activeDays: Set<String> { Set(dayTokens.keys) }
     var modelTotals: [String: ModelTokenTotals] = [:]
     var projectTotals: [String: ProjectTokenTotals] = [:]
     /// Per project, then per raw model ID. Only the cost estimate needs it, since a price

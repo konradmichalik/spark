@@ -35,6 +35,7 @@ final class CodexState: ObservableObject {
     private var consecutiveRateLimits = 0
     private var lastLevels: [String: UsageLevel] = [:]
     private var statsTask: Task<Void, Never>?
+    private var reportDaysTask: Task<[String: Int], Never>?
 
     /// Arguments only seed state for tests; the app starts empty and fills in via `onLaunch()`.
     init(usage: CodexUsage? = nil, isAvailable: Bool = false) {
@@ -180,6 +181,17 @@ final class CodexState: ObservableObject {
                 self.stats = stats
             }
         }
+    }
+
+    /// Fresh tokens per day key since `since`, for the report's activity calendar. A separate scan
+    /// from `refreshStats`: the report period is independent of the popover's stats period. A newer
+    /// request cancels the previous scan, and the scan runs off the main actor.
+    func dayTokens(since: Date) async -> [String: Int] {
+        let directories = [CodexHome.sessionsDirectory, CodexHome.current.appendingPathComponent("archived_sessions")]
+        reportDaysTask?.cancel()
+        let task = Task.detached { CodexSessionStats.parse(directories: directories, since: since).dayTokens }
+        reportDaysTask = task
+        return await task.value
     }
 
     // MARK: - Notifications
