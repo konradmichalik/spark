@@ -64,6 +64,11 @@ enum ProviderTabSummary {
         let parts = [plan, signIn].compactMap { $0 }.filter { !$0.isEmpty }
         return parts.isEmpty ? nil : parts.joined(separator: " · ")
     }
+
+    static func codexPlan(_ planName: String?) -> String? {
+        guard let planName, !planName.isEmpty else { return nil }
+        return "ChatGPT \(planName)"
+    }
 }
 
 /// What the overview leads with when a provider reports no session window: Codex Pro sends only

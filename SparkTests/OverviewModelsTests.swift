@@ -75,6 +75,12 @@ final class OverviewModelsTests: XCTestCase {
         XCTAssertNil(ProviderTabSummary.tooltip(plan: nil, signIn: ""))
     }
 
+    func testCodexTabPlanWording() {
+        XCTAssertEqual(ProviderTabSummary.codexPlan("Plus"), "ChatGPT Plus")
+        XCTAssertNil(ProviderTabSummary.codexPlan(nil))
+        XCTAssertNil(ProviderTabSummary.codexPlan(""))
+    }
+
     func testFooterRelativeTime() {
         let now = Date()
         XCTAssertEqual(PopoverFooter.relative(now.addingTimeInterval(-2), now: now), "just now")

@@ -123,7 +123,7 @@ struct MenuBarView: View {
         case .claude:
             ProviderTabSummary.tooltip(plan: state.accountTier.displayName, signIn: "via \(state.authMethod.rawValue)")
         case .codex:
-            ProviderTabSummary.tooltip(plan: codex.usage.map { "ChatGPT \($0.planDisplayName)" }, signIn: "via Codex CLI")
+            ProviderTabSummary.tooltip(plan: ProviderTabSummary.codexPlan(codex.usage?.planDisplayName), signIn: "via Codex CLI")
         }
     }
 
