@@ -22,9 +22,6 @@ struct PopoverHeader: View {
     let onSelect: (UsageProvider) -> Void
     let onReport: () -> Void
 
-    /// The Claude logo colour, used only for its own logo and the faint tint of its tab.
-    static let claudeColor = Color(red: 0.788, green: 0.392, blue: 0.259)
-
     @Namespace private var tabSelection
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -116,7 +113,7 @@ struct PopoverHeader: View {
     private func selectedBackground(for provider: UsageProvider) -> some View {
         let shape = RoundedRectangle(cornerRadius: 7)
         return shape.fill(Theme.card)
-            .overlay(shape.fill(provider == .claude ? Self.claudeColor.opacity(0.12) : .clear))
+            .overlay(shape.fill(provider == .claude ? Theme.claudeLogo.opacity(0.12) : .clear))
             .overlay(shape.strokeBorder(Theme.hairline))
     }
 
@@ -156,7 +153,7 @@ struct PopoverHeader: View {
         Group {
             switch provider {
             case .claude:
-                ClaudeLogoShape().fill(claudeColor)
+                ClaudeLogoShape().fill(Theme.claudeLogo)
             case .codex:
                 TablerIconView(.brandOpenai, size: 13, color: Theme.ink)
             }

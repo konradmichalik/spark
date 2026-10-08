@@ -36,6 +36,8 @@ extension Theme {
     /// Brand red. Not configurable.
     static let accentNS = NSColor.adaptive(light: NSColor(hex: 0xD71921), dark: NSColor(hex: 0xFF5A5F))
     static let warningNS = NSColor.adaptive(light: NSColor(hex: 0xB07800), dark: NSColor(hex: 0xF0B429))
+    /// Claude's logo colour. Only for its logo and the faint tint of its selected tab, never data.
+    static let claudeLogoNS = NSColor(hex: 0xC96442)
 
     static let paper = Color(nsColor: paperNS)
     static let card = Color(nsColor: cardNS)
@@ -46,6 +48,7 @@ extension Theme {
     static let dotTrack = Color(nsColor: dotTrackNS)
     static let accent = Color(nsColor: accentNS)
     static let warning = Color(nsColor: warningNS)
+    static let claudeLogo = Color(nsColor: claudeLogoNS)
 }
 
 /// The colour state of a usage value. Derived in one place so every view agrees.

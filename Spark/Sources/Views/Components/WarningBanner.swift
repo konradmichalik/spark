@@ -1,28 +1,41 @@
 import SwiftUI
 
-/// A tinted callout for connectivity/API errors. Unlike a `SectionCard`, which groups a titled
-/// section of otherwise-neutral rows, this exists to pull a single message out of the popover's
-/// flat caption-and-secondary-color rhythm so an outage reads as urgent rather than as one more
-/// line of metadata.
+/// A notice on a card: an ochre alert icon, one sentence, and at most one action
+/// (docs/design/rules.md, "States"). Ochre on its own does not reach 4.5:1 for small text, so
+/// the colour stays on the icon and the words stay ink.
 struct WarningBanner: View {
     let message: String
     var icon: TablerIcon = .alertTriangle
+    var actionTitle: String?
+    var action: (() -> Void)?
 
     var body: some View {
-        HStack(alignment: .top, spacing: 5) {
-            TablerIconView(icon, size: 12, color: Theme.sparkOrangeIcon)
+        let shape = RoundedRectangle(cornerRadius: 10)
+        HStack(alignment: .center, spacing: 8) {
+            TablerIconView(icon, size: 14, color: Theme.warning)
             Text(message)
-                .font(.caption)
-                .foregroundColor(.primary)
+                .font(.system(size: 12))
+                .foregroundStyle(Theme.ink)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            if let actionTitle, let action {
+                Button(action: action) {
+                    Text(actionTitle)
+                        .font(.system(size: 11.5, weight: .semibold))
+                        .foregroundStyle(Theme.ink)
+                        .padding(.horizontal, 10)
+                        .frame(minHeight: 26)
+                        .background(Theme.hairline, in: RoundedRectangle(cornerRadius: 6))
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+            }
         }
-        .padding(.horizontal, 8)
-        .padding(.vertical, 6)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Theme.sparkOrange.opacity(0.12), in: RoundedRectangle(cornerRadius: 8))
-        .overlay(
-            RoundedRectangle(cornerRadius: 8)
-                .strokeBorder(Theme.sparkOrange.opacity(0.35))
-        )
-        .accessibilityElement(children: .combine)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .frame(minHeight: 40)
+        .background(Theme.card, in: shape)
+        .overlay(shape.strokeBorder(Theme.hairline))
+        .accessibilityElement(children: .contain)
     }
 }

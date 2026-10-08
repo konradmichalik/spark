@@ -193,43 +193,23 @@ struct CodexOverview: View {
     }
 }
 
-/// The Claude session expired notice with its reconnect action, unchanged from the former popover.
+/// The Claude session expired notice with its reconnect action.
 struct ReconnectPrompt: View {
     let onReconnect: () -> Void
 
     var body: some View {
-        HStack(spacing: 6) {
-            TablerIconView(.refreshAlert, size: 12, color: .orange)
-            Text("Session expired")
-                .font(.caption)
-                .foregroundColor(.secondary)
-            Spacer()
-            Button("Reconnect", action: onReconnect)
-                .font(.caption)
-                .buttonStyle(.borderless)
-                .foregroundColor(Theme.sparkOrange)
-        }
+        WarningBanner(message: "Claude session expired", icon: .refreshAlert, actionTitle: "Reconnect", action: onReconnect)
     }
 }
 
 /// Spark never refreshes the Codex token itself (that would sign the CLI out), so an expired
-/// sign-in can only be fixed in the CLI.
+/// sign-in can only be fixed in the CLI. The action copies the command.
 struct CodexSignInPrompt: View {
     var body: some View {
-        HStack(spacing: 6) {
-            TablerIconView(.refreshAlert, size: 12, color: .orange)
-            Text("Codex sign-in expired. Run codex login.")
-                .font(.caption)
-                .foregroundColor(.secondary)
-            Spacer()
-            Button("Copy") {
-                NSPasteboard.general.clearContents()
-                NSPasteboard.general.setString("codex login", forType: .string)
-            }
-            .font(.caption)
-            .buttonStyle(.borderless)
-            .foregroundColor(Theme.sparkOrange)
-            .accessibilityLabel("Copy codex login command")
+        WarningBanner(message: "Codex sign-in expired. Run codex login.", icon: .refreshAlert, actionTitle: "Copy command") {
+            NSPasteboard.general.clearContents()
+            NSPasteboard.general.setString("codex login", forType: .string)
         }
+        .accessibilityHint("Copies codex login")
     }
 }

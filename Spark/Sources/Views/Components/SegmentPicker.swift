@@ -27,7 +27,7 @@ enum SegmentIcon {
             TablerIconView(icon, size: 10, color: isSelected ? .primary : .secondary)
         case .claudeLogo:
             ClaudeLogoShape()
-                .fill(Theme.sparkOrange)
+                .fill(Theme.claudeLogo)
                 .frame(width: 9, height: 9)
                 .opacity(isSelected ? 1 : 0.7)
                 .accessibilityHidden(true)

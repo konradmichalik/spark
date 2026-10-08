@@ -3,29 +3,34 @@ import SwiftUI
 
 // MARK: - Status Row
 
+/// A Claude incident: the status in ink beside an ochre status icon, and a link to the status
+/// page when Claude Code itself is affected.
 struct StatusRow: View {
     @ObservedObject var state: AppState
 
     var body: some View {
-        HStack {
-            TablerIconView(state.status.icon, size: 13, color: Theme.sparkOrange)
+        HStack(spacing: 8) {
+            TablerIconView(state.status.icon, size: 14, color: Theme.warning)
             Text("Claude: \(state.status.displayName)")
-                .font(.caption)
-
+                .font(.system(size: 12))
+                .foregroundStyle(Theme.ink)
             Spacer()
-
-            if !state.claudeCodeStatus.isHealthy, let statusPage = URL(string: "https://status.claude.com") {
-                Link(destination: statusPage) {
-                    HStack(spacing: 2) {
+            if !state.claudeCodeStatus.isHealthy {
+                Link(destination: URL(staticString: "https://status.claude.com")) {
+                    HStack(spacing: 3) {
                         Text("Code: \(state.claudeCodeStatus.displayName)")
-                            .font(.caption2)
-                        TablerIconView(.externalLink, size: 9, color: Theme.sparkOrange)
+                            .font(.system(size: 11))
+                        TablerIconView(.externalLink, size: 10, color: Theme.inkSecondary)
                     }
-                    .foregroundColor(Theme.sparkOrange)
+                    .foregroundStyle(Theme.inkSecondary)
                 }
                 .buttonStyle(.plain)
             }
         }
+        .padding(.horizontal, 12)
+        .frame(minHeight: 40)
+        .background(Theme.card, in: RoundedRectangle(cornerRadius: 10))
+        .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(Theme.hairline))
     }
 }
 

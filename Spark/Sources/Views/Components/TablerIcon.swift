@@ -62,7 +62,7 @@ enum TablerIcon: String, CaseIterable {
 struct TablerIconView: View {
     let icon: TablerIcon
     var size: CGFloat = 13
-    var color: Color = .secondary
+    var color: Color = Theme.inkSecondary
     /// `true` (the default) hides the icon from the accessibility tree, which is right when it
     /// sits beside text that already carries the label — VoiceOver would otherwise announce the
     /// icon and its neighbor as two elements. Pass `false` when the icon *is* the control (an
@@ -70,7 +70,7 @@ struct TablerIconView: View {
     /// accessibility element; pair that with an explicit `.accessibilityLabel` on the control.
     var isDecorative: Bool = true
 
-    init(_ icon: TablerIcon, size: CGFloat = 13, color: Color = .secondary, isDecorative: Bool = true) {
+    init(_ icon: TablerIcon, size: CGFloat = 13, color: Color = Theme.inkSecondary, isDecorative: Bool = true) {
         self.icon = icon
         self.size = size
         self.color = color
@@ -96,9 +96,9 @@ struct TablerLabel: View {
     let title: String
     let icon: TablerIcon
     var size: CGFloat = 13
-    var tint: Color = .secondary
+    var tint: Color = Theme.inkSecondary
 
-    init(_ title: String, icon: TablerIcon, size: CGFloat = 13, tint: Color = .secondary) {
+    init(_ title: String, icon: TablerIcon, size: CGFloat = 13, tint: Color = Theme.inkSecondary) {
         self.title = title
         self.icon = icon
         self.size = size
