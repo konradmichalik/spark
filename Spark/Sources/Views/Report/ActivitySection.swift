@@ -12,32 +12,33 @@ struct ActivitySection: View {
         let rows = ActivityCalendar.rows(
             start: report.calendarStart, end: report.calendarEnd, today: Date(), dayTokens: dayTokens, calendar: calendar
         )
+        let figures = ActivityFigures(cells: rows.flatMap { $0 })
         VStack(alignment: .leading, spacing: 10) {
             MicroLabel(text: "ACTIVITY \u{00B7} DAYS WITH USE")
                 .accessibilityAddTraits(.isHeader)
             // Side by side while the window is wide enough, the figures under the calendar otherwise.
             ViewThatFits(in: .horizontal) {
                 HStack(alignment: .top, spacing: 28) {
-                    calendarBlock(rows)
-                    ActivityFiguresView(figures: ActivityFigures(cells: rows.flatMap { $0 }), calendar: calendar)
+                    calendarBlock(rows, figures)
+                    ActivityFiguresView(figures: figures, calendar: calendar)
                         .frame(maxWidth: .infinity, alignment: .topLeading)
                 }
                 VStack(alignment: .leading, spacing: 16) {
-                    calendarBlock(rows)
-                    ActivityFiguresView(figures: ActivityFigures(cells: rows.flatMap { $0 }), calendar: calendar)
+                    calendarBlock(rows, figures)
+                    ActivityFiguresView(figures: figures, calendar: calendar)
                 }
             }
         }
     }
 
-    private func calendarBlock(_ rows: [[ActivityCell]]) -> some View {
+    private func calendarBlock(_ rows: [[ActivityCell]], _ figures: ActivityFigures) -> some View {
         VStack(alignment: .leading, spacing: 10) {
-            grid(rows)
+            grid(rows, figures)
             ActivityLegend()
         }
     }
 
-    private func grid(_ rows: [[ActivityCell]]) -> some View {
+    private func grid(_ rows: [[ActivityCell]], _ figures: ActivityFigures) -> some View {
         Grid(horizontalSpacing: 0, verticalSpacing: 0) {
             GridRow {
                 ForEach(Array(ActivityCalendar.weekdayInitials(calendar: calendar).enumerated()), id: \.offset) { _, initial in
@@ -57,7 +58,7 @@ struct ActivitySection: View {
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Activity")
-        .accessibilityValue(ActivityCalendar.summary(rows.flatMap { $0 }, calendar: calendar))
+        .accessibilityValue(ActivityCalendar.summary(figures, calendar: calendar))
     }
 }
 

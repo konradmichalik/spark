@@ -57,12 +57,10 @@ enum ActivityCalendar {
     }
 
     /// The calendar in words for VoiceOver: how many days had use and which was the busiest.
-    static func summary(_ cells: [ActivityCell], calendar: Calendar, locale: Locale = .current) -> String {
-        let drawn = cells.filter(\.isDrawn)
-        let active = drawn.filter { $0.tokens > 0 }
-        guard let busiest = active.max(by: { $0.tokens < $1.tokens }) else { return "No use in this period" }
+    static func summary(_ figures: ActivityFigures, calendar: Calendar, locale: Locale = .current) -> String {
+        guard let busiest = figures.busiest else { return "No use in this period" }
         let busiestText = "\(dateText(busiest.date, calendar: calendar, locale: locale)) with \(formatTokenCount(busiest.tokens)) tokens"
-        return "Used on \(active.count) of \(drawn.count) days, busiest day \(busiestText)"
+        return "Used on \(figures.activeDays) of \(figures.totalDays) days, busiest day \(busiestText)"
     }
 
     private static func dateText(_ date: Date, calendar: Calendar, locale: Locale) -> String {

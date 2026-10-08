@@ -96,15 +96,23 @@ final class ActivityCalendarTests: XCTestCase {
     func testSummaryNamesActiveDaysAndTheBusiestDay() {
         let calendar = makeCalendar()
         let cells = rows("2026-10-05", "2026-10-11", today: "2026-10-09", tokens: ["2026-10-05": 1200, "2026-10-07": 4_500_000])
-        let summary = ActivityCalendar.summary(cells.flatMap { $0 }, calendar: calendar, locale: Locale(identifier: "en_US"))
+        let summary = ActivityCalendar.summary(ActivityFigures(cells: cells.flatMap { $0 }), calendar: calendar, locale: Locale(identifier: "en_US"))
         XCTAssertTrue(summary.hasPrefix("Used on 2 of 5 days"), summary)
         XCTAssertTrue(summary.contains("busiest day"), summary)
         XCTAssertTrue(summary.contains("4.5M tokens"), summary)
     }
 
     func testSummaryWithoutUse() {
-        let cells = rows("2026-10-05", "2026-10-11", today: "2026-10-09").flatMap { $0 }
-        XCTAssertEqual(ActivityCalendar.summary(cells, calendar: makeCalendar(), locale: Locale(identifier: "en_US")), "No use in this period")
+        let figures = ActivityFigures(cells: rows("2026-10-05", "2026-10-11", today: "2026-10-09").flatMap { $0 })
+        XCTAssertEqual(ActivityCalendar.summary(figures, calendar: makeCalendar(), locale: Locale(identifier: "en_US")), "No use in this period")
+    }
+
+    /// The spoken summary and the figures beside the calendar name the same day: the latest one on a tie.
+    func testSummaryNamesTheLatestBusiestDayOnATie() {
+        let cells = rows("2026-10-05", "2026-10-11", today: "2026-10-09", tokens: ["2026-10-05": 900, "2026-10-07": 900])
+        let figures = ActivityFigures(cells: cells.flatMap { $0 })
+        let summary = ActivityCalendar.summary(figures, calendar: makeCalendar(), locale: Locale(identifier: "en_US"))
+        XCTAssertTrue(summary.contains("Wed"), summary)
     }
 
     func testTooltipTexts() {
