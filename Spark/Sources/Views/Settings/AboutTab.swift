@@ -1,8 +1,19 @@
 import SwiftUI
 import UniformTypeIdentifiers
 
+/// The wording of the About tab's data section: plain words for what is stored, not the
+/// internal term "rollup".
+enum AboutText {
+    static let dailyTotalsNote =
+        "Spark keeps one token total per day for Claude Code, so reports reach back past the days Claude Code keeps its transcripts."
+    static let exportTitle = "Export daily totals\u{2026}"
+    static let clearTitle = "Clear daily totals"
+}
+
 struct AboutTab: View {
     @EnvironmentObject var state: AppState
+    @EnvironmentObject var codex: CodexState
+    @State private var codexVersion: String?
     @State private var updateState: UpdateCheckState = .idle
     @State private var showClearRollupsConfirmation = false
 
@@ -19,13 +30,11 @@ struct AboutTab: View {
                 .foregroundStyle(Theme.ink)
             secondary("Version \(appVersion)")
             cliVersion
+            codexVersionLine
             Text("AI coding usage in your menu bar.")
                 .font(.system(size: 13))
                 .foregroundStyle(Theme.inkSecondary)
-            if let configDir = ClaudeConfigDirectory.resolveCurrent().primary {
-                secondary("Config directory: \(configDir.path)")
-                    .textSelection(.enabled)
-            }
+            configDirectories
             HStack(spacing: 8) {
                 Link(destination: URL(staticString: "https://konradmichalik.github.io/spark/")) {
                     TablerLabel("Website", icon: .world, tint: Theme.ink)
@@ -71,6 +80,29 @@ struct AboutTab: View {
         }
     }
 
+    @ViewBuilder
+    private var codexVersionLine: some View {
+        if codex.isEnabled, let codexVersion {
+            secondary("Codex CLI \(codexVersion)")
+        }
+    }
+
+    /// Where each provider keeps the data Spark reads; Codex only while it is switched on.
+    private var configDirectories: some View {
+        VStack(spacing: 3) {
+            if let claudeDir = ClaudeConfigDirectory.resolveCurrent().primary {
+                secondary("Claude Code data: \(claudeDir.path)")
+            }
+            if codex.isEnabled {
+                secondary("Codex data: \(CodexHome.current.path)")
+            }
+        }
+        .textSelection(.enabled)
+        .task(id: codex.isEnabled) {
+            codexVersion = codex.isEnabled ? await CLIVersionClient.readLocalVersion(command: "codex") : nil
+        }
+    }
+
     private var credits: some View {
         VStack(spacing: 3) {
             secondary("\u{00A9} 2026 Konrad Michalik")
@@ -83,16 +115,24 @@ struct AboutTab: View {
     }
 
     private var rollupDataSection: some View {
-        HStack(spacing: 8) {
-            Button("Export rollups\u{2026}") { exportRollups() }
-            Button("Clear rollups") { showClearRollupsConfirmation = true }
+        VStack(spacing: 6) {
+            HStack(spacing: 8) {
+                Button(AboutText.exportTitle) { exportRollups() }
+                Button(AboutText.clearTitle) { showClearRollupsConfirmation = true }
+            }
+            .buttonStyle(.paper)
+            .disabled(state.rollups.isEmpty)
+            Text(AboutText.dailyTotalsNote)
+                .font(.system(size: 11))
+                .foregroundStyle(Theme.inkSecondary)
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: 360)
         }
-        .buttonStyle(.paper)
-        .disabled(state.rollups.isEmpty)
-        .confirmationDialog("Clear all rollup data?", isPresented: $showClearRollupsConfirmation) {
-            Button("Clear rollups", role: .destructive) { state.clearRollups() }
+        .confirmationDialog("Clear all daily totals?", isPresented: $showClearRollupsConfirmation) {
+            Button(AboutText.clearTitle, role: .destructive) { state.clearRollups() }
         } message: {
-            Text("This permanently deletes daily token totals recorded beyond the transcript retention window. This cannot be undone.")
+            Text("This permanently deletes the daily token totals Spark recorded beyond the transcript retention window. This cannot be undone.")
         }
     }
 
