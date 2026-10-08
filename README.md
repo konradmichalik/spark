@@ -13,23 +13,21 @@ Learn more at <a href="https://konradmichalik.github.io/spark/">konradmichalik.g
   <img src="https://img.shields.io/badge/license-MIT-green" alt="License">
 </p>
 
-<img src="screenshot.jpg" width="400" alt="Spark: Claude Code usage popover showing session and weekly usage, today's stats, and a usage history graph">
-
 </div>
 
 ---
 
 ## ✨ Features
 
-- **Usage ring** in the menu bar that fills based on current usage: ring color shifts green → orange → red as you approach your limit
-- **Account tier badge** showing your plan (Pro, Max, Team, etc.) directly in the popover header
-- **Session, Weekly, Sonnet, Opus & Fable usage** with progress bars, countdown timers to the next reset, a six-tier color-coded pace marker (Comfortable → Runaway) showing whether you're tracking ahead of or behind an even-pace budget, and a pay-as-you-go extra-usage line when you exceed plan limits
+- **Usage ring** in the menu bar: twelve dots that fill with current usage, in ink until your warning threshold, then ochre, then red at the critical one
+- **Plan and sign-in path** (Pro, Max, Team, etc.) in the tooltip of each provider tab
+- **Session, Weekly, Sonnet, Opus & Fable usage** as dot bars or rings with countdown timers to the next reset, a time marker showing whether you're tracking ahead of or behind an even-pace budget, and a pay-as-you-go extra-usage line when you exceed plan limits
 - **Session projection** that estimates whether you'll hit the limit before the reset window closes, plus a live **burn rate** (fresh tokens per minute over the last 15 minutes, read from your local transcripts) that reacts before the next API poll
-- **Usage history graph** with two modes: **Limits** (time-proportional utilization line chart, selectable 1h–30d) and **Volume** (daily token bar chart from permanent history, 7d/30d), both with hover tooltips
+- **Usage history** as dot columns: **Limits** (session as dots, week as a red line, selectable 1h–30d) and **Volume** (daily tokens from permanent history, 7d/30d), both with hover tooltips
 - **Stats for any period** (Today / 7d / 30d / All): message count, session count, token totals, local per-model (Sonnet/Opus/Fable) attribution, and a collapsible **Top Projects** breakdown by token volume, plus the optional API cost estimate for the period and per project
 - **Active Sessions**: see which Claude Code sessions have had activity in the last 5 minutes, by project
 - **Usage Report** window, switchable between week and calendar-month view and navigable back one period at a time: tokens, the change against the period before and an optional API cost estimate (off by default, see Settings), a pace graph with each day's session peak as dot columns and the week as a line, a dotted activity calendar of the days with use, a Claude | Codex | All filter for the whole report when Codex is signed in, each model's share, a cache hit rate warning when caching breaks, and top projects and top sessions that expand with "Show more"
-- **Claude service status** pulled from `status.anthropic.com`, surfacing only when there's an active incident
+- **Claude service status** pulled from `status.claude.com`, surfacing only when there's an active incident
 - **Native notifications** for warning thresholds, critical levels, limit resets, and service incidents, titled by provider and window (`Claude · Session at 78%`), with a dot ring in the state's colour and one Notification Center thread per provider. A click opens the popover on that provider's tab
 - **Smart refresh** that reacts to your actual Claude Code activity: watches your transcripts directly and snaps back to active polling the moment you start working, instead of waiting for the next scheduled check
 - **Codex usage** _(automatic when available)_: if the [Codex CLI](https://github.com/openai/codex) is signed in with ChatGPT, a Claude | Codex switch appears in the popover with Codex's plan limits, credits and local session stats, and the menu bar shows the provider of the selected tab
@@ -87,7 +85,7 @@ claude auth login
 Codex needs no setup in Spark. Once `codex login` has stored a ChatGPT sign-in in `~/.codex/auth.json` (or `$CODEX_HOME/auth.json`), Spark shows Codex next to Claude. The menu bar shows the provider of the popover tab you opened last. Turn Codex off with the switch on its card under **Settings → Connections**.
 
 > [!NOTE]
-> Spark only reads `auth.json` and never refreshes or rewrites the Codex token, so it cannot sign the CLI out. Not supported yet: sign-ins stored in the Keychain (`cli_auth_credentials_store = keyring`), using Codex without a Claude Code connection, and a `CODEX_HOME` set only in your shell profile (apps started from Finder or as a login item don't see it, so Spark falls back to `~/.codex`).
+> Spark only reads `auth.json` and never refreshes or rewrites the Codex token, so it cannot sign the CLI out. Not supported yet: sign-ins stored in the Keychain (`cli_auth_credentials_store = keyring`) and a `CODEX_HOME` set only in your shell profile (apps started from Finder or as a login item don't see it, so Spark falls back to `~/.codex`).
 
 ## 🐛 Troubleshooting
 
