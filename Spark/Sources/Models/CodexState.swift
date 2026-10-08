@@ -33,7 +33,7 @@ final class CodexState: ObservableObject {
     private var pollCancellable: AnyCancellable?
     private var lastFetchTime: Date = .distantPast
     private var consecutiveRateLimits = 0
-    private var lastLevels: [String: UsageLevel] = [:]
+    private var levelTracker = UsageLevelTracker()
     private var statsTask: Task<Void, Never>?
     private var reportDataTask: Task<CodexReportData, Never>?
 
@@ -213,25 +213,31 @@ final class CodexState: ObservableObject {
         let warning = defaults.object(forKey: "warningThreshold") as? Double ?? 75
         let critical = defaults.object(forKey: "criticalThreshold") as? Double ?? 90
 
-        for window in Self.windows(of: usage) {
-            let utilization = window.bucket.utilization
-            let level: UsageLevel = utilization >= critical ? .critical : utilization >= warning ? .warning : .ok
-            defer { lastLevels[window.label] = level }
-            guard level != .ok, level != lastLevels[window.label, default: .ok] else { continue }
+        let windows = Self.windows(of: usage)
+        let crossings = levelTracker.update(windows.map { ($0.key, $0.bucket.utilization) }, warning: warning, critical: critical)
+        for crossing in crossings {
+            guard let window = windows.first(where: { $0.key == crossing.key }) else { continue }
             let notice = NoticeWording.usage(
-                provider: .codex, window: window.label, value: utilization,
-                tone: UsageTone(value: utilization, warning: warning, critical: critical),
+                provider: .codex, window: window.label, value: crossing.utilization,
+                tone: UsageTone(value: crossing.utilization, warning: warning, critical: critical),
                 resetsAt: window.bucket.resetsAtDate, limitIn: nil
             )
-            NotificationPoster.post(notice, id: "codex-usage-\(window.label)-\(level.rawValue)")
+            NotificationPoster.post(notice, id: "codex-usage-\(crossing.key)-\(crossing.level.rawValue)")
         }
     }
 
-    private static func windows(of usage: CodexUsage) -> [(label: String, bucket: UsageBucket)] {
-        var result: [(label: String, bucket: UsageBucket)] = []
-        if let session = usage.usageData.session { result.append(("Session", session)) }
-        if let weekly = usage.usageData.weekly { result.append(("Week", weekly)) }
-        result += usage.additionalLimits.map { ($0.label, $0.bucket) }
+    private struct NotifiedWindow {
+        let key: String
+        let label: String
+        let bucket: UsageBucket
+    }
+
+    /// `key` is unique per window, unlike the label, which can repeat among the additional limits.
+    private static func windows(of usage: CodexUsage) -> [NotifiedWindow] {
+        var result: [NotifiedWindow] = []
+        if let session = usage.usageData.session { result.append(NotifiedWindow(key: "session", label: "Session", bucket: session)) }
+        if let weekly = usage.usageData.weekly { result.append(NotifiedWindow(key: "week", label: "Week", bucket: weekly)) }
+        result += usage.additionalLimits.map { NotifiedWindow(key: $0.id, label: $0.label, bucket: $0.bucket) }
         return result
     }
 }

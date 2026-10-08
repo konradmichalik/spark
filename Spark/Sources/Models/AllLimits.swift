@@ -9,8 +9,10 @@ struct LimitLine: Equatable, Identifiable {
     var elapsed: Double?
     var tooltip: String?
     var detail: String?
+    /// Set where labels can repeat (Codex windows), so the list ids stay unique.
+    var key: String?
 
-    var id: String { label }
+    var id: String { key ?? label }
 }
 
 /// The limits the overview does not show, then the lines that are paid on top of the plan
@@ -59,7 +61,9 @@ enum AllLimits {
         // (`HeadlineLimit`), so it is not listed twice.
         let leadsOverview = usage.usageData.session == nil && usage.usageData.weekly == nil
         for limit in usage.additionalLimits.dropFirst(leadsOverview ? 1 : 0) {
-            limits.append(line(limit.label, limit.bucket, TimeInterval(limit.windowSeconds)))
+            var limitLine = line(limit.label, limit.bucket, TimeInterval(limit.windowSeconds))
+            limitLine.key = limit.id
+            limits.append(limitLine)
         }
         let credits = usage.creditsBalance.map {
             LimitLine(label: "Credits", value: nil, tone: .normal, tooltip: "Credit balance of the ChatGPT account", detail: $0)
