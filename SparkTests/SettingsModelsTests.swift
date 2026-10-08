@@ -43,14 +43,6 @@ final class ConnectionSummaryTests: XCTestCase {
 }
 
 final class MenuBarSettingsTests: XCTestCase {
-    func testFootnoteNamesClaudeWhenCodexIsOff() {
-        XCTAssertEqual(MenuBarFootnote.text(codexIsActive: false), "The menu bar shows Claude. Turn on Codex in Connections to switch.")
-    }
-
-    func testFootnoteFollowsTheTabWhenCodexIsOn() {
-        XCTAssertEqual(MenuBarFootnote.text(codexIsActive: true), "The menu bar shows the provider of the tab you opened last.")
-    }
-
     func testValueOptionsKeepTheStoredKeys() {
         XCTAssertEqual(MenuBarValueOption.allCases.map(\.rawValue), ["max", "session", "weekly", "none"])
         XCTAssertEqual(MenuBarValueOption.allCases.map(\.segmentLabel), ["Highest", "Session", "Week", "None"])

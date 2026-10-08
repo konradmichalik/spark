@@ -5,7 +5,7 @@ extension NotificationRing {
 
     /// The ring as a 64pt PNG at 2x, on a card tile so it reads on any notification background.
     /// `appearance` resolves the light or dark token values.
-    func pngData(appearance: NSAppearance?) -> Data? {
+    func pngData(appearance: NSAppearance) -> Data? {
         let side = Self.pixelSide
         guard let rep = NSBitmapImageRep(
             bitmapDataPlanes: nil, pixelsWide: side, pixelsHigh: side, bitsPerSample: 8, samplesPerPixel: 4,
@@ -14,11 +14,7 @@ extension NotificationRing {
         NSGraphicsContext.saveGraphicsState()
         NSGraphicsContext.current = context
         let rect = CGRect(x: 0, y: 0, width: side, height: side)
-        if let appearance {
-            appearance.performAsCurrentDrawingAppearance { draw(in: rect) }
-        } else {
-            draw(in: rect)
-        }
+        appearance.performAsCurrentDrawingAppearance { draw(in: rect) }
         NSGraphicsContext.restoreGraphicsState()
         return rep.representation(using: .png, properties: [:])
     }

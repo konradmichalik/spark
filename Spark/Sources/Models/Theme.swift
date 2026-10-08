@@ -5,9 +5,6 @@ enum SettingsTab: Hashable {
     case general, menuBar, display, connection, notifications, status, about
 }
 
-/// The design tokens live in `DesignTokens.swift` (docs/design/rules.md, "Colour").
-enum Theme {}
-
 extension Date {
     /// The detail line of a reset tooltip, e.g. "Wednesday, 7 October at 13:10".
     var resetDescription: String {

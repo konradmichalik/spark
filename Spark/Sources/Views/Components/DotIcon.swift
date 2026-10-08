@@ -28,8 +28,6 @@ enum DotIcon: CaseIterable {
 
 struct DotIconView: View {
     let icon: DotIcon
-    var size: CGFloat = 13
-    var color: Color = Theme.inkSecondary
 
     var body: some View {
         Canvas { context, canvas in
@@ -38,10 +36,10 @@ struct DotIconView: View {
             for item in icon.dots {
                 let center = CGPoint(x: pitch * (CGFloat(item.column) + 0.5), y: pitch * (CGFloat(item.row) + 0.5))
                 let rect = CGRect(x: center.x - dot / 2, y: center.y - dot / 2, width: dot, height: dot)
-                context.fill(Path(ellipseIn: rect), with: .color(item.isFilled ? color : color.opacity(0.3)))
+                context.fill(Path(ellipseIn: rect), with: .color(item.isFilled ? Theme.inkSecondary : Theme.inkSecondary.opacity(0.3)))
             }
         }
-        .frame(width: size, height: size)
+        .frame(width: 13, height: 13)
         .accessibilityHidden(true)
     }
 }

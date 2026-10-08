@@ -3,7 +3,6 @@ import Foundation
 /// One day of the report's activity calendar, or a padding cell that only keeps the weekday columns aligned.
 struct ActivityCell: Equatable {
     let date: Date
-    let key: String
     let tokens: Int
     /// 0 for no use, then 1 to 3 relative to the busiest day of the period.
     let level: Int
@@ -71,7 +70,7 @@ enum ActivityCalendar {
         let key = TranscriptCache.dayKey(for: day, calendar: calendar)
         let tokens = dayTokens[key] ?? 0
         return ActivityCell(
-            date: day, key: key, tokens: tokens, level: level(tokens: tokens, peak: peak),
+            date: day, tokens: tokens, level: level(tokens: tokens, peak: peak),
             isToday: day == today, isFuture: day > today, isOutsideRange: false
         )
     }
@@ -85,7 +84,7 @@ enum ActivityCalendar {
     }
 
     private static func padding(_ date: Date) -> ActivityCell {
-        ActivityCell(date: date, key: "", tokens: 0, level: 0, isToday: false, isFuture: false, isOutsideRange: true)
+        ActivityCell(date: date, tokens: 0, level: 0, isToday: false, isFuture: false, isOutsideRange: true)
     }
 
     /// Each day is re-normalized to midnight: `date(byAdding:)` keeps the wall-clock time, which

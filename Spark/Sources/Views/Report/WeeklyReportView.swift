@@ -22,7 +22,7 @@ struct WeeklyReportView: View {
                 .padding(.horizontal, 20)
                 .frame(minHeight: 52)
             Rectangle().fill(Theme.hairline).frame(height: 1)
-            if ReportScoping.showsFilter(codexShown: codexShown) {
+            if codexShown {
                 PaperSegments(selection: $selectedScope, options: ReportScope.allCases, fillsWidth: true, label: "Provider")
                     .padding(.horizontal, 20)
                     .padding(.top, 12)

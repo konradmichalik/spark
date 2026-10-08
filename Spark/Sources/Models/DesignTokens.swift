@@ -22,7 +22,7 @@ extension NSColor {
     }
 }
 
-extension Theme {
+enum Theme {
     static let paperNS = NSColor.adaptive(light: NSColor(hex: 0xF2F2EF), dark: NSColor(hex: 0x1C1C1B))
     static let cardNS = NSColor.adaptive(light: NSColor(hex: 0xFAFAF8), dark: NSColor(hex: 0x262625))
     static let inkNS = NSColor.adaptive(light: NSColor(hex: 0x111111), dark: NSColor(hex: 0xEDEDE8))

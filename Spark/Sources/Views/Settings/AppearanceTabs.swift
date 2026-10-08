@@ -4,6 +4,13 @@ struct MenuBarTab: View {
     @EnvironmentObject var state: AppState
     @EnvironmentObject var codex: CodexState
 
+    /// With Codex off there is only one provider to show.
+    private var menuBarFootnote: String {
+        codex.isActive
+            ? "The menu bar shows the provider of the tab you opened last."
+            : "The menu bar shows Claude. Turn on Codex in Connections to switch."
+    }
+
     var body: some View {
         SettingsPage {
             SettingsSection(title: "Style") {
@@ -23,7 +30,7 @@ struct MenuBarTab: View {
                 }
             }
 
-            SettingsSection(title: "Displayed value", footnote: MenuBarFootnote.text(codexIsActive: codex.isActive)) {
+            SettingsSection(title: "Displayed value", footnote: menuBarFootnote) {
                 SettingsCard {
                     SettingsRow(title: "Value", subtitle: "None leaves the ring alone.") {
                         PaperSegments(selection: valueBinding, options: MenuBarValueOption.allCases, label: "Displayed value")

@@ -123,7 +123,8 @@ final class NotificationRingTests: XCTestCase {
     }
 
     func testRenderedImageIsAPNG() throws {
-        let data = try XCTUnwrap(NotificationRing.usage(value: 78, tone: .warning).pngData(appearance: NSAppearance(named: .aqua)))
+        let aqua = try XCTUnwrap(NSAppearance(named: .aqua))
+        let data = try XCTUnwrap(NotificationRing.usage(value: 78, tone: .warning).pngData(appearance: aqua))
         XCTAssertEqual(Array(data.prefix(4)), [0x89, 0x50, 0x4E, 0x47])
     }
 }

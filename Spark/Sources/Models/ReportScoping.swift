@@ -34,8 +34,6 @@ struct ScopedTotals: Equatable {
 /// Which sections the report shows for a scope and how the scopes combine their numbers. The pace
 /// graph, API cost, top lists and cache notes only exist for Claude, so Codex alone hides them.
 enum ReportScoping {
-    static func showsFilter(codexShown: Bool) -> Bool { codexShown }
-
     /// Without a second provider the filter is gone and the report is Claude's.
     static func effective(_ selected: ReportScope, codexShown: Bool) -> ReportScope {
         codexShown ? selected : .claude
@@ -68,7 +66,7 @@ enum ReportScoping {
 
     static func totals(_ scope: ReportScope, report: PeriodReport, codex: CodexReportData?, calendar: Calendar = .current) -> ScopedTotals {
         let claudeShare = scope == .codex ? (0, 0) : (report.currentPeriodTokens, report.previousPeriodTokens)
-        let codexShare = scope == .claude || codex == nil ? (0, 0) : (
+        let codexShare = scope == .claude ? (0, 0) : (
             codex?.tokens(from: report.rangeStart, to: report.rangeEnd, calendar: calendar) ?? 0,
             codex?.tokens(from: report.previousStart, to: report.previousEnd, calendar: calendar) ?? 0
         )

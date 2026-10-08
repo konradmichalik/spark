@@ -2,20 +2,10 @@
 import XCTest
 
 final class ReportScopingTests: XCTestCase {
-    private var calendar: Calendar = {
-        var calendar = Calendar(identifier: .gregorian)
-        // swiftlint:disable:next force_unwrapping
-        calendar.timeZone = TimeZone(identifier: "Europe/Berlin")!
-        return calendar
-    }()
+    private let calendar = TestCalendar.berlin()
 
     private func date(_ day: String) -> Date {
-        let formatter = DateFormatter()
-        formatter.calendar = calendar
-        formatter.timeZone = calendar.timeZone
-        formatter.dateFormat = "yyyy-MM-dd HH:mm"
-        // swiftlint:disable:next force_unwrapping
-        return formatter.date(from: "\(day) 12:00")!
+        TestCalendar.date(day, calendar: calendar)
     }
 
     /// Week of 2026-08-14 to 2026-08-20 (today 2026-08-21 not rolled up), previous week 08-07 to 08-13.
@@ -33,11 +23,6 @@ final class ReportScopingTests: XCTestCase {
         dayTokens: ["2026-08-16": 300, "2026-08-09": 100, "2026-08-21": 50, "2026-08-01": 999],
         modelTokens: ["gpt-5.5": 300, "gpt-5.5-codex": 100]
     )
-
-    func testFilterShowsOnlyWithBothProviders() {
-        XCTAssertTrue(ReportScoping.showsFilter(codexShown: true))
-        XCTAssertFalse(ReportScoping.showsFilter(codexShown: false))
-    }
 
     func testHiddenCodexForcesClaude() {
         XCTAssertEqual(ReportScoping.effective(.all, codexShown: false), .claude)

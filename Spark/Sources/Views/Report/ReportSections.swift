@@ -43,7 +43,7 @@ struct ReportTotal: View {
 
 /// The day peaks as dot columns with the week as the red line, as in History.
 struct PaceSection: View {
-    var title = "PACE \u{00B7} PEAK PER DAY"
+    let title: String
     let days: [PaceDay]
     let emptyText: String
 

@@ -62,15 +62,6 @@ enum MenuBarValueOption: String, CaseIterable, SegmentLabeled {
     }
 }
 
-/// The note under the menu bar settings. With Codex off there is only one provider to show.
-enum MenuBarFootnote {
-    static func text(codexIsActive: Bool) -> String {
-        codexIsActive
-            ? "The menu bar shows the provider of the tab you opened last."
-            : "The menu bar shows Claude. Turn on Codex in Connections to switch."
-    }
-}
-
 /// Smart adapts the refresh rate to activity, fixed polls at one interval. Raw values are the
 /// stored `refreshMode` keys.
 enum RefreshModeOption: String, CaseIterable, SegmentLabeled {
