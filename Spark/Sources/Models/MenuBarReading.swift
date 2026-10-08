@@ -75,3 +75,30 @@ struct MenuBarReading: Equatable {
         }
     }
 }
+
+/// The connection facts of the one provider the menu bar shows. Each provider fills in only its
+/// own, so Claude's reconnect state never dims or labels Codex (and the other way round).
+struct MenuBarConnection: Equatable {
+    let needsReconnect: Bool
+    let needsSignIn: Bool
+    let hasError: Bool
+    let lastUpdated: Date
+
+    /// A logged-out Claude has no fresh value either: it counts as needing a sign-in.
+    static func claude(isAuthenticated: Bool, needsReconnect: Bool, hasError: Bool, lastUpdated: Date) -> MenuBarConnection {
+        MenuBarConnection(needsReconnect: needsReconnect, needsSignIn: !isAuthenticated, hasError: hasError, lastUpdated: lastUpdated)
+    }
+
+    /// `lastUpdated` is nil before the first successful poll, which reads as stale.
+    static func codex(needsSignIn: Bool, hasError: Bool, lastUpdated: Date?) -> MenuBarConnection {
+        MenuBarConnection(needsReconnect: false, needsSignIn: needsSignIn, hasError: hasError, lastUpdated: lastUpdated ?? .distantPast)
+    }
+
+    var isDisconnected: Bool { needsReconnect || needsSignIn }
+
+    func isStale(now: Date) -> Bool {
+        MenuBarReading.isStale(
+            needsReconnect: needsReconnect, needsSignIn: needsSignIn, hasError: hasError, lastUpdated: lastUpdated, now: now
+        )
+    }
+}

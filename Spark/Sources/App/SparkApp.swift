@@ -175,23 +175,27 @@ struct MenuBarLabel: View {
         return reading.provider == .codex ? .codex : .claude
     }
 
+    private var connection: MenuBarConnection {
+        switch reading.provider {
+        case .codex:
+            MenuBarConnection.codex(
+                needsSignIn: codex.needsSignIn, hasError: codex.lastError != nil && !codex.isRateLimited,
+                lastUpdated: codex.usage?.usageData.lastUpdated
+            )
+        case .claude:
+            MenuBarConnection.claude(
+                isAuthenticated: state.isAuthenticated, needsReconnect: state.needsReconnect,
+                hasError: state.lastError != nil && !state.isRateLimited, lastUpdated: state.usageData.lastUpdated
+            )
+        }
+    }
+
     private func isDimmed(now: Date) -> Bool {
         // Codex is the selected tab but has no data yet: the label shows Claude as a fallback.
         if UsageProvider(rawValue: selectedProviderRaw) == .codex, codex.isActive, codex.usage == nil {
             return true
         }
-        switch reading.provider {
-        case .codex:
-            return MenuBarReading.isStale(
-                needsReconnect: state.needsReconnect, needsSignIn: codex.needsSignIn, hasError: codex.lastError != nil && !codex.isRateLimited,
-                lastUpdated: codex.usage?.usageData.lastUpdated ?? .distantPast, now: now
-            )
-        case .claude:
-            return MenuBarReading.isStale(
-                needsReconnect: state.needsReconnect, needsSignIn: false, hasError: state.lastError != nil && !state.isRateLimited,
-                lastUpdated: state.usageData.lastUpdated, now: now
-            )
-        }
+        return connection.isStale(now: now)
     }
 
     private func accessibilityText(dimmed: Bool) -> String {
@@ -202,7 +206,7 @@ struct MenuBarLabel: View {
         case .critical: text += ", critical"
         default: break
         }
-        if state.needsReconnect {
+        if connection.isDisconnected {
             text += ", disconnected"
         } else if dimmed {
             text += ", not up to date"
