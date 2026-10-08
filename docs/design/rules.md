@@ -196,7 +196,7 @@ Motion is added only when `accessibilityReduceMotion` is off. Start from no moti
 | --- | --- | --- |
 | Dot bar and ring | Filled dots appear in sequence, 25 ms apart and closer when more must fit, on appear and when the value rises; a falling value shows at once. Session bar, ring, week bar, More Limits bars | 300 ms total |
 | Hero value | `.contentTransition(.numericText())` on the session number (bars and ring) and the week value, when the whole percent changes | 250 ms |
-| Projection | Hollow dots breathe between full and 35 % opacity, only when the forecast reaches the limit before the reset, bar and ring | 2 s loop |
+| Projection | Hollow dots breathe between full and 35 % opacity, only when the forecast reaches the limit before the reset, bar and ring. The hollow dots sit on their own layer, so only that layer's opacity changes and the filled dots are not redrawn | 2 s loop |
 | Level 2 | Push from the right, header fixed | 220 ms |
 | Live dot | Soft halo grows from 40 % to 95 % of the icon and fades, then restarts, only while the session is active. Overview row and Active Sessions rows alike, never in the menu bar | 2.4 s loop |
 | Tooltip | Fades in with a 4 pt rise after the 400 ms delay, 150 ms on usage blocks (the whole block is the hover target); hides at once | 120 ms |
