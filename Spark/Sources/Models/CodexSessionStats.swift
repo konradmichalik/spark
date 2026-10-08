@@ -135,7 +135,7 @@ private struct RolloutAccumulator {
         stats.cachedInputTokens += cached
         stats.outputTokens += output
         stats.reasoningTokens += max(total.reasoning - previous.reasoning, 0)
-        stats.modelTokens[model ?? "unknown", default: 0] += input + output
+        stats.modelTokens[model ?? "unknown", default: 0] += fresh + output
         if let date = timestamp.flatMap(Self.parseDate) {
             stats.dayTokens[TranscriptCache.dayKey(for: date), default: 0] += fresh + output
         }

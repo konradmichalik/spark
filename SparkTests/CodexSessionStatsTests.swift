@@ -63,7 +63,7 @@ final class CodexSessionStatsTests: XCTestCase {
         XCTAssertEqual(stats.outputTokens, 500)
         XCTAssertEqual(stats.reasoningTokens, 80)
         XCTAssertEqual(stats.totalTokens, 3500)
-        XCTAssertEqual(stats.modelTokens, ["gpt-5.5-codex": 3500])
+        XCTAssertEqual(stats.modelTokens, ["gpt-5.5-codex": 2100], "per-model tokens are fresh input plus output, like the headline")
         XCTAssertEqual(stats.fileCount, 1)
     }
 
