@@ -17,7 +17,7 @@ private func toneColor(_ tone: UsageTone) -> Color {
 }
 
 /// Session on the overview: the one Doto number, the dot bar with projection and time marker,
-/// and the forecast in a tooltip. Only a limit warning stays on screen, beside the number.
+/// and the forecast line below it; the rest of the forecast sits in the tooltip.
 struct SessionBlock: View {
     let value: Double
     let resetIn: String?
@@ -25,7 +25,7 @@ struct SessionBlock: View {
     let forecast: SessionForecast
     let elapsed: Double?
     let tone: UsageTone
-    var warning: String?
+    var forecastLine: ForecastLine?
     let detail: String?
 
     var body: some View {
@@ -45,16 +45,15 @@ struct SessionBlock: View {
                     .font(.doto(size: 60))
                 Text("%")
                     .font(.system(size: 20, weight: .semibold))
-                Spacer(minLength: 8)
-                if let warning {
-                    LimitWarning(text: warning)
-                }
             }
             .foregroundStyle(toneColor(tone))
             .lineLimit(1)
             .minimumScaleFactor(0.6)
             DotBar(value: value, projected: forecast.projected, marker: elapsed.map { $0 * 100 }, tone: tone)
                 .frame(height: 10)
+            if let forecastLine {
+                ForecastLineText(line: forecastLine)
+            }
         }
         .contentShape(Rectangle())
         .tooltip(
@@ -68,14 +67,17 @@ struct SessionBlock: View {
     }
 }
 
-private struct LimitWarning: View {
-    let text: String
+/// Grey when the session lands below the limit, red with semibold weight when it does not.
+private struct ForecastLineText: View {
+    let line: ForecastLine
 
     var body: some View {
-        Text(text)
-            .font(.system(size: 12, weight: .semibold))
+        Text(line.text)
+            .font(.system(size: 11.5, weight: line.isWarning ? .semibold : .regular))
             .monospacedDigit()
-            .foregroundStyle(Theme.accent)
+            .foregroundStyle(line.isWarning ? Theme.accent : Theme.inkSecondary)
+            .lineLimit(1)
+            .minimumScaleFactor(0.8)
     }
 }
 
@@ -122,14 +124,14 @@ struct WeekBlock: View {
 }
 
 /// The "Ring" display style: the session as one dot ring with the number inside, the reset and
-/// any limit warning beside it, and the week as the same block the bars style uses.
+/// forecast line beside it, and the week as the same block the bars style uses.
 struct RingsBlock: View {
     let value: Double
     let resetIn: String?
     let forecast: SessionForecast
     let elapsed: Double?
     let tone: UsageTone
-    var warning: String?
+    var forecastLine: ForecastLine?
     let detail: String?
     let week: WeekBlock?
 
@@ -139,8 +141,8 @@ struct RingsBlock: View {
             VStack(alignment: .leading, spacing: 14) {
                 VStack(alignment: .leading, spacing: 3) {
                     MicroLabel(text: "SESSION")
-                    if let warning {
-                        LimitWarning(text: warning)
+                    if let forecastLine {
+                        ForecastLineText(line: forecastLine)
                     }
                     if let resetIn {
                         Text("Reset in \(resetIn)")
@@ -189,7 +191,8 @@ struct RingsBlock: View {
         WeekBlock(value: 48, resetIn: "3d 18h", resetDate: nil, elapsed: 0.5, tone: .normal)
         SessionBlock(
             value: 92, resetIn: "1h 5m", resetDate: nil, forecast: SessionForecast(.limitReached(1200)),
-            elapsed: 0.78, tone: .critical, warning: "Limit in ~20m", detail: "Limit in ~20m"
+            elapsed: 0.78, tone: .critical, forecastLine: ForecastLine(text: "Limit in ~20m \u{00B7} 45m before reset", isWarning: true),
+            detail: "Limit in ~20m"
         )
     }
     .padding(14)
@@ -200,7 +203,7 @@ struct RingsBlock: View {
 #Preview("Ring") {
     RingsBlock(
         value: 92, resetIn: "1h 5m", forecast: SessionForecast(.limitReached(1200)), elapsed: 0.78,
-        tone: .critical, warning: "Limit in ~20m", detail: nil,
+        tone: .critical, forecastLine: ForecastLine(text: "Limit in ~20m", isWarning: true), detail: nil,
         week: WeekBlock(value: 65, resetIn: "3d 12h", resetDate: nil, elapsed: 0.5, tone: .normal)
     )
     .padding(14)

@@ -112,12 +112,6 @@ enum ForecastDetail {
         return lines.isEmpty ? nil : lines.joined(separator: "\n")
     }
 
-    /// The one forecast fact that stays on screen: when the limit will be hit before the reset.
-    static func limitWarning(_ projection: ProjectionResult) -> String? {
-        guard case .limitReached(let seconds) = projection else { return nil }
-        return "Limit in ~\(seconds.shortDuration)"
-    }
-
     private static func rateSuffix(_ rate: Double?) -> String {
         guard let rate, rate > 0.5 else { return "" }
         return ", rising ~\(Int(rate.rounded()))%/h"
@@ -154,7 +148,9 @@ enum BarTooltip {
     static func text(window: String, forecast: String?, elapsed: Double?, reset: String?) -> String {
         var lines = ["Share of the \(window) limit used"]
         if let forecast { lines.append("Hollow dots: \(forecast)") }
-        if let elapsed { lines.append("Marker: \(Int((elapsed * 100).rounded()))% of the window has passed") }
+        if let elapsed {
+            lines.append("Marker: \(Int((elapsed * 100).rounded()))% of the window has passed. Fill ahead of it means faster than an even pace")
+        }
         if let reset { lines.append("Resets \(reset)") }
         return lines.joined(separator: "\n")
     }
@@ -197,5 +193,30 @@ enum HistoryHover {
             column.weekly.map { "Week \(UsageFormat.percent($0, locale: locale))" }
         ]
         return (column.time.map(formatter.string) ?? "", lines.compactMap { $0 }.joined(separator: "\n"))
+    }
+}
+
+/// The forecast line under the session bar: where the session lands at the reset, or when the
+/// limit hits and how long before the reset that is.
+struct ForecastLine: Equatable {
+    let text: String
+    let isWarning: Bool
+
+    static func make(
+        projection: ProjectionResult, secondsToReset: TimeInterval?, elapsedInWindow: TimeInterval?, locale: Locale = .current
+    ) -> ForecastLine? {
+        switch projection {
+        case .safe(let projected):
+            return ForecastLine(text: "~\(UsageFormat.percent(projected.rounded(), locale: locale)) at reset", isWarning: false)
+        case .limitReached(let seconds):
+            var text = "Limit in ~\(seconds.shortDuration)"
+            if let secondsToReset, secondsToReset - seconds >= 60 {
+                text += " \u{00B7} \((secondsToReset - seconds).shortDuration) before reset"
+            }
+            return ForecastLine(text: text, isWarning: true)
+        case .insufficientData:
+            guard let elapsedInWindow, elapsedInWindow < SessionProjection.minimumSpan else { return nil }
+            return ForecastLine(text: "Forecast after \(Int(SessionProjection.minimumSpan / 60)) min", isWarning: false)
+        }
     }
 }

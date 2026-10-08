@@ -8,7 +8,7 @@ private struct UsageSection: View {
     let session: UsageBucket?
     let week: UsageBucket?
     let forecast: SessionForecast
-    var limitWarning: String?
+    var forecastLine: ForecastLine?
     let detail: String?
     let warning: Double
     let critical: Double
@@ -23,14 +23,14 @@ private struct UsageSection: View {
                 VStack(alignment: .leading, spacing: 16) {
                     SessionBlock(
                         value: session.utilization, resetIn: session.timeUntilReset, resetDate: session.resetsAtDate,
-                        forecast: forecast, elapsed: elapsed, tone: tone, warning: limitWarning, detail: detail
+                        forecast: forecast, elapsed: elapsed, tone: tone, forecastLine: forecastLine, detail: detail
                     )
                     weekBlock
                 }
             } else {
                 RingsBlock(
                     value: session.utilization, resetIn: session.timeUntilReset, forecast: forecast, elapsed: elapsed,
-                    tone: tone, warning: limitWarning, detail: detail, week: weekBlock
+                    tone: tone, forecastLine: forecastLine, detail: detail, week: weekBlock
                 )
             }
         } else {
@@ -78,7 +78,7 @@ struct ClaudeOverview: View {
         } else {
             UsageSection(
                 session: state.usageData.session, week: state.usageData.weekly, forecast: SessionForecast(projection),
-                limitWarning: ForecastDetail.limitWarning(projection), detail: forecastDetail,
+                forecastLine: forecastLine, detail: forecastDetail,
                 warning: state.warningThreshold, critical: state.criticalThreshold, style: state.usageDisplayStyle
             )
         }
@@ -94,6 +94,14 @@ struct ClaudeOverview: View {
     private var projection: ProjectionResult {
         guard state.showProjection, let session = state.usageData.session else { return .insufficientData }
         return SessionProjection.calculate(history: state.history, currentUtilization: session.utilization, resetsAt: session.resetsAtDate)
+    }
+
+    private var forecastLine: ForecastLine? {
+        guard state.showProjection, let session = state.usageData.session else { return nil }
+        let secondsToReset = session.resetsAtDate.map { $0.timeIntervalSinceNow }
+        return ForecastLine.make(
+            projection: projection, secondsToReset: secondsToReset, elapsedInWindow: secondsToReset.map { fiveHours - $0 }
+        )
     }
 
     private var forecastDetail: String? {

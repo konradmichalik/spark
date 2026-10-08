@@ -81,12 +81,6 @@ final class OverviewModelsTests: XCTestCase {
         XCTAssertEqual(PopoverFooter.relative(now.addingTimeInterval(-7300), now: now), "2h ago")
     }
 
-    func testLimitWarningOnlyWhenTheLimitIsReached() {
-        XCTAssertEqual(ForecastDetail.limitWarning(.limitReached(1200)), "Limit in ~20m")
-        XCTAssertNil(ForecastDetail.limitWarning(.safe(79)))
-        XCTAssertNil(ForecastDetail.limitWarning(.insufficientData))
-    }
-
     func testForecastDetailLines() {
         XCTAssertEqual(
             ForecastDetail.text(projection: .safe(79), utilization: 45, secondsToReset: 2 * 3600, tokensPerMinute: 25_500),

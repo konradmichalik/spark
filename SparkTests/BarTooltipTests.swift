@@ -5,14 +5,15 @@ final class BarTooltipTests: XCTestCase {
     func testSessionTooltipExplainsEveryMark() {
         XCTAssertEqual(
             BarTooltip.text(window: "5-hour", forecast: "~79% at reset", elapsed: 0.54, reset: "Thursday 14:00"),
-            "Share of the 5-hour limit used\nHollow dots: ~79% at reset\nMarker: 54% of the window has passed\nResets Thursday 14:00"
+            "Share of the 5-hour limit used\nHollow dots: ~79% at reset\n"
+                + "Marker: 54% of the window has passed. Fill ahead of it means faster than an even pace\nResets Thursday 14:00"
         )
     }
 
     func testWeekTooltipWithoutForecast() {
         XCTAssertEqual(
             BarTooltip.text(window: "weekly", forecast: nil, elapsed: 0.5, reset: nil),
-            "Share of the weekly limit used\nMarker: 50% of the window has passed"
+            "Share of the weekly limit used\nMarker: 50% of the window has passed. Fill ahead of it means faster than an even pace"
         )
     }
 

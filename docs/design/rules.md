@@ -96,7 +96,7 @@ HStack(alignment: .firstTextBaseline, spacing: 3) {
 | Dot columns | Vertical stacks of dots | Session history in graphs |
 
 - Filled dots are `ink`, or `warning` or `accent` by threshold. Unfilled dots are `dotTrack`.
-- Projection dots are always ink at 55 %. When the limit will be reached before the reset, the overview says so in text ("Limit in ~20m") in `accent`, so red never means two things on one mark.
+- Projection dots are always ink at 55 %, so red never means two things on one mark. A forecast line under the session always says where the session lands: grey "~79% at reset", or `accent` "Limit in ~2h 4m · 2h 46m before reset". The forecast uses only the current session and waits for 15 minutes of data ("Forecast after 15 min").
 - The weekly series in graphs is always a solid `accent` line over grey dot columns. The two series are told apart by shape, not by a second colour.
 
 ## Layout
