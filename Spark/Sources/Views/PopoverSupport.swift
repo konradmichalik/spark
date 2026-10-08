@@ -16,7 +16,7 @@ struct StatusRow: View {
     var body: some View {
         Link(destination: URL(staticString: "https://status.claude.com")) {
             HStack(spacing: 8) {
-                TablerIconView(worst.icon, size: 14, color: tone.color)
+                DotIconView(icon: worst.dotIcon, size: 14, color: tone.color)
                 Text(headline)
                     .font(.system(size: 12))
                     .foregroundStyle(Theme.ink)

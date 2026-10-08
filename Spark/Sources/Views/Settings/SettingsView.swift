@@ -7,31 +7,31 @@ struct SettingsView: View {
     var body: some View {
         TabView(selection: $state.selectedSettingsTab) {
             GeneralTab()
-                .tabItem { Label { Text("General") } icon: { Image(nsImage: DotIcon.general.templateImage(size: 18)) } }
+                .tabItem { Label("General", systemImage: "gearshape") }
                 .tag(SettingsTab.general)
 
             MenuBarTab()
-                .tabItem { Label { Text("Menu Bar") } icon: { Image(nsImage: DotIcon.menuBar.templateImage(size: 18)) } }
+                .tabItem { Label("Menu Bar", systemImage: "menubar.rectangle") }
                 .tag(SettingsTab.menuBar)
 
             DisplayTab()
-                .tabItem { Label { Text("Display") } icon: { Image(nsImage: DotIcon.display.templateImage(size: 18)) } }
+                .tabItem { Label("Display", systemImage: "square.grid.2x2") }
                 .tag(SettingsTab.display)
 
             ConnectionsTab()
-                .tabItem { Label { Text("Connections") } icon: { Image(nsImage: DotIcon.connections.templateImage(size: 18)) } }
+                .tabItem { Label("Connections", systemImage: "link") }
                 .tag(SettingsTab.connection)
 
             NotificationsTab()
-                .tabItem { Label { Text("Notifications") } icon: { Image(nsImage: DotIcon.notifications.templateImage(size: 18)) } }
+                .tabItem { Label("Notifications", systemImage: "bell") }
                 .tag(SettingsTab.notifications)
 
             StatusTab()
-                .tabItem { Label { Text("Status") } icon: { Image(nsImage: DotIcon.status.templateImage(size: 18)) } }
+                .tabItem { Label("Status", systemImage: "waveform.path.ecg") }
                 .tag(SettingsTab.status)
 
             AboutTab()
-                .tabItem { Label { Text("About") } icon: { Image(nsImage: DotIcon.about.templateImage(size: 18)) } }
+                .tabItem { Label("About", systemImage: "info.circle") }
                 .tag(SettingsTab.about)
         }
         .frame(width: 540, height: 560)

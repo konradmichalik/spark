@@ -1,11 +1,10 @@
-import AppKit
 import SwiftUI
 
-/// Small icons drawn in the dot language: the overview rows on a 4 × 4 grid, the settings tabs
+/// Small icons drawn in the dot language: the overview rows on a 4 × 4 grid, the service status
 /// on a 5 × 5 grid (docs/design/rules.md, "Dot language").
 enum DotIcon: CaseIterable {
     case statistics, limits
-    case general, menuBar, display, connections, notifications, status, about
+    case statusOK, statusDegraded, statusOutage, statusUnknown
 
     struct Dot: Equatable {
         let column: Int
@@ -32,57 +31,30 @@ enum DotIcon: CaseIterable {
             let ring = [(1, 0), (2, 0), (3, 1), (3, 2), (2, 3), (1, 3), (0, 2), (0, 1)]
             return ring.enumerated().map { index, cell in Dot(column: cell.0, row: cell.1, isFilled: index < 5) }
         default:
-            return tabDots
+            return statusDots
         }
     }
 
-    /// Settings tab patterns, filled dots first and dimmed ones as `false`.
-    private var tabDots: [Dot] {
+    /// Service status patterns, all dots filled.
+    private var statusDots: [Dot] {
         let filled: [(Int, Int)]
-        var dimmed: [(Int, Int)] = []
         switch self {
-        case .general:
-            // A gear: a ring of eight with four teeth.
-            filled = [(1, 1), (2, 1), (3, 1), (1, 2), (3, 2), (1, 3), (2, 3), (3, 3), (2, 0), (4, 2), (2, 4), (0, 2)]
-        case .menuBar:
-            // A screen with a solid menu bar along the top.
-            filled = (0..<5).map { ($0, 0) }
-            dimmed = [(0, 1), (4, 1), (0, 2), (4, 2), (0, 3), (4, 3), (0, 4), (1, 4), (2, 4), (3, 4), (4, 4)]
-        case .display:
-            // Four tiles.
-            filled = [(0, 0), (1, 0), (0, 1), (1, 1), (3, 0), (4, 0), (3, 1), (4, 1), (0, 3), (1, 3), (0, 4), (1, 4), (3, 3), (4, 3), (3, 4), (4, 4)]
-        case .connections:
-            // Two linked ends on a diagonal.
-            filled = [(0, 4), (1, 3), (2, 2), (3, 1), (4, 0), (0, 3), (4, 1)]
-        case .notifications:
-            // A bell.
-            filled = [(2, 0), (1, 1), (2, 1), (3, 1), (1, 2), (2, 2), (3, 2), (0, 3), (1, 3), (2, 3), (3, 3), (4, 3), (2, 4)]
-        case .status:
-            // A pulse line.
-            filled = [(0, 2), (1, 2), (2, 0), (2, 1), (3, 3), (3, 4), (4, 2)]
-        case .about:
-            // An "i".
-            filled = [(2, 0), (1, 2), (2, 2), (2, 3), (1, 4), (2, 4), (3, 4)]
+        case .statusOK:
+            // A closed ring.
+            filled = [(1, 0), (2, 0), (3, 0), (4, 1), (4, 2), (4, 3), (3, 4), (2, 4), (1, 4), (0, 3), (0, 2), (0, 1)]
+        case .statusDegraded:
+            // A triangle with a dot inside.
+            filled = [(2, 0), (1, 1), (3, 1), (1, 2), (2, 2), (3, 2), (0, 3), (4, 3), (0, 4), (1, 4), (2, 4), (3, 4), (4, 4)]
+        case .statusOutage:
+            // A cross.
+            filled = [(0, 0), (1, 1), (2, 2), (3, 3), (4, 4), (4, 0), (3, 1), (1, 3), (0, 4)]
+        case .statusUnknown:
+            // A question mark.
+            filled = [(0, 1), (1, 0), (2, 0), (3, 0), (4, 1), (3, 2), (2, 2), (2, 4)]
         case .statistics, .limits:
             filled = []
         }
-        return filled.map { Dot(column: $0.0, row: $0.1, isFilled: true) } + dimmed.map { Dot(column: $0.0, row: $0.1, isFilled: false) }
-    }
-
-    /// A template image for places that only take an `NSImage`, such as the Settings tab bar.
-    func templateImage(size: CGFloat) -> NSImage {
-        let image = NSImage(size: NSSize(width: size, height: size), flipped: true) { rect in
-            let pitch = rect.width / CGFloat(grid)
-            let diameter = pitch * 0.62
-            for dot in dots {
-                let center = CGPoint(x: pitch * (CGFloat(dot.column) + 0.5), y: pitch * (CGFloat(dot.row) + 0.5))
-                NSColor.black.withAlphaComponent(dot.isFilled ? 1 : 0.35).setFill()
-                NSBezierPath(ovalIn: NSRect(x: center.x - diameter / 2, y: center.y - diameter / 2, width: diameter, height: diameter)).fill()
-            }
-            return true
-        }
-        image.isTemplate = true
-        return image
+        return filled.map { Dot(column: $0.0, row: $0.1, isFilled: true) }
     }
 }
 

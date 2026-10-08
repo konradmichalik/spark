@@ -294,6 +294,15 @@ enum ClaudeServiceStatus: String, Codable, Sendable {
         self == .degradedPerformance || self == .partialOutage || self == .majorOutage
     }
 
+    var dotIcon: DotIcon {
+        switch self {
+        case .operational, .none: .statusOK
+        case .degradedPerformance, .partialOutage: .statusDegraded
+        case .majorOutage: .statusOutage
+        case .unknown: .statusUnknown
+        }
+    }
+
     var icon: TablerIcon {
         switch self {
         case .operational, .none: .circleCheck

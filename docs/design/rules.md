@@ -121,7 +121,8 @@ HStack(alignment: .firstTextBaseline, spacing: 3) {
 - On level 2 the tab row becomes a breadcrumb at the same height: `‹ [logo] Claude / History`. Plain text, hairline below, no pill.
 - Anything clickable on level 1 that leads deeper is a card or a row with a chevron. The whole card is the hit target.
 - Each row leads with a 13pt icon in the dot language: a pulsing `accent` dot for active sessions (still when none is active or under Reduce Motion), three dot bars for statistics, a partly filled dot octagon for all limits. The statistics row shows the token count, never the API cost; the cost lives on the statistics screen.
-- Settings tabs use dot icons on a 5 × 5 grid, rendered as template images (`DotIcon.templateImage`), so the system tints them like any tab icon.
+- Settings tabs keep the system symbols; dot icons at tab size read poorly.
+- The service status (overview status row, Settings > Status) uses dot icons on a 5 × 5 grid: a ring when operational, a triangle when degraded, a cross for a major outage, a question mark while unknown.
 - Long lists show the first entries and a "Show N more" row that expands in place.
 - Provider tabs show logo, name and session value and are never truncated. A fifth provider goes into a "More" tab.
 - The selected tab is persisted and is the provider the menu bar shows.
