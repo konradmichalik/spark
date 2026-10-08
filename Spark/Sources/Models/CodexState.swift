@@ -35,6 +35,7 @@ final class CodexState: ObservableObject {
     private var consecutiveRateLimits = 0
     private var levelTracker = UsageLevelTracker()
     private var statsTask: Task<Void, Never>?
+    private var lastStatsRefresh: Date?
     private var reportDataTask: Task<CodexReportData, Never>?
 
     /// Arguments only seed state for tests; the app starts empty and fills in via `onLaunch()`.
@@ -48,7 +49,7 @@ final class CodexState: ObservableObject {
     func onLaunch() {
         refreshAvailability()
         guard isActive else { return }
-        refreshStats()
+        refreshStats(trigger: .poll)
         Task { await fetchUsage() }
     }
 
@@ -112,7 +113,7 @@ final class CodexState: ObservableObject {
         lastError = nil
         consecutiveRateLimits = 0
         startPolling(interval: Self.pollInterval)
-        refreshStats()
+        refreshStats(trigger: .poll)
     }
 
     /// The CLI refreshes its own token and rewrites `auth.json`. A 401 usually means Spark read
@@ -165,12 +166,22 @@ final class CodexState: ObservableObject {
         refreshStats()
     }
 
-    /// Re-reads the rollout files on every usage poll. Unlike Claude there is no transcript cache
+    /// Called when the Statistics screen opens: the only refresh "All" gets besides picking it.
+    func refreshStatsOnVisit() {
+        refreshStats(trigger: .visit)
+    }
+
+    /// Re-reads the rollout files, on the usage poll for bounded periods (see `CodexStatsRefresh`),
+    /// on a visit, or when the period changes. Unlike Claude there is no transcript cache
     /// yet: the files are only scanned past the cutoff and only matching lines are decoded. A new
     /// refresh cancels the previous scan, so a slow "All" scan can neither pile up nor finish
     /// last and overwrite newer numbers.
-    func refreshStats() {
+    func refreshStats(trigger: CodexStatsRefresh.Trigger? = nil) {
         let period = statsPeriod
+        if let trigger {
+            guard CodexStatsRefresh.shouldRefresh(period: period, trigger: trigger, lastRefresh: lastStatsRefresh, now: Date()) else { return }
+        }
+        lastStatsRefresh = Date()
         let directories = [CodexHome.sessionsDirectory, CodexHome.current.appendingPathComponent("archived_sessions")]
         statsTask?.cancel()
         statsTask = Task.detached {

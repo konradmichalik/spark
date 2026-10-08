@@ -88,6 +88,7 @@ struct CodexStatisticsScreen: View {
                 DetailNote(text: "No local Codex activity in this period.")
             }
         }
+        .onAppear { codex.refreshStatsOnVisit() }
     }
 
     private func facts(_ stats: CodexSessionStats) -> [StatFact] {
