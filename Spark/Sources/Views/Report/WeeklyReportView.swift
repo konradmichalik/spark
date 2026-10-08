@@ -13,6 +13,8 @@ struct WeeklyReportView: View {
     @State private var selectedScope = ReportScope.all
     @State private var cachedCodexData: CodexReportData?
     @State private var codexLoadedKey: String?
+    @State private var contentHeight: CGFloat = 0
+    @State private var visibleHeight: CGFloat = 0
 
     var body: some View {
         // The header stays outside the scroll view: the period controls are what someone reaches
@@ -31,12 +33,17 @@ struct WeeklyReportView: View {
                 content
                     .padding(20)
                     .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(GeometryReader { Color.clear.preference(key: ReportContentHeightKey.self, value: $0.size.height) })
             }
+            .background(GeometryReader { Color.clear.preference(key: ReportVisibleHeightKey.self, value: $0.size.height) })
+            .onPreferenceChange(ReportContentHeightKey.self) { contentHeight = $0 }
+            .onPreferenceChange(ReportVisibleHeightKey.self) { visibleHeight = $0 }
             // Dims stale numbers while a reopen or period change re-scans.
             .opacity(state.isLoadingWeeklyReport || isLoadingCodexData ? 0.5 : 1)
         }
         .frame(minWidth: 460, idealWidth: 560, minHeight: 420, idealHeight: 660)
         .background(Theme.paper)
+        .background(ReportWindowFitter(content: contentHeight, visible: visibleHeight))
         .task {
             // Always starts at the current week, so reopening never strands the user on a past
             // period they left the window on.

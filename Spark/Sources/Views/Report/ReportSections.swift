@@ -44,13 +44,14 @@ struct ReportTotal: View {
     var prefix: String?
     var tooltip: String?
     var spokenValue: String?
+    var size: CGFloat = 40
 
     var body: some View {
         ReportFigure(
             label: label, tooltip: tooltip,
             spoken: spokenValue ?? [prefix, parts.number, parts.unit].compactMap { $0 }.joined(separator: " ")
         ) {
-            DotoValue(parts: parts, prefix: prefix, size: 40)
+            DotoValue(parts: parts, prefix: prefix, size: size)
         }
     }
 }

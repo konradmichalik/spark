@@ -103,13 +103,27 @@ private struct ReportTotals: View {
                 DetailNote(text: "No closed days yet this month.")
             } else {
                 HStack(alignment: .top, spacing: 20) {
-                    ReportTotal(label: "TOKENS", parts: UsageFormat.tokens(totals.current), tooltip: previousText)
+                    ReportTotal(label: "TOKENS", parts: UsageFormat.tokens(totals.current), tooltip: previousText, size: totalsSize)
                     trendTotal
                     costTotal
                 }
             }
             notes
         }
+    }
+
+    private var costSummary: CostSummary? {
+        ReportScoping.showsClaudeSections(scope) ? report.costSummary : nil
+    }
+
+    /// The three totals share one size, set by the longest of them.
+    private var totalsSize: CGFloat {
+        let values = [
+            UsageFormat.tokens(totals.current).number,
+            ReportText.trend(totals.trendPercent)?.number,
+            costSummary.map { "\u{2248}" + UsageFormat.cost($0.total).number }
+        ]
+        return ReportLayout.totalsSize(values.compactMap { $0 })
     }
 
     private var previousText: String {
@@ -120,7 +134,7 @@ private struct ReportTotals: View {
     private var trendTotal: some View {
         let label = ReportText.comparisonLabel(report.period, start: report.rangeStart)
         if let trend = ReportText.trend(totals.trendPercent) {
-            ReportTotal(label: label, parts: trend, tooltip: previousText)
+            ReportTotal(label: label, parts: trend, tooltip: previousText, size: totalsSize)
         } else {
             ReportFigure(label: label, spoken: "No usage to compare with.") {
                 DetailNote(text: "No usage to compare with.")
@@ -134,7 +148,7 @@ private struct ReportTotals: View {
             ReportTotal(
                 label: "API COST", parts: UsageFormat.cost(summary.total), prefix: "\u{2248}",
                 tooltip: ReportScoping.costTooltip(StatisticsText.costTooltip(summary), scope: scope),
-                spokenValue: "about \(formatCost(summary.total))"
+                spokenValue: "about \(formatCost(summary.total))", size: totalsSize
             )
         }
     }
