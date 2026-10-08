@@ -88,11 +88,12 @@ struct MenuBarGlyph: Equatable {
 }
 
 /// The two glyph styles in Settings > Menu Bar. Stored in `@AppStorage("iconStyle")`; values
-/// from earlier versions ("logo", "dot", "bar", "minimal") all fall back to the ring.
+/// from earlier versions map over: "logo" (the old default) to the provider logo, "dot", "bar" and
+/// "minimal" to the ring.
 enum MenuBarIconStyle: String {
     case ring, providerLogo
 
     init(stored: String) {
-        self = MenuBarIconStyle(rawValue: stored) ?? .ring
+        self = stored == "logo" ? .providerLogo : MenuBarIconStyle(rawValue: stored) ?? .ring
     }
 }

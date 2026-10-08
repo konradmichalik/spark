@@ -49,10 +49,12 @@ final class MenuBarGlyphTests: XCTestCase {
         }
     }
 
-    func testEveryOldIconStyleMapsToTheRing() {
-        for stored in ["logo", "dot", "bar", "minimal", "ring", "", "unexpected"] {
+    func testOldIconStylesMapToTheClosestNewOne() {
+        for stored in ["dot", "bar", "minimal", "ring", "", "unexpected"] {
             XCTAssertEqual(MenuBarIconStyle(stored: stored), .ring, stored)
         }
+        // "logo" was the previous release's default: those users keep a logo.
+        XCTAssertEqual(MenuBarIconStyle(stored: "logo"), .providerLogo)
         XCTAssertEqual(MenuBarIconStyle(stored: "providerLogo"), .providerLogo)
     }
 

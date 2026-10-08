@@ -41,10 +41,11 @@ class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDele
     }
 
     /// The menu bar extra has no API to open its window, so this clicks its status item button.
+    /// A click toggles, so an already open popover (button highlighted) is left alone.
     private static func openPopover() {
         for window in NSApp.windows where window.className.contains("NSStatusBarWindow") {
             if let button = window.contentView?.firstSubview(of: NSStatusBarButton.self) {
-                button.performClick(nil)
+                if !button.isHighlighted { button.performClick(nil) }
                 return
             }
         }
