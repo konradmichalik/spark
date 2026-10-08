@@ -83,10 +83,10 @@ struct DotBar: View {
     }
 
     private var projectionColor: Color {
-        (projectionTone == .normal ? Theme.ink : projectionTone.color).opacity(0.55)
+        projectionTone.color.opacity(0.55)
     }
 
     private var markerColor: Color {
-        projectionTone == .normal ? Theme.ink : projectionTone.color
+        projectionTone.color
     }
 }
