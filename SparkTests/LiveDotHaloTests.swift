@@ -20,3 +20,26 @@ final class LiveDotHaloTests: XCTestCase {
         XCTAssertNil(LiveDotHalo.start.animation)
     }
 }
+
+final class LiveDotHaloGateTests: XCTestCase {
+    func testTheLoopWaitsForTheLayoutToSettle() {
+        XCTAssertEqual(LiveDotHalo.mode(isLive: true, reduceMotion: false, isSettled: false), .still)
+        XCTAssertEqual(LiveDotHalo.mode(isLive: true, reduceMotion: false, isSettled: true), .pulsing)
+    }
+
+    func testReduceMotionAndIdleNeverPulse() {
+        XCTAssertEqual(LiveDotHalo.mode(isLive: true, reduceMotion: true, isSettled: true), .still)
+        XCTAssertEqual(LiveDotHalo.mode(isLive: false, reduceMotion: false, isSettled: true), .hidden)
+    }
+
+    func testSettlingTakesAboutAThirdOfASecond() {
+        XCTAssertEqual(LiveDotHalo.settleDelay, .milliseconds(300))
+    }
+
+    func testCancelledSettlingNeverReportsSettled() async {
+        let task = Task { await LiveDotHalo.settle() }
+        task.cancel()
+        let settled = await task.value
+        XCTAssertFalse(settled)
+    }
+}

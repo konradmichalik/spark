@@ -59,6 +59,25 @@ enum LiveDotHalo: CaseIterable {
     var scale: Double { self == .start ? 1 : 0.95 / Self.diameter }
     var opacity: Double { self == .start ? 0.35 : 0 }
 
+    /// How long a live dot rests before its loop starts, so the first layout of the popover has
+    /// reached its final place and no animation can carry the halo from where it was first drawn.
+    static let settleDelay = Duration.milliseconds(300)
+
+    enum Mode: Equatable {
+        case hidden, still, pulsing
+    }
+
+    static func mode(isLive: Bool, reduceMotion: Bool, isSettled: Bool) -> Mode {
+        guard isLive else { return .hidden }
+        return reduceMotion || !isSettled ? .still : .pulsing
+    }
+
+    /// Waits `settleDelay`; false when the view went away meanwhile.
+    static func settle() async -> Bool {
+        try? await Task.sleep(for: settleDelay)
+        return !Task.isCancelled
+    }
+
     /// The animation into this phase: the growth runs the whole period, the reset snaps.
     var animation: Animation? { self == .end ? .easeOut(duration: Self.period) : nil }
 }
@@ -74,26 +93,36 @@ struct PulsingDot: View {
     var restingColor: Color = Theme.inkSecondary.opacity(0.4)
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var isSettled = false
 
+    /// The resting dot alone decides the layout. The halo is an overlay of it, so it takes no
+    /// space, and no transaction from the popover (screen change, window resize) reaches the dot:
+    /// the halo can only scale and fade in place.
     var body: some View {
-        ZStack {
-            if isLive {
-                if reduceMotion {
-                    halo(.start)
-                } else {
-                    PhaseAnimator(LiveDotHalo.allCases) { phase in
-                        halo(phase)
-                    } animation: { phase in
-                        phase.animation
-                    }
-                }
+        Circle()
+            .fill(isLive ? color : restingColor)
+            .frame(width: size * 0.42, height: size * 0.42)
+            .frame(width: size, height: size)
+            .overlay { haloLayer }
+            .transaction { $0.animation = nil }
+            .task { isSettled = await LiveDotHalo.settle() }
+            .accessibilityHidden(true)
+    }
+
+    @ViewBuilder
+    private var haloLayer: some View {
+        switch LiveDotHalo.mode(isLive: isLive, reduceMotion: reduceMotion, isSettled: isSettled) {
+        case .hidden:
+            EmptyView()
+        case .still:
+            halo(.start)
+        case .pulsing:
+            PhaseAnimator(LiveDotHalo.allCases) { phase in
+                halo(phase)
+            } animation: { phase in
+                phase.animation
             }
-            Circle()
-                .fill(isLive ? color : restingColor)
-                .frame(width: size * 0.42, height: size * 0.42)
         }
-        .frame(width: size, height: size)
-        .accessibilityHidden(true)
     }
 
     private func halo(_ phase: LiveDotHalo) -> some View {
@@ -102,6 +131,7 @@ struct PulsingDot: View {
             .frame(width: size * LiveDotHalo.diameter, height: size * LiveDotHalo.diameter)
             .scaleEffect(phase.scale)
             .opacity(phase.opacity)
+            .frame(width: size, height: size)
     }
 }
 

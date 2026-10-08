@@ -76,6 +76,7 @@ struct DotMotion<Content: View>: View {
     @State private var hasAppeared = false
     @State private var fillFrom: Double = 0
     @State private var fillTarget: Double = 0
+    @State private var isSettled = false
 
     private var isMoving: Bool { animates && !reduceMotion }
 
@@ -85,7 +86,7 @@ struct DotMotion<Content: View>: View {
         let isWaiting = isMoving && !hasAppeared
         AnimatedValue(value: fillTarget) { phase in
             let progress = isWaiting ? 0 : DotFillSequence.progress(phase: phase, target: target)
-            if isMoving && breathes {
+            if isMoving && breathes && isSettled {
                 // Its own phase loop, so re-renders and animations around it cannot re-target
                 // the breath, and every loop starts from full opacity.
                 PhaseAnimator([0.0, 1.0]) { breath in
@@ -95,6 +96,7 @@ struct DotMotion<Content: View>: View {
                 } animation: { _ in
                     .easeInOut(duration: DotFillSequence.breathPeriod / 2)
                 }
+                .transaction { $0.animation = nil }
             } else {
                 content(DotMotionFrame(fillFrom: from, progress: progress, breath: 0))
             }
@@ -103,6 +105,8 @@ struct DotMotion<Content: View>: View {
             hasAppeared = true
             fill(from: 0)
         }
+        // The breath starts only once the first layout has settled, like the live dot's halo.
+        .task { isSettled = await LiveDotHalo.settle() }
         .onChange(of: value) { old, new in
             if let start = DotFillSequence.start(old: old, new: new) { fill(from: start) }
         }
