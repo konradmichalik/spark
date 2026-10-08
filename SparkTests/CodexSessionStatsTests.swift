@@ -79,7 +79,7 @@ final class CodexSessionStatsTests: XCTestCase {
             tokenCount("2026-10-07T10:00:11.000Z", input: 500, cached: 0, output: 50)
         ])
         let stats = CodexSessionStats.parse(directories: [tempDir], since: nil)
-        XCTAssertEqual(stats.activeDays.count, 2)
+        XCTAssertEqual(stats.activeDayCount, 2)
     }
 
     /// A session resumed today counts only what happened since the cutoff, not its whole history.

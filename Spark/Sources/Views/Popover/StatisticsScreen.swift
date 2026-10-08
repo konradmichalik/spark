@@ -93,7 +93,7 @@ struct CodexStatisticsScreen: View {
 
     private func facts(_ stats: CodexSessionStats) -> [StatFact] {
         let averages = StatisticsAverages(
-            activeDays: stats.activeDays.count, messages: stats.messageCount, sessions: stats.sessionCount, tokens: stats.realTokens
+            activeDays: stats.activeDayCount, messages: stats.messageCount, sessions: stats.sessionCount, tokens: stats.realTokens
         )
         return [
             StatFact(label: "Messages", parts: UsageFormat.count(stats.messageCount), tooltip: averages.messages),

@@ -28,8 +28,8 @@ struct CodexSessionStats: Equatable, Sendable {
     /// `LiveStats.realTokens` so both providers count the same way.
     var realTokens: Int { inputTokens + outputTokens }
 
-    /// Day keys with fresh tokens, the divisor of "per active day" averages.
-    var activeDays: Set<String> { Set(dayTokens.filter { $0.value > 0 }.keys) }
+    /// Days with fresh tokens, the divisor of "per active day" averages.
+    var activeDayCount: Int { dayTokens.values.filter { $0 > 0 }.count }
 
     /// `until` bounds a past period, so it does not also pick up what came after it.
     static func parse(directories: [URL], since: Date?, until: Date? = nil) -> CodexSessionStats {

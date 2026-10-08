@@ -30,7 +30,7 @@ final class DayTokensTests: XCTestCase {
         XCTAssertEqual(stats.dayTokens.values.reduce(0, +), stats.realTokens)
         XCTAssertEqual(stats.dayTokens.count, 2)
         XCTAssertEqual(stats.dayTokens[first], 700, "600 fresh input and 100 output, the re-emitted event adds nothing")
-        XCTAssertEqual(stats.activeDays, Set(stats.dayTokens.keys))
+        XCTAssertEqual(stats.activeDayCount, stats.dayTokens.count)
     }
 
     func testClaudeTotalsKeepFreshTokensPerDay() throws {
@@ -48,6 +48,6 @@ final class DayTokensTests: XCTestCase {
         let totals = TranscriptCache.aggregate(claudeDir: tempDir, cutoff: nil, store: &store)
         XCTAssertEqual(totals.dayTokens[TranscriptCache.dayKey(for: Date())], 150)
         XCTAssertEqual(totals.dayTokens.values.reduce(0, +), 165)
-        XCTAssertEqual(totals.activeDays.count, 2)
+        XCTAssertEqual(totals.activeDayCount, 2)
     }
 }

@@ -35,6 +35,6 @@ final class TranscriptActiveDaysTests: XCTestCase {
         try content.write(to: file, atomically: false, encoding: .utf8)
         var store = TranscriptCacheStore.empty
         let totals = TranscriptCache.aggregate(claudeDir: tempDir, cutoff: nil, store: &store)
-        XCTAssertEqual(totals.activeDays.count, 2)
+        XCTAssertEqual(totals.activeDayCount, 2)
     }
 }

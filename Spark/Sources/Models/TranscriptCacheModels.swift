@@ -196,7 +196,7 @@ struct TranscriptTotals: Equatable, Sendable {
     var output = 0
     var cacheCreation = 0
     var cacheRead = 0
-    var activeDays: Set<String> { Set(dayTokens.keys) }
+    var activeDayCount: Int { dayTokens.count }
     var modelTotals: [String: ModelTokenTotals] = [:]
     var projectTotals: [String: ProjectTokenTotals] = [:]
     /// Per project, then per raw model ID. Only the cost estimate needs it, since a price
