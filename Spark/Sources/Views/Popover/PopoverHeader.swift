@@ -92,9 +92,14 @@ struct PopoverHeader: View {
                     .font(.system(size: 11.5, weight: isSelected ? .semibold : .medium))
                     .foregroundStyle(Theme.ink)
                 if let percent {
+                    // Small coloured text needs a second signal and ink for its contrast
+                    // (docs/design/rules.md, "Colour"): past a threshold the value is ink with an alert icon.
+                    if tab.tone != .normal {
+                        TablerIconView(.alertTriangle, size: 9, color: tab.tone.color)
+                    }
                     Text(percent)
-                        .font(.system(size: 10, design: .monospaced))
-                        .foregroundStyle(tab.tone == .normal ? Theme.inkSecondary : tab.tone.color)
+                        .font(.system(size: 10, weight: tab.tone == .normal ? .regular : .semibold, design: .monospaced))
+                        .foregroundStyle(tab.tone == .normal ? Theme.inkSecondary : Theme.ink)
                 }
             }
             .fixedSize()
