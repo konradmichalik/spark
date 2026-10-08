@@ -39,6 +39,9 @@ struct CodexConnectionCard: View {
                     .padding(.horizontal, 14)
                     .padding(.vertical, 10)
             }
+            if codex.isEnabled {
+                CodexCLIFacts()
+            }
         }
         .onChange(of: codex.isEnabled) { codex.applySettingsChange() }
     }
