@@ -81,12 +81,15 @@ struct HistoryScreen: View {
     private func limitsFacts(_ summary: HistorySummary) -> [StatFact] {
         var facts: [StatFact] = []
         if let peak = summary.peakSession {
-            facts.append(StatFact(label: "Peak session", parts: NumberParts(number: String(Int(peak.rounded())), unit: "%")))
-        }
-        if let added = summary.weekAdded {
             facts.append(StatFact(
-                label: "Week in range", parts: HistorySummary.points(added),
-                tooltip: "Weekly points added in this range. A weekly reset is not subtracted."
+                label: "Peak session", parts: NumberParts(number: String(Int(peak.rounded())), unit: "%"),
+                tooltip: "The highest session value in this range."
+            ))
+        }
+        if let peak = summary.peakWeek {
+            facts.append(StatFact(
+                label: "Peak week", parts: NumberParts(number: String(Int(peak.rounded())), unit: "%"),
+                tooltip: "The highest weekly value in this range. A weekly reset does not lower it."
             ))
         }
         return facts

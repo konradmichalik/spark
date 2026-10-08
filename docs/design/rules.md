@@ -55,7 +55,7 @@ tone.color // Theme.warning
 | Axis labels | SF Mono | 10pt |
 
 - **Doto only for large numbers and the wordmark.** If a number is smaller than about 20pt, it is SF Pro with tabular digits.
-- **Units are never set in Doto.** `%`, `K`, `M`, `B`, `$` and `pts` follow the number in SF Pro, smaller and semibold. Prefixes such as `~` and `≈` are treated the same way.
+- **Units are never set in Doto.** `%`, `K`, `M`, `B` and `$` follow the number in SF Pro, smaller and semibold. Prefixes such as `~` and `≈` are treated the same way.
 - **10pt is the minimum** for any text.
 - Doto is bundled with its OFL licence. Do not use `xeji01/nothingfont`: it redistributes Nothing's proprietary NDot files under a licence restricted to Nothing brand material.
 
@@ -131,7 +131,7 @@ HStack(alignment: .firstTextBaseline, spacing: 3) {
 ## Detail screens
 
 - Switches use `PaperSegments`: a trough with the selected segment raised as a card for modes and periods, small mono chips with the selected one in ink for graph ranges.
-- History shows the peak session and the weekly points added in the range under the graph. A weekly reset is not subtracted, so a range across a reset still reads as usage.
+- History shows the peak session and the peak week of the range under the graph, both in percent. A weekly reset does not lower the peak.
 - Stat tiles go two to a row. With the API cost estimate switched off in Settings, Tokens takes the whole second row.
 - "Show N more" appears only when at least two entries are hidden; a single extra entry is shown right away. An expanded list of more than ten entries scrolls.
 - All Limits sets extra usage and credits apart with a hairline outside a card, the one exception to "hairlines only inside a card". A warning or critical percentage there carries an alert icon, because 13pt ochre text alone does not reach 4.5:1.

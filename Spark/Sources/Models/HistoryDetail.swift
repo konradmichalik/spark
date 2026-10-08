@@ -61,25 +61,17 @@ extension GraphMode: SegmentLabeled {
     var segmentLabel: String { rawValue }
 }
 
-/// The two facts under the limits graph: the highest session value in the range, and how many
-/// weekly points were added in it. A weekly reset is not subtracted, so the sum stays the usage.
+/// The two facts under the limits graph: the highest session value and the highest weekly value
+/// in the range, both in percent.
 struct HistorySummary: Equatable {
     let peakSession: Double?
-    let weekAdded: Double?
+    let peakWeek: Double?
 
     static func make(_ snapshots: [UsageSnapshot]) -> HistorySummary {
-        let peak = snapshots.map(\.sessionUtilization).max()
-        guard snapshots.count >= 2 else { return HistorySummary(peakSession: peak, weekAdded: nil) }
-        let added = zip(snapshots, snapshots.dropFirst()).reduce(0) { sum, pair in
-            sum + max(pair.1.weeklyUtilization - pair.0.weeklyUtilization, 0)
-        }
-        return HistorySummary(peakSession: peak, weekAdded: added)
-    }
-
-    /// Weekly points with their sign: "+10" and "pts".
-    static func points(_ value: Double) -> NumberParts {
-        let rounded = Int(value.rounded())
-        return NumberParts(number: rounded > 0 ? "+\(rounded)" : String(rounded), unit: abs(rounded) == 1 ? "pt" : "pts")
+        HistorySummary(
+            peakSession: snapshots.map(\.sessionUtilization).max(),
+            peakWeek: snapshots.map(\.weeklyUtilization).max()
+        )
     }
 }
 

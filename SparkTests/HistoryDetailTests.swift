@@ -26,7 +26,7 @@ final class HistoryDetailTests: XCTestCase {
 
     // MARK: - Summary
 
-    func testSummaryReadsPeakSessionAndWeeklyPointsAdded() {
+    func testSummaryReadsThePeakSessionAndThePeakWeek() {
         let snapshots = [
             snapshot(0, session: 20, weekly: 40),
             snapshot(10, session: 88, weekly: 46),
@@ -35,19 +35,13 @@ final class HistoryDetailTests: XCTestCase {
         ]
         let summary = HistorySummary.make(snapshots)
         XCTAssertEqual(summary.peakSession, 88)
-        // 40 to 46, then a reset to 2 that is not subtracted, then 2 to 6.
-        XCTAssertEqual(summary.weekAdded, 10)
+        // The weekly reset to 2 does not lower the peak.
+        XCTAssertEqual(summary.peakWeek, 46)
     }
 
-    func testSummaryWithoutEnoughDataIsEmpty() {
-        XCTAssertEqual(HistorySummary.make([]), HistorySummary(peakSession: nil, weekAdded: nil))
-        XCTAssertEqual(HistorySummary.make([snapshot(0, session: 12, weekly: 3)]), HistorySummary(peakSession: 12, weekAdded: nil))
-    }
-
-    func testWeekPointsAreSignedAndRounded() {
-        XCTAssertEqual(HistorySummary.points(10.4), NumberParts(number: "+10", unit: "pts"))
-        XCTAssertEqual(HistorySummary.points(0.2), NumberParts(number: "0", unit: "pts"))
-        XCTAssertEqual(HistorySummary.points(1), NumberParts(number: "+1", unit: "pt"))
+    func testSummaryWithoutDataIsEmpty() {
+        XCTAssertEqual(HistorySummary.make([]), HistorySummary(peakSession: nil, peakWeek: nil))
+        XCTAssertEqual(HistorySummary.make([snapshot(0, session: 12, weekly: 3)]), HistorySummary(peakSession: 12, peakWeek: 3))
     }
 
     // MARK: - Dated labels
