@@ -29,10 +29,6 @@ private struct HeroNumber: View {
     }
 }
 
-private func toneColor(_ tone: UsageTone) -> Color {
-    tone == .normal ? Theme.ink : tone.color
-}
-
 /// Everything the session block and the ring show, gathered once by the overview.
 struct SessionReading {
     let value: Double
@@ -77,7 +73,7 @@ struct SessionBlock: View {
                     Text("%")
                         .font(.system(size: 20, weight: .semibold))
                 }
-                .foregroundStyle(toneColor(reading.tone))
+                .foregroundStyle(reading.tone.color)
                 .lineLimit(1)
                 .minimumScaleFactor(0.6)
                 Spacer(minLength: 12)
@@ -101,10 +97,7 @@ struct SessionBlock: View {
             )
             .frame(height: 10)
             // A taller hover target than the dots themselves.
-            .padding(.vertical, 6)
-            .contentShape(Rectangle())
-            .tooltip(reading.barTooltip(reset: reading.resetDate?.resetDescription), title: "Session", delay: .quick)
-            .padding(.vertical, -6)
+            .tooltipTarget(reading.barTooltip(reset: reading.resetDate?.resetDescription), title: "Session", reach: 6)
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Session")
@@ -128,7 +121,7 @@ private struct SessionFact: View {
             Text(value)
                 .font(.system(size: 11))
                 .monospacedDigit()
-                .foregroundStyle(tone == .normal ? Theme.ink : tone.color)
+                .foregroundStyle(tone.color)
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)
         }
@@ -157,7 +150,7 @@ struct WeekBlock: View {
                     Text("%")
                         .font(.system(size: 12, weight: .semibold))
                 }
-                .foregroundStyle(toneColor(tone))
+                .foregroundStyle(tone.color)
             }
             DotBar(value: value, marker: elapsed.map { $0 * 100 }, tone: tone, pitch: 4, dotSize: 2.6, animatesFill: true)
                 .frame(height: 8)
@@ -192,7 +185,7 @@ struct ExtraUsageBlock: View {
                     Text(detail)
                         .font(.system(size: 12, weight: .semibold))
                         .monospacedDigit()
-                        .foregroundStyle(toneColor(line.tone))
+                        .foregroundStyle(line.tone.color)
                 }
             }
             if let value = line.value {
@@ -201,10 +194,7 @@ struct ExtraUsageBlock: View {
             }
         }
         // A taller hover target than the text and dots themselves.
-        .padding(.vertical, 3)
-        .contentShape(Rectangle())
-        .tooltip(line.tooltip, title: "Extra usage", delay: .quick)
-        .padding(.vertical, -3)
+        .tooltipTarget(line.tooltip, title: "Extra usage", reach: 3)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Extra usage")
         .accessibilityValue(line.detail ?? "")
@@ -253,7 +243,7 @@ struct RingsBlock: View {
                 Text("%")
                     .font(.system(size: 13, weight: .semibold))
             }
-            .foregroundStyle(toneColor(reading.tone))
+            .foregroundStyle(reading.tone.color)
             .lineLimit(1)
             .minimumScaleFactor(0.6)
             .padding(24)

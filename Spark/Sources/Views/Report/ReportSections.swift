@@ -1,5 +1,28 @@
 import SwiftUI
 
+/// A micro label over a figure, read as one element by VoiceOver, with the secondary facts in
+/// its tooltip. The shape shared by the report's totals and the activity figures.
+struct ReportFigure<Content: View>: View {
+    let label: String
+    var tooltip: String?
+    var spoken: String?
+    @ViewBuilder let content: () -> Content
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            MicroLabel(text: label)
+            content()
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .contentShape(Rectangle())
+        .tooltip(tooltip, title: label, delay: .quick)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(label.capitalized)
+        .accessibilityValue(spoken ?? "")
+        .accessibilityHint(tooltip ?? "")
+    }
+}
+
 /// A total over a Doto value, with the secondary facts in its tooltip (board 11).
 struct ReportTotal: View {
     let label: String
@@ -9,17 +32,12 @@ struct ReportTotal: View {
     var spokenValue: String?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            MicroLabel(text: label)
+        ReportFigure(
+            label: label, tooltip: tooltip,
+            spoken: spokenValue ?? [prefix, parts.number, parts.unit].compactMap { $0 }.joined(separator: " ")
+        ) {
             DotoValue(parts: parts, prefix: prefix, size: 40)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .contentShape(Rectangle())
-        .tooltip(tooltip, title: label, delay: .quick)
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(label.capitalized)
-        .accessibilityValue(spokenValue ?? [prefix, parts.number, parts.unit].compactMap { $0 }.joined(separator: " "))
-        .accessibilityHint(tooltip ?? "")
     }
 }
 

@@ -41,6 +41,15 @@ extension View {
         ))
     }
 
+    /// A tooltip whose hover target reaches `reach` points above and below the view, without
+    /// taking that space in the layout.
+    func tooltipTarget(_ text: String?, title: String? = nil, reach: CGFloat, delay: TooltipDelay = .quick) -> some View {
+        padding(.vertical, reach)
+            .contentShape(Rectangle())
+            .tooltip(text, title: title, delay: delay)
+            .padding(.vertical, -reach)
+    }
+
     /// Draws the tooltips requested by `.tooltip` on views inside it. Apply once per window root.
     func tooltipHost() -> some View {
         modifier(TooltipHostModifier())

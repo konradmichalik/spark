@@ -46,10 +46,7 @@ private struct LimitLineView: View {
             }
         }
         // A taller hover target than the text and dots themselves.
-        .padding(.vertical, 3)
-        .contentShape(Rectangle())
-        .tooltip(line.tooltip, title: line.label, delay: .quick)
-        .padding(.vertical, -3)
+        .tooltipTarget(line.tooltip, title: line.label, reach: 3)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(line.label)
         .accessibilityValue(accessibilityValue)

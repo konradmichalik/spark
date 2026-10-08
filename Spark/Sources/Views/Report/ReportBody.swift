@@ -110,11 +110,9 @@ private struct ReportTotals: View {
         if let trend = ReportText.trend(totals.trendPercent) {
             ReportTotal(label: label, parts: trend, tooltip: previousText)
         } else {
-            VStack(alignment: .leading, spacing: 6) {
-                MicroLabel(text: label)
+            ReportFigure(label: label, spoken: "No usage to compare with.") {
                 DetailNote(text: "No usage to compare with.")
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 

@@ -122,16 +122,19 @@ private struct ActivityFiguresView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            figure("ACTIVE DAYS", tooltip: "Days with fresh tokens in this period.", spoken: "\(figures.activeDays) of \(figures.totalDays) days") {
+            ReportFigure(
+                label: "ACTIVE DAYS", tooltip: "Days with fresh tokens in this period.",
+                spoken: "\(figures.activeDays) of \(figures.totalDays) days"
+            ) {
                 numberLine(figures.activeDays, text: "of \(figures.totalDays) days")
             }
-            figure(
-                "LONGEST STREAK", tooltip: "The longest run of days in a row with use.",
+            ReportFigure(
+                label: "LONGEST STREAK", tooltip: "The longest run of days in a row with use.",
                 spoken: "\(figures.longestStreak) \(ActivityFigures.streakUnit(figures.longestStreak))"
             ) {
                 numberLine(figures.longestStreak, text: ActivityFigures.streakUnit(figures.longestStreak))
             }
-            figure("BUSIEST DAY", tooltip: "The day with the most fresh tokens.", spoken: busiestSpoken) { busiest }
+            ReportFigure(label: "BUSIEST DAY", tooltip: "The day with the most fresh tokens.", spoken: busiestSpoken) { busiest }
         }
     }
 
@@ -165,21 +168,5 @@ private struct ActivityFiguresView: View {
                 .font(.system(size: 12))
                 .foregroundStyle(Theme.inkSecondary)
         }
-    }
-
-    private func figure<Content: View>(
-        _ label: String, tooltip: String, spoken: String, @ViewBuilder content: () -> Content
-    ) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            MicroLabel(text: label)
-            content()
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .contentShape(Rectangle())
-        .tooltip(tooltip, title: label, delay: .quick)
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(label.capitalized)
-        .accessibilityValue(spoken)
-        .accessibilityHint(tooltip)
     }
 }
