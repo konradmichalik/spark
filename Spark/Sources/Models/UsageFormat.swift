@@ -30,6 +30,13 @@ enum UsageFormat {
         compact(Double(max(count, 0)))
     }
 
+    /// Counts in a stat tile: grouped below 10,000, compact above, so a tile never overflows.
+    static func count(_ value: Int) -> NumberParts {
+        let clamped = max(value, 0)
+        guard clamped >= 10_000 else { return NumberParts(number: clamped.formatted(.number.locale(enUS)), unit: "") }
+        return compact(Double(clamped))
+    }
+
     static func percent(_ value: Double, locale: Locale = .current) -> String {
         let finite = value.isFinite ? value : 0
         return (finite / 100).formatted(.percent.precision(.fractionLength(0)).locale(locale))

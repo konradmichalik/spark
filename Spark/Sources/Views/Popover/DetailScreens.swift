@@ -27,22 +27,8 @@ struct DetailScreen: View {
     @ViewBuilder
     private var statistics: some View {
         switch provider {
-        case .claude:
-            StatsRow(
-                liveStats: state.liveStats,
-                period: state.statsPeriod,
-                isLoading: state.isLoadingStats,
-                isBuildingCache: state.isBuildingTranscriptCache,
-                showProjectBreakdown: state.showProjectBreakdown,
-                cost: state.showApiCost ? state.liveCost : nil,
-                onSelectPeriod: state.setStatsPeriod
-            )
-        case .codex:
-            if let stats = codex.stats, stats.fileCount > 0 {
-                CodexStatsCard(stats: stats, period: codex.statsPeriod, onSelectPeriod: codex.setStatsPeriod)
-            } else {
-                emptyText("No local Codex activity")
-            }
+        case .claude: ClaudeStatisticsScreen()
+        case .codex: CodexStatisticsScreen(codex: codex)
         }
     }
 

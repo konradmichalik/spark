@@ -44,3 +44,29 @@ enum ActiveSessionText {
         return [session.displayName, subtitle(session, now: now), context].compactMap { $0 }.joined(separator: ", ")
     }
 }
+
+/// The words and shares of the Statistics screen.
+enum StatisticsText {
+    static func costTooltip(_ cost: CostSummary) -> String {
+        let estimate = "Estimated: tokens priced at API list prices. Not what your subscription costs."
+        guard !cost.unpricedModels.isEmpty else { return estimate }
+        return estimate + " No price for \(cost.unpricedModels.joined(separator: ", "))."
+    }
+
+    /// A list entry's share of the largest one, as the percent its dot bar fills.
+    static func share(_ value: Int, of largest: Int) -> Double {
+        largest > 0 ? Double(value) / Double(largest) * 100 : 0
+    }
+
+    static func projectTooltip(tokens: Int, cost: Double?) -> String {
+        let lines = ["\(formatTokenCount(tokens)) tokens", cost.map { "\u{2248} \(formatCost($0)) at API list prices" }]
+        return lines.compactMap { $0 }.joined(separator: "\n")
+    }
+
+    static func rankedModels(_ stats: CodexSessionStats) -> [(name: String, tokens: Int)] {
+        stats.modelTokens
+            .filter { $0.value > 0 }
+            .sorted { $0.value != $1.value ? $0.value > $1.value : $0.key < $1.key }
+            .map { (name: $0.key, tokens: $0.value) }
+    }
+}
