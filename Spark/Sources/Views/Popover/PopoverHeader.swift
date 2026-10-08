@@ -25,6 +25,9 @@ struct PopoverHeader: View {
     /// The Claude logo colour, used only for its own logo and the faint tint of its tab.
     static let claudeColor = Color(red: 0.788, green: 0.392, blue: 0.259)
 
+    @Namespace private var tabSelection
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             brandRow
@@ -72,6 +75,8 @@ struct PopoverHeader: View {
         }
         .padding(2)
         .background(Theme.hairline, in: RoundedRectangle(cornerRadius: 9))
+        // The selected background slides to the new tab (docs/design/rules.md, "Motion").
+        .animation(reduceMotion ? nil : .easeOut(duration: 0.2), value: provider)
     }
 
     private func tabButton(_ tab: ProviderTab) -> some View {
@@ -94,7 +99,11 @@ struct PopoverHeader: View {
             .fixedSize()
             .padding(.horizontal, 6)
             .frame(maxWidth: .infinity, minHeight: 30)
-            .background { if isSelected { selectedBackground(for: tab.provider) } }
+            .background {
+                if isSelected {
+                    selectedBackground(for: tab.provider).matchedGeometryEffect(id: "selectedTab", in: tabSelection)
+                }
+            }
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)

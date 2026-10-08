@@ -10,6 +10,7 @@ struct MenuBarView: View {
     @AppStorage(UsageProvider.selectionKey) private var selectedProviderRaw = UsageProvider.claude.rawValue
     @AppStorage("showProviderTabValues") private var showProviderTabValues = true
     @State private var screen: PopoverScreen = .overview
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     /// Falls back to Claude whenever Codex is switched off or its sign-in disappears, so a
     /// remembered Codex selection never leaves the popover on an empty tab.
@@ -29,17 +30,19 @@ struct MenuBarView: View {
                 onSelect: select,
                 onReport: openReport
             )
-            if screen == .overview, provider == .claude, !state.isAuthenticated {
-                // Without a Claude sign-in the popover still opens, so Codex stays one tab away.
-                NotConnectedScreen()
-                NotConnectedFooter(codexIsActive: codex.isActive)
-            } else if screen == .overview {
-                overview
-                PopoverFooter(lastUpdated: lastUpdated, isLoading: isLoading, onRefresh: refresh)
-            } else {
-                DetailScreen(screen: screen, provider: provider)
-            }
+            content
+                .id(screen)
+                // Level 2 pushes in from the right and the overview comes back from the left
+                // (docs/design/rules.md, "Motion"). Each screen carries its own edge, so the
+                // same transition reads correctly in both directions.
+                .transition(
+                    reduceMotion
+                        ? .identity
+                        : .move(edge: screen == .overview ? .leading : .trailing).combined(with: .opacity)
+                )
         }
+        .clipped()
+        .animation(reduceMotion ? nil : .easeOut(duration: 0.22), value: screen)
         .padding(14)
         .frame(width: 320)
         .fixedSize(horizontal: false, vertical: true)
@@ -50,6 +53,22 @@ struct MenuBarView: View {
             state.stopActiveSessionTicker()
             // Reopening the popover always starts on the overview.
             screen = .overview
+        }
+    }
+
+    @ViewBuilder
+    private var content: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            if screen == .overview, provider == .claude, !state.isAuthenticated {
+                // Without a Claude sign-in the popover still opens, so Codex stays one tab away.
+                NotConnectedScreen()
+                NotConnectedFooter(codexIsActive: codex.isActive)
+            } else if screen == .overview {
+                overview
+                PopoverFooter(lastUpdated: lastUpdated, isLoading: isLoading, onRefresh: refresh)
+            } else {
+                DetailScreen(screen: screen, provider: provider)
+            }
         }
     }
 
