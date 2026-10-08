@@ -56,7 +56,7 @@ tone.color // Theme.warning
 
 - **Doto only for large numbers and the wordmark.** If a number is smaller than about 20pt, it is SF Pro with tabular digits.
 - **Units are never set in Doto.** `%`, `K`, `M`, `B` and `$` follow the number in SF Pro, smaller and semibold. Prefixes such as `~` and `≈` are treated the same way.
-- **10pt is the minimum** for any text.
+- **10pt is the minimum** for text. The one exception is the 9pt micro label over the forecast and burn rate facts in the session block; the 8pt `%` inside the Settings style thumbnail is part of an illustration, not text.
 - Doto is bundled with its OFL licence. Do not use `xeji01/nothingfont`: it redistributes Nothing's proprietary NDot files under a licence restricted to Nothing brand material.
 
 ```swift
@@ -122,7 +122,7 @@ HStack(alignment: .firstTextBaseline, spacing: 3) {
 - **Two levels, never three.** Level 1 is the overview of the selected provider. Level 2 screens are pushed inside the popover: History, Active Sessions, Statistics, More Limits.
 - On level 2 the tab row becomes a breadcrumb at the same height: `‹ [logo] Claude / History`. Plain text, hairline below, no pill.
 - Anything clickable on level 1 that leads deeper is a card or a row with a chevron. The whole card is the hit target.
-- Each row leads with a 13pt icon in the dot language: a pulsing `accent` dot for active sessions (still when none is active or under Reduce Motion), three dot bars for statistics, a partly filled dot octagon for all limits. The statistics row shows the token count, never the API cost; the cost lives on the statistics screen.
+- Each row leads with a 13pt icon in the dot language: a pulsing `accent` dot for active sessions (still when none is active or under Reduce Motion), three dot bars for statistics, a partly filled dot octagon for more limits. The statistics row shows the token count, never the API cost; the cost lives on the statistics screen.
 - Settings tabs keep the system symbols; dot icons at tab size read poorly.
 - The service status (overview status row, Settings > Status) is one status dot: a plain dot while operational, a dot with the live halo in `warning` for a degraded service or partial outage and in `accent` for a major outage, and a hollow ring while the status cannot be read.
 - Long lists show the first entries and a "Show N more" row that expands in place.
@@ -192,16 +192,17 @@ Motion is added only when `accessibilityReduceMotion` is off. Start from no moti
 
 | Where | What | Duration |
 | --- | --- | --- |
-| Dot bar and ring | Filled dots appear in sequence, 25 ms apart and closer when more must fit, on appear and when the value rises; a falling value shows at once. Session bar, ring, week bar, All Limits bars | 300 ms total |
+| Dot bar and ring | Filled dots appear in sequence, 25 ms apart and closer when more must fit, on appear and when the value rises; a falling value shows at once. Session bar, ring, week bar, More Limits bars | 300 ms total |
 | Hero value | `.contentTransition(.numericText())` on the session number (bars and ring) and the week value, when the whole percent changes | 250 ms |
 | Projection | Hollow dots breathe between full and 35 % opacity, only when the forecast reaches the limit before the reset, bar and ring | 2 s loop |
 | Level 2 | Push from the right, header fixed | 220 ms |
 | Live dot | Soft halo grows from 40 % to 95 % of the icon and fades, then restarts, only while the session is active. Overview row and Active Sessions rows alike, never in the menu bar | 2.4 s loop |
 | Tooltip | Fades in with a 4 pt rise after the 400 ms delay, 150 ms on usage blocks (the whole block is the hover target); hides at once | 120 ms |
 | Tabs | Selected background slides | 200 ms |
+| Spark mark | While the app loads, the ring dots light up in turn, one step every 110 ms; it stands still when loading ends and under Reduce Motion | 110 ms per step, loop |
 | Menu bar | When the value rises, the new dots fade in over two in-between images and the final one, started by the value change only. No loop, no `TimelineView` in the label | 3 × 84 ms |
 
-Loops (live dot, projection) run as their own phase loops on layers that only scale or fade, so re-renders and animations around them cannot re-target them, and each starts from the same state. Under Reduce Motion everything shows its end state at once.
+Loops (live dot, projection) run as their own phase loops on layers that only scale or fade, so re-renders and animations around them cannot re-target them, and each starts from the same state. A loop starts 300 ms after its view appears, and no transaction from the popover (screen change, window resize) reaches the live dot, so a halo can only scale and fade in place. Under Reduce Motion everything shows its end state at once.
 
 Nothing else moves. No looping animation without a reason the user cares about.
 

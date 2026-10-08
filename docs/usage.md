@@ -45,7 +45,7 @@ If a Codex plan lacks the window picked under **Displayed value** (Pro has no 5-
 
 - **General**: refresh mode, launch at login and the data export.
 - **Menu Bar**: the glyph style and the value next to it. With Codex off, the menu bar always shows Claude.
-- **Display**: bars or ring in the popover, what the popover shows (history, forecast, active sessions, statistics, top projects, API cost estimate), the extra limits under All limits, and the provider tab options.
+- **Display**: bars or ring in the popover, what the popover shows (history, forecast, active sessions, statistics, top projects, API cost estimate), the model weeks listed under More limits, and the provider tab options.
 - **Connections**: one card per provider with its status, plan and sign-in path. Claude's long-lived token sits behind the disclosure on its card. Codex shows `codex login` and **Check again** when it has no valid sign-in.
 - **Notifications**: thresholds, events and a test notification.
 

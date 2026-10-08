@@ -97,7 +97,7 @@ struct DisplayTab: View {
             }
             .onChange(of: state.showApiCost) { state.refreshLiveStats() }
 
-            SettingsSection(title: "All limits") {
+            SettingsSection(title: "More limits") {
                 SettingsCard {
                     SettingsToggle(title: "Sonnet", subtitle: "Weekly Sonnet limit.", isOn: $state.showSonnetUsage)
                     SettingsDivider()

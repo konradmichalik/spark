@@ -70,7 +70,7 @@ struct ExtraUsage: Codable, Sendable {
         return Self.currencyFormatter(currency, decimalPlaces: decimalPlaces).string(from: NSNumber(value: amount))
     }
 
-    /// The spend with its cap, e.g. "39,88 of 40,00 €", shown on All Limits and read the same
+    /// The spend with its cap, e.g. "39,88 of 40,00 €", shown on More limits and read the same
     /// way by VoiceOver. Falls back to the bare spent amount when no limit is known.
     var spendWithLimit: String? {
         guard let parts = formattedParts else { return nil }
