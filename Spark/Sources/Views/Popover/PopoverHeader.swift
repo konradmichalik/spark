@@ -22,6 +22,10 @@ struct PopoverHeader: View {
     let onSelect: (UsageProvider) -> Void
     let onReport: () -> Void
 
+    /// Settings > Display can switch off the faint provider colour on the selected tab.
+    static let providerTintKey = "showProviderTint"
+
+    @AppStorage(providerTintKey) private var showProviderTint = true
     @Namespace private var tabSelection
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -113,7 +117,7 @@ struct PopoverHeader: View {
     private func selectedBackground(for provider: UsageProvider) -> some View {
         let shape = RoundedRectangle(cornerRadius: 7)
         return shape.fill(Theme.card)
-            .overlay(shape.fill(provider == .claude ? Theme.claudeLogo.opacity(0.12) : .clear))
+            .overlay(shape.fill(provider == .claude && showProviderTint ? Theme.claudeLogo.opacity(0.12) : .clear))
             .overlay(shape.strokeBorder(Theme.hairline))
     }
 

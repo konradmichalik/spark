@@ -19,16 +19,8 @@ struct WarningBanner: View {
                 .fixedSize(horizontal: false, vertical: true)
                 .frame(maxWidth: .infinity, alignment: .leading)
             if let actionTitle, let action {
-                Button(action: action) {
-                    Text(actionTitle)
-                        .font(.system(size: 11.5, weight: .semibold))
-                        .foregroundStyle(Theme.ink)
-                        .padding(.horizontal, 10)
-                        .frame(minHeight: 26)
-                        .background(Theme.hairline, in: RoundedRectangle(cornerRadius: 6))
-                        .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
+                Button(actionTitle, action: action)
+                    .buttonStyle(.paper)
             }
         }
         .padding(.horizontal, 12)

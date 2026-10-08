@@ -61,7 +61,6 @@ final class AppState: ObservableObject {
     @AppStorage("showProjectBreakdown") var showProjectBreakdown: Bool = true
     @AppStorage("showActiveSessions") var showActiveSessions: Bool = true
     @AppStorage("usageDisplayStyle") var usageDisplayStyle: String = "bars"
-    @AppStorage("reduceTransparency") var reduceTransparency: Bool = false
     @AppStorage("exportDataEnabled") var exportDataEnabled: Bool = false
 
     // Navigation
