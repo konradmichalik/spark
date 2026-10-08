@@ -28,39 +28,16 @@ struct SessionForecast: Equatable {
     }
 }
 
-struct HistoryColumn: Equatable {
-    let session: Double?
-    let weekly: Double?
-    var time: Date?
-}
-
-/// Buckets snapshots of the last `window` into `count` equal slots, oldest first, keeping the
-/// latest snapshot per slot. Slots without a snapshot stay empty instead of being stretched.
-enum HistoryColumns {
-    static func make(_ snapshots: [UsageSnapshot], now: Date, window: TimeInterval = 6 * 3600, count: Int = 34) -> [HistoryColumn] {
-        guard count > 0, window > 0 else { return [] }
-        let start = now.addingTimeInterval(-window)
-        let slot = window / Double(count)
-        var latest = [Int: UsageSnapshot]()
-        for snapshot in snapshots where snapshot.timestamp >= start && snapshot.timestamp <= now {
-            let index = min(Int(snapshot.timestamp.timeIntervalSince(start) / slot), count - 1)
-            if let existing = latest[index], existing.timestamp > snapshot.timestamp { continue }
-            latest[index] = snapshot
-        }
-        return (0..<count).map { index in
-            guard let snapshot = latest[index] else { return HistoryColumn(session: nil, weekly: nil) }
-            return HistoryColumn(session: snapshot.sessionUtilization, weekly: snapshot.weeklyUtilization, time: snapshot.timestamp)
-        }
-    }
-}
-
 /// Short values for the overview rows (docs/design/rules.md, "Navigation").
 enum OverviewSummary {
-    static func statisticsValue(cost: Double?, messages: Int?) -> String? {
-        if let cost {
+    static func statisticsValue(tokens: Int?, cost: Double?, messages: Int?) -> String? {
+        let tokenText = tokens.flatMap { $0 > 0 ? "\(formatTokenCount($0)) tok" : nil }
+        let costText = cost.map { cost -> String in
             let parts = UsageFormat.cost(cost)
-            return "≈ $\(parts.number)\(parts.unit.replacingOccurrences(of: "$", with: ""))"
+            return "\u{2248} $\(parts.number)\(parts.unit.replacingOccurrences(of: "$", with: ""))"
         }
+        let parts = [tokenText, costText].compactMap { $0 }
+        if !parts.isEmpty { return parts.joined(separator: " \u{00B7} ") }
         guard let messages else { return nil }
         return messages == 1 ? "1 message" : "\(messages) messages"
     }
@@ -94,38 +71,6 @@ enum ProviderTabSummary {
     }
 }
 
-/// The forecast tooltip on the session bar: projection and its rate, burn rate, and what the
-/// time marker means. One to three lines (docs/design/rules.md, "Tooltips").
-enum ForecastDetail {
-    static func text(
-        projection: ProjectionResult,
-        utilization: Double,
-        secondsToReset: TimeInterval?,
-        tokensPerMinute: Int?
-    ) -> String? {
-        var lines: [String] = []
-        switch projection {
-        case .safe(let projected):
-            let rate = secondsToReset.flatMap { $0 > 0 ? (projected - utilization) / ($0 / 3600) : nil }
-            lines.append("~\(Int(projected.rounded()))% at reset" + rateSuffix(rate))
-        case .limitReached(let seconds):
-            let rate = seconds > 0 ? (100 - utilization) / (seconds / 3600) : nil
-            lines.append("Limit in ~\(seconds.shortDuration)" + rateSuffix(rate))
-        case .insufficientData:
-            break
-        }
-        if let tokensPerMinute {
-            lines.append("\(formatTokenCount(tokensPerMinute)) tokens per minute, last \(Int(BurnRate.window / 60)) min")
-        }
-        return lines.isEmpty ? nil : lines.joined(separator: "\n")
-    }
-
-    private static func rateSuffix(_ rate: Double?) -> String {
-        guard let rate, rate > 0.5 else { return "" }
-        return ", rising ~\(Int(rate.rounded()))%/h"
-    }
-}
-
 /// What the overview leads with when a provider reports no session window: Codex Pro sends only
 /// the weekly window, Free a single 30-day one that lands among the other limits.
 enum HeadlineLimit {
@@ -147,85 +92,5 @@ enum HeadlineLimit {
     /// Tooltips only show on hover, so VoiceOver gets the forecast through the value.
     static func accessibilityValue(_ value: Double, detail: String?, locale: Locale = .current) -> String {
         [UsageFormat.percent(value, locale: locale), detail].compactMap { $0 }.joined(separator: ". ")
-    }
-}
-
-/// The explaining tooltip of a dot bar: what the fill means, then the hollow dots, the marker
-/// and the reset, each only when the bar shows it.
-enum BarTooltip {
-    static func text(window: String, forecast: String?, elapsed: Double?, reset: String?) -> String {
-        var lines = ["Share of the \(window) limit used"]
-        if let forecast { lines.append("Hollow dots: \(forecast)") }
-        if let elapsed {
-            lines.append("Marker: \(Int((elapsed * 100).rounded()))% of the window has passed. Fill ahead of it means faster than an even pace")
-        }
-        if let reset { lines.append("Resets \(reset)") }
-        return lines.joined(separator: "\n")
-    }
-}
-
-/// Clock times under the history card: start, middle and end of the window.
-enum HistoryAxis {
-    static func labels(now: Date, window: TimeInterval, locale: Locale = .current, timeZone: TimeZone = .current) -> [String] {
-        let formatter = DateFormatter()
-        formatter.locale = locale
-        formatter.timeZone = timeZone
-        formatter.dateStyle = .none
-        formatter.timeStyle = .short
-        return [-window, -window / 2, 0].map { formatter.string(from: now.addingTimeInterval($0)) }
-    }
-}
-
-/// The hover readout of the history card: which column the pointer is on, and what it says.
-enum HistoryHover {
-    /// The column under `x`, or the nearest one with a value when that slot is empty.
-    static func index(x: CGFloat, width: CGFloat, columns: [HistoryColumn]) -> Int? {
-        guard width > 0, !columns.isEmpty else { return nil }
-        let pointer = min(max(Int(x / width * CGFloat(columns.count)), 0), columns.count - 1)
-        return columns.indices
-            .filter { columns[$0].session != nil || columns[$0].weekly != nil }
-            .min { abs($0 - pointer) < abs($1 - pointer) }
-    }
-
-    static func text(
-        _ column: HistoryColumn, locale: Locale = .current, timeZone: TimeZone = .current
-    ) -> (title: String, body: String)? {
-        guard column.session != nil || column.weekly != nil else { return nil }
-        let formatter = DateFormatter()
-        formatter.locale = locale
-        formatter.timeZone = timeZone
-        formatter.dateStyle = .none
-        formatter.timeStyle = .short
-        let lines = [
-            column.session.map { "Session \(UsageFormat.percent($0, locale: locale))" },
-            column.weekly.map { "Week \(UsageFormat.percent($0, locale: locale))" }
-        ]
-        return (column.time.map(formatter.string) ?? "", lines.compactMap { $0 }.joined(separator: "\n"))
-    }
-}
-
-/// The forecast line under the session bar: where the session lands at the reset, or when the
-/// limit hits and how long before the reset that is.
-struct ForecastLine: Equatable {
-    let text: String
-    let tone: UsageTone
-
-    static func make(
-        projection: ProjectionResult, secondsToReset: TimeInterval?, elapsedInWindow: TimeInterval?, locale: Locale = .current
-    ) -> ForecastLine? {
-        switch projection {
-        case .safe(let projected):
-            let text = "~\(UsageFormat.percent(projected.rounded(), locale: locale)) at reset"
-            return ForecastLine(text: text, tone: SessionForecast(projection).tone)
-        case .limitReached(let seconds):
-            var text = "Limit in ~\(seconds.shortDuration)"
-            if let secondsToReset, secondsToReset - seconds >= 60 {
-                text += " \u{00B7} \((secondsToReset - seconds).shortDuration) before reset"
-            }
-            return ForecastLine(text: text, tone: .critical)
-        case .insufficientData:
-            guard let elapsedInWindow, elapsedInWindow < SessionProjection.minimumSpan else { return nil }
-            return ForecastLine(text: "Forecast after \(Int(SessionProjection.minimumSpan / 60)) min", tone: .normal)
-        }
     }
 }

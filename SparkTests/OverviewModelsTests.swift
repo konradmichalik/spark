@@ -25,8 +25,12 @@ final class OverviewModelsTests: XCTestCase {
         ]
         let columns = HistoryColumns.make(snapshots, now: now, count: 6)
         XCTAssertEqual(columns.count, 6)
-        XCTAssertEqual(columns.first, HistoryColumn(session: 10, weekly: 40, time: now.addingTimeInterval(-359 * 60)))
-        XCTAssertEqual(columns.last, HistoryColumn(session: 45, weekly: 48, time: now.addingTimeInterval(-60)))
+        XCTAssertEqual(columns.first?.session, 10)
+        XCTAssertEqual(columns.first?.weekly, 40)
+        XCTAssertEqual(columns.first?.time, now.addingTimeInterval(-359 * 60))
+        XCTAssertEqual(columns.first?.slotStart, now.addingTimeInterval(-6 * 3600))
+        XCTAssertEqual(columns.last?.session, 45)
+        XCTAssertEqual(columns.last?.time, now.addingTimeInterval(-60))
     }
 
     func testEmptySlotsStayEmpty() {
@@ -46,12 +50,13 @@ final class OverviewModelsTests: XCTestCase {
     }
 
     func testStatisticsValuePrefersCost() {
-        XCTAssertEqual(OverviewSummary.statisticsValue(cost: 116.65, messages: 130), "≈ $117")
-        XCTAssertEqual(OverviewSummary.statisticsValue(cost: 84.2, messages: 130), "≈ $84.20")
-        XCTAssertEqual(OverviewSummary.statisticsValue(cost: 48_210, messages: nil), "≈ $48.2K")
-        XCTAssertEqual(OverviewSummary.statisticsValue(cost: nil, messages: 130), "130 messages")
-        XCTAssertEqual(OverviewSummary.statisticsValue(cost: nil, messages: 1), "1 message")
-        XCTAssertNil(OverviewSummary.statisticsValue(cost: nil, messages: nil))
+        XCTAssertEqual(OverviewSummary.statisticsValue(tokens: 18_400_000, cost: 36.0, messages: 130), "18.4M tok \u{00B7} \u{2248} $36.00")
+        XCTAssertEqual(OverviewSummary.statisticsValue(tokens: 18_400_000, cost: nil, messages: 130), "18.4M tok")
+        XCTAssertEqual(OverviewSummary.statisticsValue(tokens: nil, cost: 116.65, messages: 130), "\u{2248} $117")
+        XCTAssertEqual(OverviewSummary.statisticsValue(tokens: 0, cost: 48_210, messages: nil), "\u{2248} $48.2K")
+        XCTAssertEqual(OverviewSummary.statisticsValue(tokens: nil, cost: nil, messages: 130), "130 messages")
+        XCTAssertEqual(OverviewSummary.statisticsValue(tokens: nil, cost: nil, messages: 1), "1 message")
+        XCTAssertNil(OverviewSummary.statisticsValue(tokens: nil, cost: nil, messages: nil))
     }
 
     func testLimitsValue() {
@@ -79,17 +84,5 @@ final class OverviewModelsTests: XCTestCase {
         XCTAssertEqual(PopoverFooter.relative(now.addingTimeInterval(-30), now: now), "30s ago")
         XCTAssertEqual(PopoverFooter.relative(now.addingTimeInterval(-150), now: now), "2m ago")
         XCTAssertEqual(PopoverFooter.relative(now.addingTimeInterval(-7300), now: now), "2h ago")
-    }
-
-    func testForecastDetailLines() {
-        XCTAssertEqual(
-            ForecastDetail.text(projection: .safe(79), utilization: 45, secondsToReset: 2 * 3600, tokensPerMinute: 25_500),
-            "~79% at reset, rising ~17%/h\n25.5K tokens per minute, last 15 min"
-        )
-        XCTAssertEqual(
-            ForecastDetail.text(projection: .limitReached(1800), utilization: 90, secondsToReset: 3600, tokensPerMinute: nil),
-            "Limit in ~30m, rising ~20%/h"
-        )
-        XCTAssertNil(ForecastDetail.text(projection: .insufficientData, utilization: 10, secondsToReset: nil, tokensPerMinute: nil))
     }
 }

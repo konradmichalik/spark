@@ -2,33 +2,54 @@
 import XCTest
 
 final class HistoryHoverTests: XCTestCase {
-    private let empty = HistoryColumn(session: nil, weekly: nil)
+    private let utc = TimeZone(identifier: "UTC") ?? .current
+    private let base = Date(timeIntervalSince1970: 1_791_472_800) // 2026-10-08 15:20 UTC
 
-    private func filled(_ session: Double) -> HistoryColumn {
-        HistoryColumn(session: session, weekly: 60, time: Date(timeIntervalSince1970: 0))
+    private func empty(_ slot: Int) -> HistoryColumn {
+        HistoryColumn(session: nil, weekly: nil, slotStart: base.addingTimeInterval(Double(slot) * 600))
     }
 
-    func testPointerPicksTheColumnUnderIt() {
-        let columns = [filled(10), filled(20), filled(30), filled(40)]
-        XCTAssertEqual(HistoryHover.index(x: 60, width: 100, columns: columns), 2)
-        XCTAssertEqual(HistoryHover.index(x: -5, width: 100, columns: columns), 0)
-        XCTAssertEqual(HistoryHover.index(x: 140, width: 100, columns: columns), 3)
+    private func filled(_ slot: Int, _ session: Double) -> HistoryColumn {
+        let start = base.addingTimeInterval(Double(slot) * 600)
+        return HistoryColumn(session: session, weekly: 60, time: start.addingTimeInterval(60), slotStart: start)
     }
 
-    func testEmptyColumnSnapsToTheNearestValue() {
-        let columns = [filled(10), empty, empty, empty, filled(50)]
-        XCTAssertEqual(HistoryHover.index(x: 30, width: 100, columns: columns), 0)
-        XCTAssertEqual(HistoryHover.index(x: 70, width: 100, columns: columns), 4)
-        XCTAssertNil(HistoryHover.index(x: 50, width: 100, columns: [empty, empty]))
+    func testLongEmptyRunsCollapseIntoOneGap() {
+        let columns = [filled(0, 10), empty(1), empty(2), empty(3), empty(4), filled(5, 20), empty(6), filled(7, 30)]
+        XCTAssertEqual(
+            HistoryLayout.items(columns),
+            [.column(0), .gap(1..<5), .column(5), .column(6), .column(7)]
+        )
     }
 
-    func testTextShowsTimeAndBothValues() throws {
-        let time = try XCTUnwrap(ISO8601DateFormatter().date(from: "2026-10-08T15:20:00Z"))
-        let utc = try XCTUnwrap(TimeZone(identifier: "UTC"))
-        let column = HistoryColumn(session: 45, weekly: 64, time: time)
-        let text = HistoryHover.text(column, locale: Locale(identifier: "en_US"), timeZone: utc)
-        XCTAssertEqual(text?.title, "3:20\u{202F}PM")
-        XCTAssertEqual(text?.body, "Session 45%\nWeek 64%")
-        XCTAssertNil(HistoryHover.text(empty))
+    func testPointerPicksTheItemUnderIt() {
+        let items: [HistoryItem] = [.column(0), .gap(1..<5), .column(5), .column(6)]
+        XCTAssertEqual(HistoryLayout.index(x: 30, width: 100, count: items.count), 1)
+        XCTAssertEqual(HistoryLayout.index(x: -5, width: 100, count: items.count), 0)
+        XCTAssertEqual(HistoryLayout.index(x: 140, width: 100, count: items.count), 3)
+        XCTAssertNil(HistoryLayout.index(x: 50, width: 0, count: items.count))
+    }
+
+    func testColumnTextShowsTimeAndBothValues() {
+        let text = HistoryHover.text(for: .column(0), in: [filled(0, 45)], locale: Locale(identifier: "de_DE"), timeZone: utc)
+        XCTAssertEqual(text?.title, "15:21")
+        XCTAssertEqual(text?.body, "Session 45\u{00A0}%\nWeek 60\u{00A0}%")
+        XCTAssertNil(HistoryHover.text(for: .column(0), in: [empty(0)]))
+    }
+
+    func testGapTextNamesTheMissingSpan() {
+        let columns = [filled(0, 10), empty(1), empty(2), empty(3), filled(4, 20)]
+        let text = HistoryHover.text(for: .gap(1..<4), in: columns, locale: Locale(identifier: "de_DE"), timeZone: utc)
+        XCTAssertEqual(text?.title, "15:30\u{2013}16:00")
+        XCTAssertEqual(text?.body, "No data. The Mac was asleep or Spark was closed")
+    }
+
+    func testAxisLabelsFollowTheCompressedItems() {
+        let columns = [filled(0, 10), empty(1), empty(2), empty(3), filled(4, 20), filled(5, 30)]
+        let items = HistoryLayout.items(columns)
+        XCTAssertEqual(
+            HistoryAxis.labels(items: items, columns: columns, locale: Locale(identifier: "de_DE"), timeZone: utc),
+            ["15:20", "16:00", "16:11"]
+        )
     }
 }

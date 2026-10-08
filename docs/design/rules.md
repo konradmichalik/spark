@@ -93,10 +93,10 @@ HStack(alignment: .firstTextBaseline, spacing: 3) {
 | Menu bar ring | 12 dots, the last partial dot at proportional opacity | Menu bar glyph |
 | Hollow dots | Outline only, from current value to projected value | Session projection |
 | Time marker | 2pt vertical stroke, or a short radial tick outside a ring | Share of the window already elapsed, on the session and the week |
-| Dot columns | Vertical stacks of dots | Session history in graphs |
+| Dot columns | Vertical stacks of dots | Session history in graphs. Three or more empty columns in a row collapse into one narrow `dotTrack` band, and the week line breaks there |
 
 - Filled dots are `ink`, or `warning` or `accent` by threshold. Unfilled dots are `dotTrack`.
-- The fill takes its colour from the user's thresholds. Projection dots, the time marker and the forecast line take theirs from the forecast: ink while the session lands below 90 %, `warning` from 90 %, `accent` when it reaches the limit before the reset. Hollow dots always draw at 55 % of that colour, the marker and the line at full strength, the line in regular weight. A forecast line under the session always says where the session lands: grey "~79% at reset", or `accent` "Limit in ~2h 4m · 2h 46m before reset". The forecast uses only the current session and waits for 15 minutes of data ("Forecast after 15 min").
+- The fill takes its colour from the user's thresholds. Projection dots, the time marker and the forecast line take theirs from the forecast: ink while the session lands below 90 %, `warning` from 90 %, `accent` when it reaches the limit before the reset. Hollow dots always draw at 55 % of that colour, the marker and the line at full strength, the line in regular weight. Beside the session number, two short facts say where the session lands ("FORECAST": "~79% at reset" or "Limit 1h 4m early", in the forecast's tone) and how fast it goes ("BURN RATE": "25.5K/min"). Each explains itself in its own tooltip, so the bar tooltip only explains the marks. The ring style shows only the forecast and puts the burn rate in the ring tooltip. The forecast uses only the current session and waits for 15 minutes of data ("Forecast after 15 min").
 - The weekly series in graphs is always a solid `accent` line over grey dot columns. The two series are told apart by shape, not by a second colour.
 
 ## Layout
@@ -119,6 +119,7 @@ HStack(alignment: .firstTextBaseline, spacing: 3) {
 - **Two levels, never three.** Level 1 is the overview of the selected provider. Level 2 screens are pushed inside the popover: History, Active Sessions, Statistics, All Limits.
 - On level 2 the tab row becomes a breadcrumb at the same height: `‹ [logo] Claude / History`. Plain text, hairline below, no pill.
 - Anything clickable on level 1 that leads deeper is a card or a row with a chevron. The whole card is the hit target.
+- Each row leads with a 13pt Tabler icon in `inkSecondary`: `terminal-2` for active sessions, `chart-bar` for statistics, `layout-grid` for all limits. The statistics row shows tokens first, then the API cost estimate.
 - Long lists show the first entries and a "Show N more" row that expands in place.
 - Provider tabs show logo, name and session value and are never truncated. A fifth provider goes into a "More" tab.
 - The selected tab is persisted and is the provider the menu bar shows.

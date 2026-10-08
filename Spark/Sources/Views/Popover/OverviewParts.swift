@@ -13,24 +13,27 @@ private struct OverviewCard<Content: View>: View {
     }
 }
 
-/// The last six hours: session as grey dot columns, week as a red line on the same scale.
-/// The whole card opens the history.
+/// The last six hours: session as grey dot columns, week as a red line on the same scale. Runs
+/// without data collapse into a narrow grey band, as in the full history graph. The whole card
+/// opens the history; hovering reads out the exact values.
 struct HistoryCard: View {
     let columns: [HistoryColumn]
-    let axisLabels: [String]
     let onOpen: () -> Void
 
     @State private var hovered: Int?
 
     private static let chartHeight: CGFloat = 56
 
+    private var items: [HistoryItem] { HistoryLayout.items(columns) }
+
     var body: some View {
+        let items = items
         Button(action: onOpen) {
             OverviewCard {
                 VStack(alignment: .leading, spacing: 8) {
                     header
-                    chart
-                    axis
+                    chart(items)
+                    axis(items)
                 }
                 .padding(.horizontal, 12)
                 .padding(.vertical, 10)
@@ -60,60 +63,68 @@ struct HistoryCard: View {
         .foregroundStyle(Theme.inkSecondary)
     }
 
-    private var chart: some View {
+    private func chart(_ items: [HistoryItem]) -> some View {
         GeometryReader { proxy in
-            Canvas { context, size in draw(in: &context, size: size) }
+            Canvas { context, size in draw(items, in: &context, size: size) }
                 .contentShape(Rectangle())
                 .onContinuousHover { phase in
                     switch phase {
                     case .active(let location):
-                        hovered = HistoryHover.index(x: location.x, width: proxy.size.width, columns: columns)
+                        hovered = HistoryLayout.index(x: location.x, width: proxy.size.width, count: items.count)
                     case .ended:
                         hovered = nil
                     }
                 }
-                .overlay(alignment: .topLeading) { readout(width: proxy.size.width) }
+                .overlay(alignment: .topLeading) { readout(items, width: proxy.size.width) }
         }
         .frame(height: Self.chartHeight)
         .overlay(alignment: .bottom) { Rectangle().fill(Theme.hairline).frame(height: 1) }
         .accessibilityHidden(true)
     }
 
-    private func draw(in context: inout GraphicsContext, size: CGSize) {
-        guard !columns.isEmpty else { return }
-        let pitch = size.width / CGFloat(columns.count)
+    private func draw(_ items: [HistoryItem], in context: inout GraphicsContext, size: CGSize) {
+        guard !items.isEmpty else { return }
+        let pitch = size.width / CGFloat(items.count)
         let dot = min(4, pitch - 1.5)
-        let highlighted = hovered ?? columns.lastIndex { $0.session != nil }
+        let highlighted = hovered ?? items.lastIndex { if case .column(let index) = $0 { columns[index].session != nil } else { false } }
         if let hovered {
             let guideX = pitch * (CGFloat(hovered) + 0.5)
             context.fill(Path(CGRect(x: guideX - 0.5, y: 0, width: 1, height: size.height)), with: .color(Theme.hairline))
         }
-        for (index, column) in columns.enumerated() {
-            guard let session = column.session else { continue }
-            let rows = Int((min(max(session, 0), 100) / 100 * Double(size.height / 6)).rounded())
-            let colour = index == highlighted ? Theme.ink : Theme.ink.opacity(0.3)
-            let centerX = pitch * (CGFloat(index) + 0.5)
-            for row in 0..<max(rows, 1) {
-                let centerY = size.height - 3 - CGFloat(row) * 6
-                context.fill(Path(ellipseIn: CGRect(x: centerX - dot / 2, y: centerY - dot / 2, width: dot, height: dot)), with: .color(colour))
-            }
-        }
         var line = Path()
-        for (index, column) in columns.enumerated() {
+        var lineIsOpen = false
+        for (position, item) in items.enumerated() {
+            let centerX = pitch * (CGFloat(position) + 0.5)
+            guard case .column(let index) = item else {
+                let band = CGRect(x: centerX - pitch / 2 + 1, y: 0, width: max(pitch - 2, 2), height: size.height)
+                context.fill(Path(roundedRect: band, cornerRadius: 2), with: .color(Theme.dotTrack.opacity(0.7)))
+                lineIsOpen = false
+                continue
+            }
+            let column = columns[index]
+            if let session = column.session {
+                let rows = Int((min(max(session, 0), 100) / 100 * Double(size.height / 6)).rounded())
+                let colour = position == highlighted ? Theme.ink : Theme.ink.opacity(0.3)
+                for row in 0..<max(rows, 1) {
+                    let centerY = size.height - 3 - CGFloat(row) * 6
+                    context.fill(Path(ellipseIn: CGRect(x: centerX - dot / 2, y: centerY - dot / 2, width: dot, height: dot)), with: .color(colour))
+                }
+            }
             guard let weekly = column.weekly else { continue }
-            let point = CGPoint(x: pitch * (CGFloat(index) + 0.5), y: size.height * (1 - min(max(weekly, 0), 100) / 100))
-            if line.isEmpty { line.move(to: point) } else { line.addLine(to: point) }
+            let point = CGPoint(x: centerX, y: size.height * (1 - min(max(weekly, 0), 100) / 100))
+            if lineIsOpen { line.addLine(to: point) } else { line.move(to: point) }
+            lineIsOpen = true
         }
         context.stroke(line, with: .color(Theme.accent), style: StrokeStyle(lineWidth: 1.75, lineCap: .round, lineJoin: .round))
     }
 
-    /// Shown at once, without the tooltip delay, beside the hovered column and on the side with
-    /// more room, so it never covers the column it describes.
+    /// Shown at once, without the tooltip delay, beside the hovered item and on the side with
+    /// more room, so it never covers what it describes.
     @ViewBuilder
-    private func readout(width: CGFloat) -> some View {
-        if let hovered, let text = HistoryHover.text(columns[hovered]) {
-            let columnX = width / CGFloat(columns.count) * (CGFloat(hovered) + 0.5)
-            let onLeft = columnX > width / 2
+    private func readout(_ items: [HistoryItem], width: CGFloat) -> some View {
+        if let hovered, items.indices.contains(hovered), let text = HistoryHover.text(for: items[hovered], in: columns) {
+            let itemX = width / CGFloat(items.count) * (CGFloat(hovered) + 0.5)
+            let onLeft = itemX > width / 2
             VStack(alignment: .leading, spacing: 2) {
                 Text(text.title)
                     .font(.system(size: 10, design: .monospaced))
@@ -126,14 +137,14 @@ struct HistoryCard: View {
             .padding(.horizontal, 8)
             .padding(.vertical, 5)
             .tooltipChrome()
-            .padding(onLeft ? .trailing : .leading, onLeft ? width - columnX + 8 : columnX + 8)
+            .padding(onLeft ? .trailing : .leading, onLeft ? width - itemX + 8 : itemX + 8)
             .frame(width: width, alignment: onLeft ? .trailing : .leading)
         }
     }
 
-    private var axis: some View {
+    private func axis(_ items: [HistoryItem]) -> some View {
         HStack {
-            ForEach(Array(axisLabels.enumerated()), id: \.offset) { index, label in
+            ForEach(Array(HistoryAxis.labels(items: items, columns: columns).enumerated()), id: \.offset) { index, label in
                 if index > 0 { Spacer() }
                 Text(label)
             }
@@ -147,6 +158,7 @@ struct HistoryCard: View {
 /// One row of the overview's row group: a label, a short value and a chevron.
 struct OverviewRow: Identifiable {
     let screen: PopoverScreen
+    let icon: TablerIcon
     let label: String
     let value: String?
     var id: PopoverScreen { screen }
@@ -174,6 +186,7 @@ struct OverviewRows: View {
             onOpen(row.screen)
         } label: {
             HStack(spacing: 10) {
+                TablerIconView(row.icon, size: 13, color: Theme.inkSecondary)
                 Text(row.label).font(.system(size: 12.5)).foregroundStyle(Theme.ink)
                 Spacer()
                 if let value = row.value {

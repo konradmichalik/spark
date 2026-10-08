@@ -8,8 +8,8 @@ private struct UsageSection: View {
     let session: UsageBucket?
     let week: UsageBucket?
     let forecast: SessionForecast
-    var forecastLine: ForecastLine?
-    let detail: String?
+    var fact: ForecastFact?
+    var tokensPerMinute: Int?
     let warning: Double
     let critical: Double
     let style: String
@@ -18,20 +18,18 @@ private struct UsageSection: View {
         if let session {
             let elapsed = Pace.calculate(utilization: session.utilization, resetsAt: session.resetsAtDate, windowLength: fiveHours)?
                 .elapsedFraction
-            let tone = UsageTone(value: session.utilization, warning: warning, critical: critical)
+            let reading = SessionReading(
+                value: session.utilization, resetIn: session.timeUntilReset, resetDate: session.resetsAtDate,
+                forecast: forecast, elapsed: elapsed, tone: UsageTone(value: session.utilization, warning: warning, critical: critical),
+                fact: fact, tokensPerMinute: tokensPerMinute
+            )
             if style == "bars" {
                 VStack(alignment: .leading, spacing: 16) {
-                    SessionBlock(
-                        value: session.utilization, resetIn: session.timeUntilReset, resetDate: session.resetsAtDate,
-                        forecast: forecast, elapsed: elapsed, tone: tone, forecastLine: forecastLine, detail: detail
-                    )
+                    SessionBlock(reading: reading)
                     weekBlock
                 }
             } else {
-                RingsBlock(
-                    value: session.utilization, resetIn: session.timeUntilReset, forecast: forecast, elapsed: elapsed,
-                    tone: tone, forecastLine: forecastLine, detail: detail, week: weekBlock
-                )
+                RingsBlock(reading: reading, week: weekBlock)
             }
         } else {
             weekBlock
@@ -78,15 +76,12 @@ struct ClaudeOverview: View {
         } else {
             UsageSection(
                 session: state.usageData.session, week: state.usageData.weekly, forecast: SessionForecast(projection),
-                forecastLine: forecastLine, detail: forecastDetail,
+                fact: forecastFact, tokensPerMinute: state.showProjection ? state.burnRate?.tokensPerMinute : nil,
                 warning: state.warningThreshold, critical: state.criticalThreshold, style: state.usageDisplayStyle
             )
         }
         if state.showGraph, !state.history.isEmpty {
-            let now = Date()
-            HistoryCard(columns: HistoryColumns.make(state.history, now: now), axisLabels: HistoryAxis.labels(now: now, window: 6 * 3600)) {
-                open(.history)
-            }
+            HistoryCard(columns: HistoryColumns.make(state.history, now: Date())) { open(.history) }
         }
         OverviewRows(rows: rows, onOpen: open)
     }
@@ -96,38 +91,32 @@ struct ClaudeOverview: View {
         return SessionProjection.calculate(history: state.history, currentUtilization: session.utilization, resetsAt: session.resetsAtDate)
     }
 
-    private var forecastLine: ForecastLine? {
+    private var forecastFact: ForecastFact? {
         guard state.showProjection, let session = state.usageData.session else { return nil }
         let secondsToReset = session.resetsAtDate.map { $0.timeIntervalSinceNow }
-        return ForecastLine.make(
-            projection: projection, secondsToReset: secondsToReset, elapsedInWindow: secondsToReset.map { fiveHours - $0 }
-        )
-    }
-
-    private var forecastDetail: String? {
-        guard let session = state.usageData.session else { return nil }
-        return ForecastDetail.text(
-            projection: projection,
-            utilization: session.utilization,
-            secondsToReset: session.resetsAtDate.map { $0.timeIntervalSinceNow },
-            tokensPerMinute: state.showProjection ? state.burnRate?.tokensPerMinute : nil
+        return ForecastFact.make(
+            projection: projection, utilization: session.utilization,
+            secondsToReset: secondsToReset, elapsedInWindow: secondsToReset.map { fiveHours - $0 }
         )
     }
 
     private var rows: [OverviewRow] {
         var rows: [OverviewRow] = []
         if state.showActiveSessions {
-            rows.append(OverviewRow(screen: .sessions, label: "Active sessions", value: "\(state.activeSessions.count)"))
+            rows.append(OverviewRow(
+                screen: .sessions, icon: .terminal2, label: "Active sessions", value: "\(state.activeSessions.count)"
+            ))
         }
         if state.showStats {
             let label = state.statsPeriod == .today ? "Statistics today" : "Statistics"
             let value = OverviewSummary.statisticsValue(
-                cost: state.showApiCost ? state.liveCost?.total : nil, messages: state.liveStats?.messageCount
+                tokens: state.liveStats?.realTokens, cost: state.showApiCost ? state.liveCost?.total : nil,
+                messages: state.liveStats?.messageCount
             )
-            rows.append(OverviewRow(screen: .statistics, label: label, value: value))
+            rows.append(OverviewRow(screen: .statistics, icon: .chartBar, label: label, value: value))
         }
         rows.append(OverviewRow(
-            screen: .limits, label: "All limits",
+            screen: .limits, icon: .layoutGrid, label: "All limits",
             value: OverviewSummary.limitsValue(extraLimits: extraLimitCount, plan: state.accountTier.displayName)
         ))
         return rows
@@ -165,7 +154,7 @@ struct CodexOverview: View {
         if let usage = codex.usage, usage.usageData.session != nil {
             UsageSection(
                 session: usage.usageData.session, week: usage.usageData.weekly, forecast: SessionForecast(.insufficientData),
-                detail: nil, warning: warning, critical: critical, style: style
+                warning: warning, critical: critical, style: style
             )
         } else if let usage = codex.usage,
                   let headline = HeadlineLimit.withoutSession(weekly: usage.usageData.weekly, others: usage.additionalLimits) {
@@ -190,13 +179,13 @@ struct CodexOverview: View {
         var rows: [OverviewRow] = []
         if showStats, let stats = codex.stats, stats.fileCount > 0 {
             rows.append(OverviewRow(
-                screen: .statistics, label: "Statistics",
-                value: OverviewSummary.statisticsValue(cost: nil, messages: stats.messageCount)
+                screen: .statistics, icon: .chartBar, label: "Statistics",
+                value: OverviewSummary.statisticsValue(tokens: stats.totalTokens, cost: nil, messages: stats.messageCount)
             ))
         }
         let extra = (codex.usage?.additionalLimits.count ?? 0) + (codex.usage?.creditsBalance == nil ? 0 : 1)
         rows.append(OverviewRow(
-            screen: .limits, label: "All limits",
+            screen: .limits, icon: .layoutGrid, label: "All limits",
             value: OverviewSummary.limitsValue(extraLimits: extra, plan: codex.usage?.planDisplayName)
         ))
         return rows
