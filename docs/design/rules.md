@@ -69,6 +69,7 @@ HStack(alignment: .firstTextBaseline, spacing: 3) {
 ```
 
 `Font.doto(size:weight:)` lives in `Spark/Sources/Views/Components/DotoFont.swift`.
+- Micro labels are one line. They truncate instead of wrapping, so the value under them never moves; keep them short ("VS LAST WEEK", not "VS PREVIOUS WEEK").
 
 ## Numbers and units
 

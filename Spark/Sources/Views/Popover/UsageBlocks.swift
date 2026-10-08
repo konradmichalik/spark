@@ -10,6 +10,9 @@ struct MicroLabel: View {
             .font(.system(size: size, design: .monospaced))
             .tracking(1.5)
             .foregroundStyle(Theme.inkSecondary)
+            // A label is one line: it truncates rather than wrap and push its value down.
+            .lineLimit(1)
+            .truncationMode(.tail)
     }
 }
 

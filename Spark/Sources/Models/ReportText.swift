@@ -24,7 +24,7 @@ enum ReportText {
     ) -> String {
         switch period {
         case .week:
-            return "VS PREVIOUS WEEK"
+            return "VS LAST WEEK"
         case .month:
             let previous = start.addingTimeInterval(-86_400)
             return "VS \(format(previous, template: "MMMM", locale: locale, timeZone: timeZone).uppercased(with: locale))"

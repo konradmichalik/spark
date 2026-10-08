@@ -31,7 +31,7 @@ final class ReportTextTests: XCTestCase {
     }
 
     func testComparisonForAWeek() {
-        XCTAssertEqual(ReportText.comparisonLabel(.week, start: day(10, 5), locale: locale, timeZone: utc), "VS PREVIOUS WEEK")
+        XCTAssertEqual(ReportText.comparisonLabel(.week, start: day(10, 5), locale: locale, timeZone: utc), "VS LAST WEEK")
     }
 
     func testTrendIsSignedAndRoundedWithTheUnitApart() {
