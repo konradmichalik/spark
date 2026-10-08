@@ -225,6 +225,14 @@ Nothing else moves. No looping animation without a reason the user cares about.
 - The centre dot is always red. The mark itself is ink on paper, or paper on ink.
 - The Claude asterisk and Claude orange are not part of Spark's brand. Provider logos appear only to identify a provider.
 
+## Landing page
+
+- `site/` is plain HTML, CSS and one small script, no build step, no framework. Tokens are the colour table above as CSS custom properties, light and dark through `prefers-color-scheme`.
+- Doto is self-hosted from `site/` (`Doto-Variable.ttf` with `Doto-OFL.txt`, linked in the footer). No Google Fonts, CDN, analytics or other third-party request: the only outbound links are the ones a visitor clicks. Body text uses the system stack.
+- The product shots are inline SVG and CSS built from the same tokens and dots as the app (popover, menu bar ring, activity calendar), never screenshots. They use example values and stay marked as an image for assistive technology.
+- Numbers on the page are facts a reader can check in the repository (providers, minimum macOS, poll interval, dependencies), not usage figures. The install band stays dark in both schemes.
+- Layout is fluid down to 320 px with a 16 px gutter and no horizontal scroll. Motion only inside `prefers-reduced-motion: no-preference`.
+
 ## Pull request checklist
 
 - [ ] Colours come from `Theme` tokens, no literals

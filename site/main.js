@@ -1,27 +1,16 @@
-// Copy to clipboard
-document.querySelectorAll('.copy-btn').forEach(function(btn) {
-  btn.addEventListener('click', function() {
-    var cmd = this.getAttribute('data-cmd');
-    navigator.clipboard.writeText(cmd).then(function() {
-      btn.classList.add('copied');
-      btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
-      setTimeout(function() {
-        btn.classList.remove('copied');
-        btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
-      }, 2000);
-    });
-  });
-});
-
-// Scroll reveal
-var observer = new IntersectionObserver(function(entries) {
-  entries.forEach(function(entry) {
-    if (entry.isIntersecting) {
-      entry.target.classList.add('visible');
+document.querySelectorAll('.copy').forEach((button) => {
+  button.addEventListener('click', async () => {
+    const status = document.querySelector('.status');
+    try {
+      await navigator.clipboard.writeText(button.dataset.cmd);
+      button.classList.add('copied');
+      status.textContent = 'Copied to the clipboard';
+    } catch {
+      status.textContent = 'Copy failed, select the command instead';
     }
+    setTimeout(() => {
+      button.classList.remove('copied');
+      status.textContent = '';
+    }, 2000);
   });
-}, { threshold: 0.15 });
-
-document.querySelectorAll('.reveal, .feature-card').forEach(function(el) {
-  observer.observe(el);
 });

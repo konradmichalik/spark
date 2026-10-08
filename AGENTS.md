@@ -15,7 +15,7 @@ Spark is a native macOS menu bar app (SwiftUI, Swift 6) that displays Claude Cod
 - `SparkTests/`: unit tests
 - `project.yml`: XcodeGen project definition, the source of truth for project config
 - `scripts/fetch-tabler-icons.sh`: downloads Tabler icons; `scripts/render-brand-assets.swift` (`make brand`): renders the app icon, README logo and site icons
-- `site/`: landing page, `docs/`: how-it-works, usage and release docs, `docs/design/`: design rules and screen designs
+- `site/`: landing page (`index.html`, `style.css`, `main.js`, self-hosted `Doto-Variable.ttf` with its licence; the product shots are inline SVG, so `index.html` is edited by hand), `docs/`: how-it-works, usage and release docs, `docs/design/`: design rules and screen designs
 - `.githooks/pre-commit`: SwiftLint on staged Swift files
 
 Data flow: timer-based polling, `UsageClient` fetches the API, `AppState` updates, SwiftUI re-renders. Backoff runs from 5 minutes (active) to 30 minutes (idle) and snaps back on usage change. Local stats come from `~/.claude/history.jsonl` and per-project JSONL files. Active sessions are sessions with a transcript write in the last 5 minutes.

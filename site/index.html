@@ -1,302 +1,185 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Spark — Claude Code Usage in Your Menu Bar</title>
-  <meta name="description" content="A native macOS menu bar app that shows your Claude Code usage at a glance. Color-coded ring icon, session projections, usage history, smart polling.">
-  <meta property="og:title" content="Spark — Claude Code Usage in Your Menu Bar">
-  <meta property="og:description" content="A native macOS menu bar app that shows your Claude Code usage at a glance.">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Spark: Claude Code and Codex usage in your menu bar</title>
+  <meta name="description" content="A native macOS menu bar app that shows how much of your Claude Code and Codex limits is left, whether it will last until the reset, and where the tokens went.">
+  <link rel="canonical" href="https://konradmichalik.github.io/spark/">
+  <meta name="theme-color" content="#F2F2EF" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#1C1C1B" media="(prefers-color-scheme: dark)">
   <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Spark">
+  <meta property="og:title" content="Spark: every limit, one glance">
+  <meta property="og:description" content="A native macOS menu bar app for Claude Code and Codex usage. Free and open source.">
+  <meta property="og:url" content="https://konradmichalik.github.io/spark/">
   <meta property="og:image" content="https://konradmichalik.github.io/spark/spark-logo.png">
+  <meta property="og:image:alt" content="The Spark mark: twelve dots on a circle with a red dot in the centre">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:image" content="https://konradmichalik.github.io/spark/spark-logo.png">
+  <meta name="twitter:title" content="Spark: every limit, one glance">
+  <meta name="twitter:description" content="A native macOS menu bar app for Claude Code and Codex usage. Free and open source.">
   <link rel="icon" type="image/png" sizes="32x32" href="favicon.png">
   <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
   <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300..700;1,9..40,300..700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="preload" href="Doto-Variable.ttf" as="font" type="font/ttf" crossorigin>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-
-  <!-- Header -->
-  <header class="header">
-    <div class="header-inner">
-      <div class="header-logo">
-        <img src="spark-logo.png" alt="Spark" width="24" height="24">
-        <span>Spark</span>
-      </div>
-      <nav class="header-nav">
-        <a href="#features" class="hide-mobile">Features</a>
-        <a href="#install" class="hide-mobile">Install</a>
-        <span class="version-badge">v0.13.0</span>
-        <a href="https://github.com/konradmichalik/spark" target="_blank" rel="noopener" class="gh-link" aria-label="GitHub">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
-        </a>
+  <a class="skip" href="#main">Skip to content</a>
+  <header class="top">
+    <div class="wrap top-row">
+      <a class="brand" href="#top" aria-label="Spark, back to top"><svg class="mark" viewBox="0 0 100 100" aria-hidden="true" focusable="false"><circle cx="50.00" cy="15.00" r="5" fill="var(--ink)"/><circle cx="67.50" cy="19.69" r="5" fill="var(--ink)"/><circle cx="80.31" cy="32.50" r="5" fill="var(--ink)"/><circle cx="85.00" cy="50.00" r="5" fill="var(--ink)"/><circle cx="80.31" cy="67.50" r="5" fill="var(--ink)"/><circle cx="67.50" cy="80.31" r="5" fill="var(--ink)"/><circle cx="50.00" cy="85.00" r="5" fill="var(--ink)"/><circle cx="32.50" cy="80.31" r="5" fill="var(--ink)"/><circle cx="19.69" cy="67.50" r="5" fill="var(--ink)"/><circle cx="15.00" cy="50.00" r="5" fill="var(--ink)" opacity=".18"/><circle cx="19.69" cy="32.50" r="5" fill="var(--ink)" opacity=".18"/><circle cx="32.50" cy="19.69" r="5" fill="var(--ink)" opacity=".18"/><circle cx="50" cy="50" r="8" fill="var(--accent)"/></svg><span class="wordmark">spark</span></a>
+      <a class="badge" href="https://github.com/konradmichalik/spark/releases">v0.13.0</a>
+      <nav class="nav" aria-label="Main">
+        <a href="#features">Features</a>
+        <a href="#install">Install</a>
+        <a href="https://github.com/konradmichalik/spark">GitHub</a>
       </nav>
     </div>
   </header>
 
-  <!-- Hero -->
-  <section class="hero">
-    <h1>Know your<br><em>Claude Code</em> usage</h1>
-    <p class="hero-sub">A native menu bar app that keeps your usage visible, color-coded, and always one glance away.</p>
-    <div class="hero-actions">
-      <a href="#install" class="btn btn-primary">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-        Install with Homebrew
-      </a>
-      <a href="https://github.com/konradmichalik/spark" target="_blank" rel="noopener" class="btn btn-secondary">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
-        View on GitHub
-      </a>
-    </div>
-    <div class="hero-mockup-wrap" role="img" aria-label="Spark app popover showing session and weekly Claude Code usage, today's stats, and a usage history graph">
-      <div class="mockup-desktop">
-        <!-- macOS menu bar -->
-        <div class="mockup-menubar">
-          <div style="display:flex;align-items:center;gap:4px;">
-            <img src="spark-logo.png" alt="" width="16" height="16" style="opacity:0.9">
-            <span style="font-size:10px;opacity:0.8">69%</span>
-          </div>
-          <span>Wed 14:32</span>
+  <main id="main">
+    <section class="hero wrap" id="top">
+      <div class="hero-copy">
+        <p class="eyebrow">For Claude Code and Codex</p>
+        <h1>Every limit,<br>one glance.</h1>
+        <p class="lede">A native macOS menu bar app that shows how much of your AI coding limits is left, whether it will last until the reset, and where the tokens went.</p>
+        <div class="cmd">
+          <code>$ brew install konradmichalik/tap/spark</code>
+          <button class="copy" type="button" data-cmd="brew install konradmichalik/tap/spark" aria-label="Copy the install command"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
         </div>
-        <!-- App popover -->
-        <div class="mockup-popover">
-          <div class="pop-header">
-            <img src="spark-logo.png" alt="" width="22" height="22">
-            <span class="pop-title">Spark</span>
-            <span class="pop-badge">Team 5x</span>
-            <span class="pop-settings"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>
-          </div>
-          <div class="pop-divider"></div>
-          <!-- Session -->
-          <div class="pop-section-label">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-            Session (5h)
-            <span class="pop-timer"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> 32m</span>
-          </div>
-          <div class="pop-progress-row">
-            <div class="pop-progress"><div class="pop-progress-fill green" style="width:63%"></div></div>
-            <div class="pop-percent">63%</div>
-          </div>
-          <div class="pop-divider"></div>
-          <!-- Weekly -->
-          <div class="pop-section-label">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-            Weekly (7 days)
-            <span class="pop-timer"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> 5d 21h</span>
-          </div>
-          <div class="pop-progress-row">
-            <div class="pop-progress"><div class="pop-progress-fill green" style="width:11%"></div></div>
-            <div class="pop-percent">11%</div>
-          </div>
-          <div class="pop-divider"></div>
-          <!-- Stats -->
-          <div class="pop-section-label">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 9h4v11H4z"/><path d="M10 4h4v16h-4z"/><path d="M16 13h4v7h-4z"/></svg>
-            Stats (today)
-          </div>
-          <div class="pop-stats">
-            <div class="pop-stat-row"><span class="label">Messages</span><span class="value">152</span></div>
-            <div class="pop-stat-row"><span class="label">Sessions</span><span class="value">25</span></div>
-            <div class="pop-stat-row"><span class="label">Tokens</span><span class="value">536.9K</span></div>
-            <div class="pop-projects-row">
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
-              Top Projects
-              <svg class="chevron" width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="9 6 15 12 9 18"/></svg>
-            </div>
-          </div>
-          <div class="pop-divider"></div>
-          <!-- History -->
-          <div class="pop-section-label">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-            History
-            <div class="pop-mode-toggle">
-              <span class="pop-mode-tab active">
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-              </span>
-              <span class="pop-mode-tab">
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
-              </span>
-            </div>
-            <div class="pop-range-tabs">
-              <span class="pop-range-tab">1h</span>
-              <span class="pop-range-tab active">6h</span>
-              <span class="pop-range-tab">1d</span>
-              <span class="pop-range-tab">7d</span>
-              <span class="pop-range-tab">30d</span>
-            </div>
-          </div>
-          <div class="pop-chart">
-            <div class="pop-chart-labels-y">
-              <span>100%</span><span>75%</span><span>50%</span><span>25%</span><span>0%</span>
-            </div>
-            <svg viewBox="0 0 250 90" preserveAspectRatio="none" style="width:calc(100% - 32px);height:calc(100% - 16px)">
-              <line x1="0" y1="0" x2="250" y2="0" stroke="rgba(255,255,255,0.04)" stroke-width="0.5"/>
-              <line x1="0" y1="22.5" x2="250" y2="22.5" stroke="rgba(255,255,255,0.04)" stroke-width="0.5"/>
-              <line x1="0" y1="45" x2="250" y2="45" stroke="rgba(255,255,255,0.04)" stroke-width="0.5"/>
-              <line x1="0" y1="67.5" x2="250" y2="67.5" stroke="rgba(255,255,255,0.04)" stroke-width="0.5"/>
-              <line x1="0" y1="90" x2="250" y2="90" stroke="rgba(255,255,255,0.04)" stroke-width="0.5"/>
-              <polyline points="0,49 25,50 50,52 75,54 100,52 115,50 130,48 150,44 170,40 185,36 200,30 220,26 240,22 250,20" fill="none" stroke="#d97757" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-              <polyline points="0,72 25,72 50,73 75,72 100,72 130,70 150,69 170,68 200,67 230,66 250,65" fill="none" stroke="rgba(136,192,208,0.5)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-            <div class="pop-chart-labels-x">
-              <span>11:31</span><span>14:31</span><span>17:31</span>
-            </div>
-          </div>
-          <div class="pop-divider"></div>
-          <div class="pop-footer">
-            <span><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="vertical-align:-1px"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg> Updated: 25s ago</span>
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/></svg>
-          </div>
-        </div>
+        <p class="status" role="status" aria-live="polite"></p>
+        <p><a class="button" href="https://github.com/konradmichalik/spark">View on GitHub</a></p>
+        <p class="small">Free and open source · macOS 14 or later · No account, no tracking</p>
       </div>
-    </div>
-  </section>
 
-  <!-- Features -->
-  <section class="features" id="features">
-    <div class="section-inner">
-      <div class="section-header reveal">
-        <h2>Everything at a glance</h2>
-        <p>Built for developers who live in the terminal and want usage data without context-switching.</p>
-      </div>
-      <div class="features-grid">
-        <div class="feature-card">
-          <div class="feature-icon icon-ring">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a10 10 0 0 1 7.07 17.07"/></svg>
+      <div class="stage">
+        <div class="pop" role="img" aria-label="The Spark popover: Claude session at 45 percent with a forecast of 79 percent at the reset, the week at 48 percent, a history graph and links to active sessions, statistics and all limits.">
+          <div class="pop-head">
+            <span class="pop-brand"><svg class="mark" viewBox="0 0 100 100" aria-hidden="true" focusable="false"><circle cx="50.00" cy="15.00" r="5" fill="var(--ink)"/><circle cx="67.50" cy="19.69" r="5" fill="var(--ink)"/><circle cx="80.31" cy="32.50" r="5" fill="var(--ink)"/><circle cx="85.00" cy="50.00" r="5" fill="var(--ink)"/><circle cx="80.31" cy="67.50" r="5" fill="var(--ink)"/><circle cx="67.50" cy="80.31" r="5" fill="var(--ink)"/><circle cx="50.00" cy="85.00" r="5" fill="var(--ink)"/><circle cx="32.50" cy="80.31" r="5" fill="var(--ink)"/><circle cx="19.69" cy="67.50" r="5" fill="var(--ink)"/><circle cx="15.00" cy="50.00" r="5" fill="var(--ink)" opacity=".18"/><circle cx="19.69" cy="32.50" r="5" fill="var(--ink)" opacity=".18"/><circle cx="32.50" cy="19.69" r="5" fill="var(--ink)" opacity=".18"/><circle cx="50" cy="50" r="8" fill="var(--accent)"/></svg><span class="wordmark">spark</span></span>
+            <span class="pop-icons">
+              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M5 20V12M12 20V5M19 20v-5"/></svg>
+              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="3.2"/><path d="M12 3v2.5M12 18.5V21M3 12h2.5M18.5 12H21M5.6 5.6l1.8 1.8M16.6 16.6l1.8 1.8M5.6 18.4l1.8-1.8M16.6 7.4l1.8-1.8"/></svg>
+            </span>
           </div>
-          <h3>Live Usage Ring</h3>
-          <p>The menu bar icon fills as your usage grows. Color shifts from green through orange to red, so you always know where you stand.</p>
-        </div>
-        <div class="feature-card">
-          <div class="feature-icon icon-chart">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          <div class="tabs">
+            <span class="tab on"><svg viewBox="0 0 24 24" width="13" height="13" aria-hidden="true"><g stroke="#C96442" stroke-width="2.4" stroke-linecap="round"><path d="M12 3v18M3 12h18M5.6 5.6l12.8 12.8M18.4 5.6L5.6 18.4"/></g></svg>Claude <i>45%</i></span>
+            <span class="tab"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 4l5 8-5 8-5-8z"/></svg>Codex <i>41%</i></span>
           </div>
-          <h3>Usage History</h3>
-          <p>Two views on one graph — <strong>Limits</strong> plots utilization over selectable ranges from 1 hour to 30 days, <strong>Volume</strong> shows daily token totals from permanent history. Hover for precise values in either.</p>
-        </div>
-        <div class="feature-card">
-          <div class="feature-icon icon-bolt">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+          <div class="row"><span class="micro">Session</span><span class="reset">Reset in 1h 49m</span></div>
+          <div class="hero-value"><span class="doto">45</span><span class="unit">%</span></div>
+          <svg class="bar" viewBox="0 0 288 6" aria-hidden="true" focusable="false"><circle cx="3" cy="3" r="2" fill="var(--ink)" opacity=".15"/><circle cx="3" cy="3" r="2" fill="var(--ink)" opacity="1.00"/><circle cx="9" cy="3" r="2" fill="var(--ink)" opacity=".15"/><circle cx="9" cy="3" r="2" fill="var(--ink)" opacity="1.00"/><circle cx="15" cy="3" r="2" fill="var(--ink)" opacity=".15"/><circle cx="15" cy="3" r="2" fill="var(--ink)" opacity="1.00"/><circle cx="21" cy="3" r="2" fill="var(--ink)" opacity=".15"/><circle cx="21" cy="3" r="2" fill="var(--ink)" opacity="1.00"/><circle cx="27" cy="3" r="2" fill="var(--ink)" opacity=".15"/><circle cx="27" cy="3" r="2" fill="var(--ink)" opacity="1.00"/><circle cx="33" cy="3" r="2" fill="var(--ink)" opacity=".15"/><circle cx="33" cy="3" r="2" fill="var(--ink)" opacity="1.00"/><circle cx="39" cy="3" r="2" fill="var(--ink)" opacity=".15"/><circle cx="39" cy="3" r="2" fill="var(--ink)" opacity="1.00"/><circle cx="45" cy="3" r="2" fill="var(--ink)" opacity=".15"/><circle cx="45" cy="3" r="2" fill="var(--ink)" opacity="1.00"/><circle cx="51" cy="3" r="2" fill="var(--ink)" opacity=".15"/><circle cx="51" cy="3" r="2" fill="var(--ink)" opacity="1.00"/><circle cx="57" cy="3" r="2" fill="var(--ink)" opacity=".15"/><circle cx="57" cy="3" r="2" fill="var(--ink)" opacity="1.00"/><circle cx="63" cy="3" r="2" fill="var(--ink)" opacity=".15"/><circle cx="63" cy="3" r="2" fill="var(--ink)" opacity="1.00"/><circle cx="69" cy="3" r="2" fill="var(--ink)" opacity=".15"/><circle cx="69" cy="3" r="2" fill="var(--ink)" opacity="1.00"/><circle cx="75" cy="3" r="2" fill="var(--ink)" opacity=".15"/><circle cx="75" cy="3" r="2" fill="var(--ink)" opacity="1.00"/><circle cx="81" cy="3" r="2" fill="var(--ink)" opacity=".15"/><circle cx="81" cy="3" r="2" fill="var(--ink)" opacity="1.00"/><circle cx="87" cy="3" r="2" fill="var(--ink)" opacity=".15"/><circle cx="87" cy="3" r="2" fill="var(--ink)" opacity="1.00"/><circle cx="93" cy="3" r="2" fill="var(--ink)" opacity=".15"/><circle cx="93" cy="3" r="2" fill="var(--ink)" opacity="1.00"/><circle cx="99" cy="3" r="2" fill="var(--ink)" opacity=".15"/><circle cx="99" cy="3" r="2" fill="var(--ink)" opacity="1.00"/><circle cx="105" cy="3" r="2" fill="var(--ink)" opacity=".15"/><circle cx="105" cy="3" r="2" fill="var(--ink)" opacity="1.00"/><circle cx="111" cy="3" r="2" fill="var(--ink)" opacity=".15"/><circle cx="111" cy="3" r="2" fill="var(--ink)" opacity="1.00"/><circle cx="117" cy="3" r="2" fill="var(--ink)" opacity=".15"/><circle cx="117" cy="3" r="2" fill="var(--ink)" opacity="1.00"/><circle cx="123" cy="3" r="2" fill="var(--ink)" opacity=".15"/><circle cx="123" cy="3" r="2" fill="var(--ink)" opacity="1.00"/><circle cx="129" cy="3" r="2" fill="var(--ink)" opacity=".15"/><circle cx="129" cy="3" r="2" fill="var(--ink)" opacity="0.60"/><circle cx="135" cy="3" r="2" fill="var(--ink)" opacity=".15"/><circle cx="135" cy="3" r="1.5" fill="none" stroke="var(--ink)" stroke-opacity=".55" stroke-width="1"/><circle cx="141" cy="3" r="2" fill="var(--ink)" opacity=".15"/><circle cx="141" cy="3" r="1.5" fill="none" stroke="var(--ink)" stroke-opacity=".55" stroke-width="1"/><circle cx="147" cy="3" r="2" fill="var(--ink)" opacity=".15"/><circle cx="147" cy="3" r="1.5" fill="none" stroke="var(--ink)" stroke-opacity=".55" stroke-width="1"/><circle cx="153" cy="3" r="2" fill="var(--ink)" opacity=".15"/><circle cx="153" cy="3" r="1.5" fill="none" stroke="var(--ink)" stroke-opacity=".55" stroke-width="1"/><circle cx="159" cy="3" r="2" fill="var(--ink)" opacity=".15"/><circle cx="159" cy="3" r="1.5" fill="none" stroke="var(--ink)" stroke-opacity=".55" stroke-width="1"/><circle cx="165" cy="3" r="2" fill="var(--ink)" opacity=".15"/><circle cx="165" cy="3" r="1.5" fill="none" stroke="var(--ink)" stroke-opacity=".55" stroke-width="1"/><circle cx="171" cy="3" r="2" fill="var(--ink)" opacity=".15"/><circle cx="171" cy="3" r="1.5" fill="none" stroke="var(--ink)" stroke-opacity=".55" stroke-width="1"/><circle cx="177" cy="3" r="2" fill="var(--ink)" opacity=".15"/><circle cx="177" cy="3" r="1.5" fill="none" stroke="var(--ink)" stroke-opacity=".55" stroke-width="1"/><circle cx="183" cy="3" r="2" fill="var(--ink)" opacity=".15"/><circle cx="183" cy="3" r="1.5" fill="none" stroke="var(--ink)" stroke-opacity=".55" stroke-width="1"/><circle cx="189" cy="3" r="2" fill="var(--ink)" opacity=".15"/><circle cx="189" cy="3" r="1.5" fill="none" stroke="var(--ink)" stroke-opacity=".55" stroke-width="1"/><circle cx="195" cy="3" r="2" fill="var(--ink)" opacity=".15"/><circle cx="195" cy="3" r="1.5" fill="none" stroke="var(--ink)" stroke-opacity=".55" stroke-width="1"/><circle cx="201" cy="3" r="2" fill="var(--ink)" opacity=".15"/><circle cx="201" cy="3" r="1.5" fill="none" stroke="var(--ink)" stroke-opacity=".55" stroke-width="1"/><circle cx="207" cy="3" r="2" fill="var(--ink)" opacity=".15"/><circle cx="207" cy="3" r="1.5" fill="none" stroke="var(--ink)" stroke-opacity=".55" stroke-width="1"/><circle cx="213" cy="3" r="2" fill="var(--ink)" opacity=".15"/><circle cx="213" cy="3" r="1.5" fill="none" stroke="var(--ink)" stroke-opacity=".55" stroke-width="1"/><circle cx="219" cy="3" r="2" fill="var(--ink)" opacity=".15"/><circle cx="219" cy="3" r="1.5" fill="none" stroke="var(--ink)" stroke-opacity=".55" stroke-width="1"/><circle cx="225" cy="3" r="2" fill="var(--ink)" opacity=".15"/><circle cx="225" cy="3" r="1.5" fill="none" stroke="var(--ink)" stroke-opacity=".55" stroke-width="1"/><circle cx="231" cy="3" r="2" fill="var(--ink)" opacity=".15"/><circle cx="237" cy="3" r="2" fill="var(--ink)" opacity=".15"/><circle cx="243" cy="3" r="2" fill="var(--ink)" opacity=".15"/><circle cx="249" cy="3" r="2" fill="var(--ink)" opacity=".15"/><circle cx="255" cy="3" r="2" fill="var(--ink)" opacity=".15"/><circle cx="261" cy="3" r="2" fill="var(--ink)" opacity=".15"/><circle cx="267" cy="3" r="2" fill="var(--ink)" opacity=".15"/><circle cx="273" cy="3" r="2" fill="var(--ink)" opacity=".15"/><circle cx="279" cy="3" r="2" fill="var(--ink)" opacity=".15"/><circle cx="285" cy="3" r="2" fill="var(--ink)" opacity=".15"/><rect x="154.5" y="0" width="2" height="6" fill="var(--ink)"/></svg>
+          <div class="row week"><span class="micro">Week</span><b>48<span class="u">%</span></b></div>
+          <svg class="bar" viewBox="0 0 292 5" aria-hidden="true" focusable="false"><circle cx="2" cy="2.5" r="1.5" fill="var(--ink)" opacity=".15"/><circle cx="2" cy="2.5" r="1.5" fill="var(--ink)" opacity="1.00"/><circle cx="6" cy="2.5" r="1.5" fill="var(--ink)" opacity=".15"/><circle cx="6" cy="2.5" r="1.5" fill="var(--ink)" opacity="1.00"/><circle cx="10" cy="2.5" r="1.5" fill="var(--ink)" opacity=".15"/><circle cx="10" cy="2.5" r="1.5" fill="var(--ink)" opacity="1.00"/><circle cx="14" cy="2.5" r="1.5" fill="var(--ink)" opacity=".15"/><circle cx="14" cy="2.5" r="1.5" fill="var(--ink)" opacity="1.00"/><circle cx="18" cy="2.5" r="1.5" fill="var(--ink)" opacity=".15"/><circle cx="18" cy="2.5" r="1.5" fill="var(--ink)" opacity="1.00"/><circle cx="22" cy="2.5" r="1.5" fill="var(--ink)" opacity=".15"/><circle cx="22" cy="2.5" r="1.5" fill="var(--ink)" opacity="1.00"/><circle cx="26" cy="2.5" r="1.5" fill="var(--ink)" opacity=".15"/><circle cx="26" cy="2.5" r="1.5" fill="var(--ink)" opacity="1.00"/><circle cx="30" cy="2.5" r="1.5" fill="var(--ink)" opacity=".15"/><circle cx="30" cy="2.5" r="1.5" fill="var(--ink)" opacity="1.00"/><circle cx="34" cy="2.5" r="1.5" fill="var(--ink)" opacity=".15"/><circle cx="34" cy="2.5" r="1.5" fill="var(--ink)" opacity="1.00"/><circle cx="38" cy="2.5" r="1.5" fill="var(--ink)" opacity=".15"/><circle cx="38" cy="2.5" r="1.5" fill="var(--ink)" opacity="1.00"/><circle cx="42" cy="2.5" r="1.5" fill="var(--ink)" opacity=".15"/><circle cx="42" cy="2.5" r="1.5" fill="var(--ink)" opacity="1.00"/><circle cx="46" cy="2.5" r="1.5" fill="var(--ink)" opacity=".15"/><circle cx="46" cy="2.5" r="1.5" fill="var(--ink)" opacity="1.00"/><circle cx="50" cy="2.5" r="1.5" fill="var(--ink)" opacity=".15"/><circle cx="50" cy="2.5" r="1.5" fill="var(--ink)" opacity="1.00"/><circle cx="54" cy="2.5" r="1.5" fill="var(--ink)" opacity=".15"/><circle cx="54" cy="2.5" r="1.5" fill="var(--ink)" opacity="1.00"/><circle cx="58" cy="2.5" r="1.5" fill="var(--ink)" opacity=".15"/><circle cx="58" cy="2.5" r="1.5" fill="var(--ink)" opacity="1.00"/><circle cx="62" cy="2.5" r="1.5" fill="var(--ink)" opacity=".15"/><circle cx="62" cy="2.5" r="1.5" fill="var(--ink)" opacity="1.00"/><circle cx="66" cy="2.5" r="1.5" fill="var(--ink)" opacity=".15"/><circle cx="66" cy="2.5" r="1.5" fill="var(--ink)" opacity="1.00"/><circle cx="70" cy="2.5" r="1.5" fill="var(--ink)" opacity=".15"/><circle cx="70" cy="2.5" r="1.5" fill="var(--ink)" opacity="1.00"/><circle cx="74" cy="2.5" r="1.5" fill="var(--ink)" opacity=".15"/><circle cx="74" cy="2.5" r="1.5" fill="var(--ink)" opacity="1.00"/><circle cx="78" cy="2.5" r="1.5" fill="var(--ink)" opacity=".15"/><circle cx="78" cy="2.5" r="1.5" fill="var(--ink)" opacity="1.00"/><circle cx="82" cy="2.5" r="1.5" fill="var(--ink)" opacity=".15"/><circle cx="82" cy="2.5" r="1.5" fill="var(--ink)" opacity="1.00"/><circle cx="86" cy="2.5" r="1.5" fill="var(--ink)" opacity=".15"/><circle cx="86" cy="2.5" r="1.5" fill="var(--ink)" opacity="1.00"/><circle cx="90" cy="2.5" r="1.5" fill="var(--ink)" opacity=".15"/><circle cx="90" cy="2.5" r="1.5" fill="var(--ink)" opacity="1.00"/><circle cx="94" cy="2.5" r="1.5" fill="var(--ink)" opacity=".15"/><circle cx="94" cy="2.5" r="1.5" fill="var(--ink)" opacity="1.00"/><circle cx="98" cy="2.5" r="1.5" fill="var(--ink)" opacity=".15"/><circle cx="98" cy="2.5" r="1.5" fill="var(--ink)" opacity="1.00"/><circle cx="102" cy="2.5" r="1.5" fill="var(--ink)" opacity=".15"/><circle cx="102" cy="2.5" r="1.5" fill="var(--ink)" opacity="1.00"/><circle cx="106" cy="2.5" r="1.5" fill="var(--ink)" opacity=".15"/><circle cx="106" cy="2.5" r="1.5" fill="var(--ink)" opacity="1.00"/><circle cx="110" cy="2.5" r="1.5" fill="var(--ink)" opacity=".15"/><circle cx="110" cy="2.5" r="1.5" fill="var(--ink)" opacity="1.00"/><circle cx="114" cy="2.5" r="1.5" fill="var(--ink)" opacity=".15"/><circle cx="114" cy="2.5" r="1.5" fill="var(--ink)" opacity="1.00"/><circle cx="118" cy="2.5" r="1.5" fill="var(--ink)" opacity=".15"/><circle cx="118" cy="2.5" r="1.5" fill="var(--ink)" opacity="1.00"/><circle cx="122" cy="2.5" r="1.5" fill="var(--ink)" opacity=".15"/><circle cx="122" cy="2.5" r="1.5" fill="var(--ink)" opacity="1.00"/><circle cx="126" cy="2.5" r="1.5" fill="var(--ink)" opacity=".15"/><circle cx="126" cy="2.5" r="1.5" fill="var(--ink)" opacity="1.00"/><circle cx="130" cy="2.5" r="1.5" fill="var(--ink)" opacity=".15"/><circle cx="130" cy="2.5" r="1.5" fill="var(--ink)" opacity="1.00"/><circle cx="134" cy="2.5" r="1.5" fill="var(--ink)" opacity=".15"/><circle cx="134" cy="2.5" r="1.5" fill="var(--ink)" opacity="1.00"/><circle cx="138" cy="2.5" r="1.5" fill="var(--ink)" opacity=".15"/><circle cx="138" cy="2.5" r="1.5" fill="var(--ink)" opacity="1.00"/><circle cx="142" cy="2.5" r="1.5" fill="var(--ink)" opacity=".15"/><circle cx="142" cy="2.5" r="1.5" fill="var(--ink)" opacity="0.04"/><circle cx="146" cy="2.5" r="1.5" fill="var(--ink)" opacity=".15"/><circle cx="150" cy="2.5" r="1.5" fill="var(--ink)" opacity=".15"/><circle cx="154" cy="2.5" r="1.5" fill="var(--ink)" opacity=".15"/><circle cx="158" cy="2.5" r="1.5" fill="var(--ink)" opacity=".15"/><circle cx="162" cy="2.5" r="1.5" fill="var(--ink)" opacity=".15"/><circle cx="166" cy="2.5" r="1.5" fill="var(--ink)" opacity=".15"/><circle cx="170" cy="2.5" r="1.5" fill="var(--ink)" opacity=".15"/><circle cx="174" cy="2.5" r="1.5" fill="var(--ink)" opacity=".15"/><circle cx="178" cy="2.5" r="1.5" fill="var(--ink)" opacity=".15"/><circle cx="182" cy="2.5" r="1.5" fill="var(--ink)" opacity=".15"/><circle cx="186" cy="2.5" r="1.5" fill="var(--ink)" opacity=".15"/><circle cx="190" cy="2.5" r="1.5" fill="var(--ink)" opacity=".15"/><circle cx="194" cy="2.5" r="1.5" fill="var(--ink)" opacity=".15"/><circle cx="198" cy="2.5" r="1.5" fill="var(--ink)" opacity=".15"/><circle cx="202" cy="2.5" r="1.5" fill="var(--ink)" opacity=".15"/><circle cx="206" cy="2.5" r="1.5" fill="var(--ink)" opacity=".15"/><circle cx="210" cy="2.5" r="1.5" fill="var(--ink)" opacity=".15"/><circle cx="214" cy="2.5" r="1.5" fill="var(--ink)" opacity=".15"/><circle cx="218" cy="2.5" r="1.5" fill="var(--ink)" opacity=".15"/><circle cx="222" cy="2.5" r="1.5" fill="var(--ink)" opacity=".15"/><circle cx="226" cy="2.5" r="1.5" fill="var(--ink)" opacity=".15"/><circle cx="230" cy="2.5" r="1.5" fill="var(--ink)" opacity=".15"/><circle cx="234" cy="2.5" r="1.5" fill="var(--ink)" opacity=".15"/><circle cx="238" cy="2.5" r="1.5" fill="var(--ink)" opacity=".15"/><circle cx="242" cy="2.5" r="1.5" fill="var(--ink)" opacity=".15"/><circle cx="246" cy="2.5" r="1.5" fill="var(--ink)" opacity=".15"/><circle cx="250" cy="2.5" r="1.5" fill="var(--ink)" opacity=".15"/><circle cx="254" cy="2.5" r="1.5" fill="var(--ink)" opacity=".15"/><circle cx="258" cy="2.5" r="1.5" fill="var(--ink)" opacity=".15"/><circle cx="262" cy="2.5" r="1.5" fill="var(--ink)" opacity=".15"/><circle cx="266" cy="2.5" r="1.5" fill="var(--ink)" opacity=".15"/><circle cx="270" cy="2.5" r="1.5" fill="var(--ink)" opacity=".15"/><circle cx="274" cy="2.5" r="1.5" fill="var(--ink)" opacity=".15"/><circle cx="278" cy="2.5" r="1.5" fill="var(--ink)" opacity=".15"/><circle cx="282" cy="2.5" r="1.5" fill="var(--ink)" opacity=".15"/><circle cx="286" cy="2.5" r="1.5" fill="var(--ink)" opacity=".15"/><circle cx="290" cy="2.5" r="1.5" fill="var(--ink)" opacity=".15"/></svg>
+          <div class="card">
+            <div class="row"><span>History</span><span class="legend"><i class="d"></i>Session <i class="l"></i>Week</span></div>
+            <svg class="hist" viewBox="0 0 268 56" aria-hidden="true" focusable="false"><circle cx="4.2" cy="52.0" r="2" fill="var(--ink)" opacity="0.4"/><circle cx="4.2" cy="43.5" r="2" fill="var(--ink)" opacity="0.4"/><circle cx="4.2" cy="35.0" r="2" fill="var(--ink)" opacity="0.4"/><circle cx="4.2" cy="26.5" r="2" fill="var(--ink)" opacity="0.4"/><circle cx="4.2" cy="18.0" r="2" fill="var(--ink)" opacity="0.4"/><circle cx="12.6" cy="52.0" r="2" fill="var(--ink)" opacity="0.4"/><circle cx="12.6" cy="43.5" r="2" fill="var(--ink)" opacity="0.4"/><circle cx="12.6" cy="35.0" r="2" fill="var(--ink)" opacity="0.4"/><circle cx="12.6" cy="26.5" r="2" fill="var(--ink)" opacity="0.4"/><circle cx="12.6" cy="18.0" r="2" fill="var(--ink)" opacity="0.4"/><circle cx="20.9" cy="52.0" r="2" fill="var(--ink)" opacity="0.4"/><circle cx="20.9" cy="43.5" r="2" fill="var(--ink)" opacity="0.4"/><circle cx="20.9" cy="35.0" r="2" fill="var(--ink)" opacity="0.4"/><circle cx="20.9" cy="26.5" r="2" fill="var(--ink)" opacity="0.4"/><circle cx="20.9" cy="18.0" r="2" fill="var(--ink)" opacity="0.4"/><circle cx="29.3" cy="52.0" r="2" fill="var(--ink)" opacity="0.4"/><circle cx="29.3" cy="43.5" r="2" fill="var(--ink)" opacity="0.4"/><circle cx="29.3" cy="35.0" r="2" fill="var(--ink)" opacity="0.4"/><circle cx="29.3" cy="26.5" r="2" fill="var(--ink)" opacity="0.4"/><circle cx="29.3" cy="18.0" r="2" fill="var(--ink)" opacity="0.4"/><circle cx="37.7" cy="52.0" r="2" fill="var(--ink)" opacity="0.4"/><circle cx="37.7" cy="43.5" r="2" fill="var(--ink)" opacity="0.4"/><circle cx="37.7" cy="35.0" r="2" fill="var(--ink)" opacity="0.4"/><circle cx="37.7" cy="26.5" r="2" fill="var(--ink)" opacity="0.4"/><circle cx="37.7" cy="18.0" r="2" fill="var(--ink)" opacity="0.4"/><circle cx="37.7" cy="9.5" r="2" fill="var(--ink)" opacity="0.4"/><circle cx="46.1" cy="52.0" r="2" fill="var(--ink)" opacity="0.4"/><circle cx="46.1" cy="43.5" r="2" fill="var(--ink)" opacity="0.4"/><circle cx="46.1" cy="35.0" r="2" fill="var(--ink)" opacity="0.4"/><circle cx="46.1" cy="26.5" r="2" fill="var(--ink)" opacity="0.4"/><circle cx="46.1" cy="18.0" r="2" fill="var(--ink)" opacity="0.4"/><circle cx="46.1" cy="9.5" r="2" fill="var(--ink)" opacity="0.4"/><circle cx="54.4" cy="52.0" r="2" fill="var(--ink)" opacity="0.4"/><circle cx="54.4" cy="43.5" r="2" fill="var(--ink)" opacity="0.4"/><circle cx="54.4" cy="35.0" r="2" fill="var(--ink)" opacity="0.4"/><circle cx="54.4" cy="26.5" r="2" fill="var(--ink)" opacity="0.4"/><circle cx="54.4" cy="18.0" r="2" fill="var(--ink)" opacity="0.4"/><circle cx="54.4" cy="9.5" r="2" fill="var(--ink)" opacity="0.4"/><circle cx="62.8" cy="52.0" r="2" fill="var(--ink)" opacity="0.4"/><circle cx="62.8" cy="43.5" r="2" fill="var(--ink)" opacity="0.4"/><circle cx="62.8" cy="35.0" r="2" fill="var(--ink)" opacity="0.4"/><circle cx="71.2" cy="52.0" r="2" fill="var(--ink)" opacity="0.15"/><circle cx="79.6" cy="52.0" r="2" fill="var(--ink)" opacity="0.15"/><circle cx="87.9" cy="52.0" r="2" fill="var(--ink)" opacity="0.15"/><circle cx="96.3" cy="52.0" r="2" fill="var(--ink)" opacity="0.15"/><circle cx="104.7" cy="52.0" r="2" fill="var(--ink)" opacity="0.15"/><circle cx="113.1" cy="52.0" r="2" fill="var(--ink)" opacity="0.15"/><circle cx="121.4" cy="52.0" r="2" fill="var(--ink)" opacity="0.15"/><circle cx="129.8" cy="52.0" r="2" fill="var(--ink)" opacity="0.4"/><circle cx="129.8" cy="43.5" r="2" fill="var(--ink)" opacity="0.4"/><circle cx="138.2" cy="52.0" r="2" fill="var(--ink)" opacity="0.4"/><circle cx="138.2" cy="43.5" r="2" fill="var(--ink)" opacity="0.4"/><circle cx="146.6" cy="52.0" r="2" fill="var(--ink)" opacity="0.4"/><circle cx="146.6" cy="43.5" r="2" fill="var(--ink)" opacity="0.4"/><circle cx="154.9" cy="52.0" r="2" fill="var(--ink)" opacity="0.4"/><circle cx="154.9" cy="43.5" r="2" fill="var(--ink)" opacity="0.4"/><circle cx="163.3" cy="52.0" r="2" fill="var(--ink)" opacity="0.4"/><circle cx="163.3" cy="43.5" r="2" fill="var(--ink)" opacity="0.4"/><circle cx="171.7" cy="52.0" r="2" fill="var(--ink)" opacity="0.4"/><circle cx="171.7" cy="43.5" r="2" fill="var(--ink)" opacity="0.4"/><circle cx="180.1" cy="52.0" r="2" fill="var(--ink)" opacity="0.4"/><circle cx="180.1" cy="43.5" r="2" fill="var(--ink)" opacity="0.4"/><circle cx="180.1" cy="35.0" r="2" fill="var(--ink)" opacity="0.4"/><circle cx="188.4" cy="52.0" r="2" fill="var(--ink)" opacity="0.4"/><circle cx="188.4" cy="43.5" r="2" fill="var(--ink)" opacity="0.4"/><circle cx="188.4" cy="35.0" r="2" fill="var(--ink)" opacity="0.4"/><circle cx="196.8" cy="52.0" r="2" fill="var(--ink)" opacity="0.4"/><circle cx="196.8" cy="43.5" r="2" fill="var(--ink)" opacity="0.4"/><circle cx="196.8" cy="35.0" r="2" fill="var(--ink)" opacity="0.4"/><circle cx="205.2" cy="52.0" r="2" fill="var(--ink)" opacity="0.4"/><circle cx="205.2" cy="43.5" r="2" fill="var(--ink)" opacity="0.4"/><circle cx="205.2" cy="35.0" r="2" fill="var(--ink)" opacity="0.4"/><circle cx="213.6" cy="52.0" r="2" fill="var(--ink)" opacity="0.4"/><circle cx="213.6" cy="43.5" r="2" fill="var(--ink)" opacity="0.4"/><circle cx="213.6" cy="35.0" r="2" fill="var(--ink)" opacity="0.4"/><circle cx="221.9" cy="52.0" r="2" fill="var(--ink)" opacity="0.4"/><circle cx="221.9" cy="43.5" r="2" fill="var(--ink)" opacity="0.4"/><circle cx="221.9" cy="35.0" r="2" fill="var(--ink)" opacity="0.4"/><circle cx="221.9" cy="26.5" r="2" fill="var(--ink)" opacity="0.4"/><circle cx="230.3" cy="52.0" r="2" fill="var(--ink)" opacity="0.4"/><circle cx="230.3" cy="43.5" r="2" fill="var(--ink)" opacity="0.4"/><circle cx="230.3" cy="35.0" r="2" fill="var(--ink)" opacity="0.4"/><circle cx="230.3" cy="26.5" r="2" fill="var(--ink)" opacity="0.4"/><circle cx="238.7" cy="52.0" r="2" fill="var(--ink)" opacity="0.4"/><circle cx="238.7" cy="43.5" r="2" fill="var(--ink)" opacity="0.4"/><circle cx="238.7" cy="35.0" r="2" fill="var(--ink)" opacity="0.4"/><circle cx="238.7" cy="26.5" r="2" fill="var(--ink)" opacity="0.4"/><circle cx="247.1" cy="52.0" r="2" fill="var(--ink)" opacity="0.4"/><circle cx="247.1" cy="43.5" r="2" fill="var(--ink)" opacity="0.4"/><circle cx="247.1" cy="35.0" r="2" fill="var(--ink)" opacity="0.4"/><circle cx="247.1" cy="26.5" r="2" fill="var(--ink)" opacity="0.4"/><circle cx="255.4" cy="52.0" r="2" fill="var(--ink)" opacity="0.4"/><circle cx="255.4" cy="43.5" r="2" fill="var(--ink)" opacity="0.4"/><circle cx="255.4" cy="35.0" r="2" fill="var(--ink)" opacity="0.4"/><circle cx="255.4" cy="26.5" r="2" fill="var(--ink)" opacity="0.4"/><circle cx="263.8" cy="52.0" r="2" fill="var(--ink)" opacity="1"/><circle cx="263.8" cy="43.5" r="2" fill="var(--ink)" opacity="1"/><circle cx="263.8" cy="35.0" r="2" fill="var(--ink)" opacity="1"/><circle cx="263.8" cy="26.5" r="2" fill="var(--ink)" opacity="1"/><polyline points="4.2,26.0 12.6,25.9 20.9,25.9 29.3,25.8 37.7,25.8 46.1,25.7 54.4,25.6 62.8,25.6 71.2,29.5 79.6,29.4 87.9,29.4 96.3,29.3 104.7,29.2 113.1,29.2 121.4,29.1 129.8,29.1 138.2,29.0 146.6,28.9 154.9,28.9 163.3,28.8 171.7,28.8 180.1,28.7 188.4,28.6 196.8,28.6 205.2,28.5 213.6,28.4 221.9,28.4 230.3,28.3 238.7,28.2 247.1,28.2 255.4,28.1 263.8,28.1" fill="none" stroke="var(--accent)" stroke-width="1.5" stroke-linejoin="round"/></svg>
+            <div class="axis"><span>-6h</span><span>-3h</span><span>now</span></div>
           </div>
-          <h3>Session Projection</h3>
-          <p>Estimates whether you'll hit the rate limit before the session window resets. Plan your coding sessions accordingly.</p>
-        </div>
-        <div class="feature-card">
-          <div class="feature-icon icon-pace">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
-          </div>
-          <h3>Pace Marker</h3>
-          <p>A marker on every usage bar shows where an even, on-track pace would put you right now — see at a glance if you're ahead of or behind budget for the window.</p>
-        </div>
-        <div class="feature-card">
-          <div class="feature-icon icon-bell">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-          </div>
-          <h3>Smart Notifications</h3>
-          <p>Alerts for warning thresholds, critical levels, limit resets, and service incidents. Never get surprised by a rate limit.</p>
-        </div>
-        <div class="feature-card">
-          <div class="feature-icon icon-key">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-          </div>
-          <h3>Keychain Integration</h3>
-          <p>Reads your existing Claude Code CLI credentials from macOS Keychain. No tokens to paste, no config files to edit.</p>
-        </div>
-        <div class="feature-card">
-          <div class="feature-icon icon-stats">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
-          </div>
-          <h3>Usage Stats</h3>
-          <p>Messages, sessions, and tokens for any period, plus local Sonnet/Opus attribution — parsed from your local Claude Code history files. All stays on your machine.</p>
-        </div>
-        <div class="feature-card">
-          <div class="feature-icon icon-terminal">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
-          </div>
-          <h3>Active Sessions</h3>
-          <p>See every Claude Code session with activity in the last few minutes, by project, with its live context-window size. Right-click to reveal the folder in Finder or open a terminal there.</p>
-        </div>
-        <div class="feature-card">
-          <div class="feature-icon icon-folder">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
-          </div>
-          <h3>Top Projects</h3>
-          <p>See which project directories are consuming the most tokens for the selected period, ranked and collapsible so it stays out of the way until you want it.</p>
+          <ul class="card list">
+            <li><span class="live" aria-hidden="true"></span>Active sessions<b>4</b></li>
+            <li><svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true"><g fill="var(--ink)"><circle cx="3" cy="13" r="1.4"/><circle cx="3" cy="9" r="1.4"/><circle cx="8" cy="13" r="1.4"/><circle cx="8" cy="9" r="1.4"/><circle cx="8" cy="5" r="1.4"/><circle cx="13" cy="13" r="1.4"/></g></svg>Statistics today<b><span class="u">≈ $</span>117</b></li>
+            <li><svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true"><circle cx="8" cy="8" r="6" fill="none" stroke="var(--ink)" stroke-width="1.4" stroke-dasharray="2 2.35"/></svg>All limits<b>2 more</b></li>
+          </ul>
+          <p class="foot">Updated 25 s ago</p>
         </div>
       </div>
-    </div>
-  </section>
+    </section>
 
-  <!-- Install -->
-  <section class="install" id="install">
-    <div class="install-inner">
-      <div class="section-header reveal">
-        <h2>Get started in seconds</h2>
-        <p>One command. No dependencies, no sign-up, no config.</p>
+    <section class="facts" aria-labelledby="facts-h">
+      <div class="wrap">
+        <h2 id="facts-h" class="eyebrow">What you get</h2>
+        <dl class="fact-grid">
+          <div><dt>providers, on equal terms</dt><dd><span class="doto">2</span></dd></div>
+          <div><dt>macOS, the minimum version</dt><dd><span class="doto">14</span><span class="unit">+</span></dd></div>
+          <div><dt>between checks while you work</dt><dd><span class="doto">5</span><span class="unit">min</span></dd></div>
+          <div><dt>external dependencies</dt><dd><span class="doto">0</span></dd></div>
+        </dl>
       </div>
-      <div class="install-box reveal">
-        <div class="install-box-header">
-          <span class="dot"></span>
-          <span class="dot"></span>
-          <span class="dot"></span>
-        </div>
-        <div class="install-steps">
-          <div class="install-step">
-            <div class="step-num">1</div>
-            <div class="step-content">
-              <h4>Install via Homebrew</h4>
-              <div class="code-block">
-                <code><span class="prompt">$ </span>brew install konradmichalik/tap/spark</code>
-                <button class="copy-btn" data-cmd="brew install konradmichalik/tap/spark" aria-label="Copy command">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-                </button>
-              </div>
-            </div>
-          </div>
-          <div class="install-step">
-            <div class="step-num">2</div>
-            <div class="step-content">
-              <h4>Make sure Claude Code is authenticated</h4>
-              <p>Spark reads the OAuth token stored by Claude Code CLI in macOS Keychain.</p>
-              <div class="code-block">
-                <code><span class="prompt">$ </span>claude auth login</code>
-                <button class="copy-btn" data-cmd="claude auth login" aria-label="Copy command">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-                </button>
-              </div>
-            </div>
-          </div>
-          <div class="install-step">
-            <div class="step-num">3</div>
-            <div class="step-content">
-              <h4>Launch Spark</h4>
-              <p>Open from Applications or Spotlight. The usage ring appears in your menu bar — that's it.</p>
-            </div>
-          </div>
-        </div>
-        <div class="install-note">
-          <p>To update: <code style="font-family:var(--font-mono);font-size:12px;color:var(--text-muted)">brew upgrade --cask konradmichalik/tap/spark</code> &middot; Requires macOS 14+ &middot; <a href="https://github.com/konradmichalik/spark/blob/main/CONTRIBUTING.md" target="_blank" rel="noopener">Build from source</a></p>
-        </div>
-      </div>
-    </div>
-  </section>
+    </section>
 
-  <!-- Footer -->
-  <footer class="footer">
-    <div class="footer-links">
-      <a href="https://github.com/konradmichalik/spark" target="_blank" rel="noopener">GitHub</a>
-      <span class="footer-dot">&middot;</span>
-      <a href="https://github.com/konradmichalik/spark/releases" target="_blank" rel="noopener">Releases</a>
-      <span class="footer-dot">&middot;</span>
-      <a href="https://github.com/konradmichalik/spark/blob/main/LICENSE" target="_blank" rel="noopener">MIT License</a>
+    <section class="features wrap" id="features" aria-labelledby="features-h">
+      <h2 id="features-h" class="big">The important part first. The rest one click away.</h2>
+      <p class="sub">Session, week and the forecast on open. History, sessions, statistics and every limit behind a single click.</p>
+      <ul class="cards">
+        <li class="fcard">
+          <p class="micro">Providers</p>
+          <h3>Claude and Codex, side by side</h3>
+          <p>One tab per provider with its session value. No provider colour in the data: bars, rings and graphs read the same for both. Codex appears once the Codex CLI is signed in with ChatGPT.</p>
+        </li>
+        <li class="fcard">
+          <p class="micro">Forecast</p>
+          <h3>Will it last?</h3>
+          <p>Hollow dots show where the session lands at the reset. A marker shows how much of the window has passed. The forecast turns ochre, then red, when the limit comes early.</p>
+        </li>
+        <li class="fcard">
+          <p class="micro">History</p>
+          <h3>Session and week in one graph</h3>
+          <p>Dot columns for the session, a red line for the week. From one hour to thirty days.</p>
+        </li>
+        <li class="fcard">
+          <p class="micro">Menu bar</p>
+          <h3>A ring that fills</h3>
+          <p>Twelve dots, each one a twelfth of your limit. It shows the tab you looked at last and turns ochre, then red, as you get close.</p>
+          <div class="glyphs" role="img" aria-label="The menu bar ring at 45 percent in ink, at 88 percent in ochre and at 100 percent in red."><svg class="glyph" viewBox="0 0 100 100" aria-hidden="true" focusable="false"><circle cx="50.00" cy="12.00" r="7" fill="var(--ink)" opacity=".15"/><circle cx="50.00" cy="12.00" r="7" fill="var(--ink)" opacity="1.00"/><circle cx="69.00" cy="17.09" r="7" fill="var(--ink)" opacity=".15"/><circle cx="69.00" cy="17.09" r="7" fill="var(--ink)" opacity="1.00"/><circle cx="82.91" cy="31.00" r="7" fill="var(--ink)" opacity=".15"/><circle cx="82.91" cy="31.00" r="7" fill="var(--ink)" opacity="1.00"/><circle cx="88.00" cy="50.00" r="7" fill="var(--ink)" opacity=".15"/><circle cx="88.00" cy="50.00" r="7" fill="var(--ink)" opacity="1.00"/><circle cx="82.91" cy="69.00" r="7" fill="var(--ink)" opacity=".15"/><circle cx="82.91" cy="69.00" r="7" fill="var(--ink)" opacity="1.00"/><circle cx="69.00" cy="82.91" r="7" fill="var(--ink)" opacity=".15"/><circle cx="69.00" cy="82.91" r="7" fill="var(--ink)" opacity="0.40"/><circle cx="50.00" cy="88.00" r="7" fill="var(--ink)" opacity=".15"/><circle cx="31.00" cy="82.91" r="7" fill="var(--ink)" opacity=".15"/><circle cx="17.09" cy="69.00" r="7" fill="var(--ink)" opacity=".15"/><circle cx="12.00" cy="50.00" r="7" fill="var(--ink)" opacity=".15"/><circle cx="17.09" cy="31.00" r="7" fill="var(--ink)" opacity=".15"/><circle cx="31.00" cy="17.09" r="7" fill="var(--ink)" opacity=".15"/></svg><svg class="glyph" viewBox="0 0 100 100" aria-hidden="true" focusable="false"><circle cx="50.00" cy="12.00" r="7" fill="var(--ink)" opacity=".15"/><circle cx="50.00" cy="12.00" r="7" fill="var(--warning)" opacity="1.00"/><circle cx="69.00" cy="17.09" r="7" fill="var(--ink)" opacity=".15"/><circle cx="69.00" cy="17.09" r="7" fill="var(--warning)" opacity="1.00"/><circle cx="82.91" cy="31.00" r="7" fill="var(--ink)" opacity=".15"/><circle cx="82.91" cy="31.00" r="7" fill="var(--warning)" opacity="1.00"/><circle cx="88.00" cy="50.00" r="7" fill="var(--ink)" opacity=".15"/><circle cx="88.00" cy="50.00" r="7" fill="var(--warning)" opacity="1.00"/><circle cx="82.91" cy="69.00" r="7" fill="var(--ink)" opacity=".15"/><circle cx="82.91" cy="69.00" r="7" fill="var(--warning)" opacity="1.00"/><circle cx="69.00" cy="82.91" r="7" fill="var(--ink)" opacity=".15"/><circle cx="69.00" cy="82.91" r="7" fill="var(--warning)" opacity="1.00"/><circle cx="50.00" cy="88.00" r="7" fill="var(--ink)" opacity=".15"/><circle cx="50.00" cy="88.00" r="7" fill="var(--warning)" opacity="1.00"/><circle cx="31.00" cy="82.91" r="7" fill="var(--ink)" opacity=".15"/><circle cx="31.00" cy="82.91" r="7" fill="var(--warning)" opacity="1.00"/><circle cx="17.09" cy="69.00" r="7" fill="var(--ink)" opacity=".15"/><circle cx="17.09" cy="69.00" r="7" fill="var(--warning)" opacity="1.00"/><circle cx="12.00" cy="50.00" r="7" fill="var(--ink)" opacity=".15"/><circle cx="12.00" cy="50.00" r="7" fill="var(--warning)" opacity="1.00"/><circle cx="17.09" cy="31.00" r="7" fill="var(--ink)" opacity=".15"/><circle cx="17.09" cy="31.00" r="7" fill="var(--warning)" opacity="0.56"/><circle cx="31.00" cy="17.09" r="7" fill="var(--ink)" opacity=".15"/></svg><svg class="glyph" viewBox="0 0 100 100" aria-hidden="true" focusable="false"><circle cx="50.00" cy="12.00" r="7" fill="var(--ink)" opacity=".15"/><circle cx="50.00" cy="12.00" r="7" fill="var(--accent)" opacity="1.00"/><circle cx="69.00" cy="17.09" r="7" fill="var(--ink)" opacity=".15"/><circle cx="69.00" cy="17.09" r="7" fill="var(--accent)" opacity="1.00"/><circle cx="82.91" cy="31.00" r="7" fill="var(--ink)" opacity=".15"/><circle cx="82.91" cy="31.00" r="7" fill="var(--accent)" opacity="1.00"/><circle cx="88.00" cy="50.00" r="7" fill="var(--ink)" opacity=".15"/><circle cx="88.00" cy="50.00" r="7" fill="var(--accent)" opacity="1.00"/><circle cx="82.91" cy="69.00" r="7" fill="var(--ink)" opacity=".15"/><circle cx="82.91" cy="69.00" r="7" fill="var(--accent)" opacity="1.00"/><circle cx="69.00" cy="82.91" r="7" fill="var(--ink)" opacity=".15"/><circle cx="69.00" cy="82.91" r="7" fill="var(--accent)" opacity="1.00"/><circle cx="50.00" cy="88.00" r="7" fill="var(--ink)" opacity=".15"/><circle cx="50.00" cy="88.00" r="7" fill="var(--accent)" opacity="1.00"/><circle cx="31.00" cy="82.91" r="7" fill="var(--ink)" opacity=".15"/><circle cx="31.00" cy="82.91" r="7" fill="var(--accent)" opacity="1.00"/><circle cx="17.09" cy="69.00" r="7" fill="var(--ink)" opacity=".15"/><circle cx="17.09" cy="69.00" r="7" fill="var(--accent)" opacity="1.00"/><circle cx="12.00" cy="50.00" r="7" fill="var(--ink)" opacity=".15"/><circle cx="12.00" cy="50.00" r="7" fill="var(--accent)" opacity="1.00"/><circle cx="17.09" cy="31.00" r="7" fill="var(--ink)" opacity=".15"/><circle cx="17.09" cy="31.00" r="7" fill="var(--accent)" opacity="1.00"/><circle cx="31.00" cy="17.09" r="7" fill="var(--ink)" opacity=".15"/><circle cx="31.00" cy="17.09" r="7" fill="var(--accent)" opacity="1.00"/></svg></div>
+        </li>
+        <li class="fcard">
+          <p class="micro">Notifications</p>
+          <h3>Warned before it hurts</h3>
+          <p>At your warning and critical thresholds, on resets and when a sign-in expires. Each one carries a small ring with the value.</p>
+        </li>
+        <li class="fcard">
+          <p class="micro">Usage report</p>
+          <h3>Where the tokens went</h3>
+          <p>Fresh tokens by day in an activity calendar, plus top projects and models, for either provider or both.</p>
+          <div class="calwrap" role="img" aria-label="An activity calendar with one dot per day, larger and darker on busier days."><svg class="cal" viewBox="0 0 154 84" aria-hidden="true" focusable="false"><circle cx="5" cy="5" r="2" fill="var(--ink)" opacity=".15"/><circle cx="27" cy="5" r="2" fill="var(--ink)" opacity=".15"/><circle cx="49" cy="5" r="4" fill="var(--ink)" opacity="0.35"/><circle cx="71" cy="5" r="2" fill="var(--ink)" opacity=".15"/><circle cx="93" cy="5" r="2" fill="var(--ink)" opacity=".15"/><circle cx="115" cy="5" r="2" fill="var(--ink)" opacity=".15"/><circle cx="137" cy="5" r="4" fill="var(--ink)" opacity="1"/><circle cx="5" cy="20" r="4" fill="var(--ink)" opacity="1"/><circle cx="27" cy="20" r="4" fill="var(--ink)" opacity="0.6"/><circle cx="49" cy="20" r="2" fill="var(--ink)" opacity=".15"/><circle cx="71" cy="20" r="4" fill="var(--ink)" opacity="0.35"/><circle cx="93" cy="20" r="2" fill="var(--ink)" opacity=".15"/><circle cx="115" cy="20" r="2" fill="var(--ink)" opacity=".15"/><circle cx="137" cy="20" r="2" fill="var(--ink)" opacity=".15"/><circle cx="5" cy="35" r="2" fill="var(--ink)" opacity=".15"/><circle cx="27" cy="35" r="4" fill="var(--ink)" opacity="1"/><circle cx="49" cy="35" r="4" fill="var(--ink)" opacity="1"/><circle cx="71" cy="35" r="4" fill="var(--ink)" opacity="1"/><circle cx="93" cy="35" r="4" fill="var(--ink)" opacity="1"/><circle cx="115" cy="35" r="2" fill="var(--ink)" opacity=".15"/><circle cx="137" cy="35" r="2" fill="var(--ink)" opacity=".15"/><circle cx="5" cy="50" r="4" fill="var(--ink)" opacity="0.6"/><circle cx="27" cy="50" r="4" fill="var(--ink)" opacity="0.6"/><circle cx="49" cy="50" r="4" fill="var(--ink)" opacity="1"/><circle cx="71" cy="50" r="4" fill="var(--ink)" opacity="1"/><circle cx="93" cy="50" r="2" fill="var(--ink)" opacity=".15"/><circle cx="115" cy="50" r="2" fill="var(--ink)" opacity=".15"/><circle cx="137" cy="50" r="2" fill="var(--ink)" opacity=".15"/><circle cx="5" cy="65" r="4" fill="var(--ink)" opacity="0.35"/><circle cx="27" cy="65" r="2" fill="var(--ink)" opacity=".15"/><circle cx="49" cy="65" r="4" fill="var(--ink)" opacity="0.35"/><circle cx="71" cy="65" r="2" fill="var(--ink)" opacity=".15"/><circle cx="93" cy="65" r="4" fill="var(--ink)" opacity="1"/><circle cx="115" cy="65" r="4" fill="var(--ink)" opacity="1"/><circle cx="137" cy="65" r="2" fill="var(--ink)" opacity=".15"/><circle cx="5" cy="80" r="2" fill="var(--ink)" opacity=".15"/><circle cx="27" cy="80" r="4" fill="var(--ink)" opacity="1"/><circle cx="49" cy="80" r="4" fill="var(--ink)" opacity="0.6"/><circle cx="71" cy="80" r="4" fill="var(--ink)" opacity="1"/><circle cx="71" cy="80" r="5.5" fill="none" stroke="var(--ink)" stroke-width="1"/></svg></div>
+        </li>
+      </ul>
+      <p class="privacy"><b>Reads, never writes.</b> Spark uses the Claude Code Keychain entry and the Codex CLI sign-in as they are. No tokens to paste, no refresh that signs you out. Usage stats are parsed from local history files and stay on your Mac.</p>
+    </section>
+
+    <section class="install" id="install" aria-labelledby="install-h">
+      <div class="wrap">
+        <h2 id="install-h" class="big">Running in a minute.</h2>
+        <ol class="steps">
+          <li>
+            <span class="doto step-n" aria-hidden="true">1</span>
+            <h3>Install with Homebrew</h3>
+            <div class="cmd small-cmd"><code>brew install konradmichalik/tap/spark</code>
+              <button class="copy" type="button" data-cmd="brew install konradmichalik/tap/spark" aria-label="Copy the Homebrew command"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button></div>
+            <p>Or download the DMG from the <a href="https://github.com/konradmichalik/spark/releases/latest">releases page</a>.</p>
+          </li>
+          <li>
+            <span class="doto step-n" aria-hidden="true">2</span>
+            <h3>Sign in once in the CLI</h3>
+            <div class="cmd small-cmd"><code>claude auth login</code>
+              <button class="copy" type="button" data-cmd="claude auth login" aria-label="Copy the Claude sign-in command"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button></div>
+            <p>For Codex: <code class="inline">codex login</code>. Spark picks up whatever is signed in.</p>
+          </li>
+          <li>
+            <span class="doto step-n red" aria-hidden="true">3</span>
+            <h3>Open Spark</h3>
+            <div class="cmd small-cmd"><code>open -a Spark</code>
+              <button class="copy" type="button" data-cmd="open -a Spark" aria-label="Copy the open command"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button></div>
+            <p>The ring appears in your menu bar. That is it.</p>
+          </li>
+        </ol>
+        <p class="note">To update: <code class="inline">brew upgrade --cask konradmichalik/tap/spark</code>. Requires macOS 14 or later. <a href="https://github.com/konradmichalik/spark/blob/main/CONTRIBUTING.md">Build from source</a>.</p>
+      </div>
+    </section>
+  </main>
+
+  <footer class="foot-bar">
+    <div class="wrap foot-row">
+      <p>&copy; 2026 Konrad Michalik. Wordmark set in <a href="Doto-OFL.txt">Doto</a> (SIL OFL).</p>
+      <nav aria-label="Footer">
+        <a href="https://github.com/konradmichalik/spark">GitHub</a>
+        <a href="https://github.com/konradmichalik/spark/releases">Releases</a>
+        <a href="https://github.com/konradmichalik/spark/blob/main/LICENSE">MIT License</a>
+      </nav>
     </div>
-    <p class="footer-copy">&copy; 2026 Konrad Michalik</p>
   </footer>
-
   <script src="main.js"></script>
-
 </body>
 </html>
