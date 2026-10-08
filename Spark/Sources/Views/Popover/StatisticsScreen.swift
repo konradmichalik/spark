@@ -44,8 +44,8 @@ struct ClaudeStatisticsScreen: View {
             activeDays: live.activeDayCount, messages: live.messageCount, sessions: live.sessionCount, tokens: live.realTokens
         )
         var facts = [
-            StatFact(label: "Messages", parts: UsageFormat.count(live.messageCount), tooltip: averages.messages ?? ""),
-            StatFact(label: "Sessions", parts: UsageFormat.count(live.sessionCount), tooltip: averages.sessions ?? ""),
+            StatFact(label: "Messages", parts: UsageFormat.count(live.messageCount), tooltip: averages.messages),
+            StatFact(label: "Sessions", parts: UsageFormat.count(live.sessionCount), tooltip: averages.sessions),
             StatFact(
                 label: "Tokens", parts: UsageFormat.tokens(live.realTokens),
                 tooltip: TokenWording.withBreakdown(TokenWording.claude, live.tokenBreakdown, average: averages.tokens)
@@ -95,8 +95,8 @@ struct CodexStatisticsScreen: View {
             activeDays: stats.activeDays.count, messages: stats.messageCount, sessions: stats.sessionCount, tokens: stats.realTokens
         )
         return [
-            StatFact(label: "Messages", parts: UsageFormat.count(stats.messageCount), tooltip: averages.messages ?? ""),
-            StatFact(label: "Sessions", parts: UsageFormat.count(stats.sessionCount), tooltip: averages.sessions ?? ""),
+            StatFact(label: "Messages", parts: UsageFormat.count(stats.messageCount), tooltip: averages.messages),
+            StatFact(label: "Sessions", parts: UsageFormat.count(stats.sessionCount), tooltip: averages.sessions),
             StatFact(
                 label: "Tokens", parts: UsageFormat.tokens(stats.realTokens),
                 tooltip: tokenBreakdown(stats, average: averages.tokens)

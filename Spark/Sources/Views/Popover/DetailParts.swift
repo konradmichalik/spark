@@ -34,13 +34,15 @@ struct StatFact: View {
     /// Read by VoiceOver instead of the split number, e.g. "about 117 dollars".
     var spokenValue: String?
 
+    private var hasTooltip: Bool { tooltip?.isEmpty == false }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack(spacing: 4) {
                 Text(label)
                     .font(.system(size: 11.5))
                     .foregroundStyle(Theme.inkSecondary)
-                if tooltip != nil {
+                if hasTooltip {
                     Spacer(minLength: 0)
                     TablerIconView(.helpCircle, size: 11, color: Theme.inkTertiary)
                 }
