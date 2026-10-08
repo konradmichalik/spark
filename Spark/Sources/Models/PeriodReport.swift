@@ -246,3 +246,24 @@ struct PeriodReport {
         return totals
     }
 }
+
+/// The bounds a Codex scan uses for a report, aligned to whole calendar days like Claude's day
+/// keys. `PeriodReport` carries the days at the time of day it was built, but Codex filters by
+/// exact timestamp, so the lower bounds snap to midnight and the upper bound is the start of the
+/// day after the last day (exclusive).
+struct CodexReportRange: Equatable {
+    let previousStart: Date
+    let start: Date
+    /// `nil` for the current period, where the scan runs through the present moment.
+    let until: Date?
+
+    init(report: PeriodReport, calendar: Calendar = .current) {
+        previousStart = calendar.startOfDay(for: report.previousStart)
+        start = calendar.startOfDay(for: report.rangeStart)
+        if report.periodOffset > 0, let next = calendar.date(byAdding: .day, value: 1, to: report.rangeEnd) {
+            until = calendar.startOfDay(for: next)
+        } else {
+            until = nil
+        }
+    }
+}

@@ -60,8 +60,8 @@ struct WeeklyReportView: View {
             codexData = nil
             return
         }
-        let until = report.periodOffset > 0 ? Calendar.current.date(byAdding: .day, value: 1, to: report.rangeEnd) : nil
-        let data = await codex.reportData(previousStart: report.previousStart, start: report.rangeStart, until: until)
+        let range = CodexReportRange(report: report)
+        let data = await codex.reportData(previousStart: range.previousStart, start: range.start, until: range.until)
         guard !Task.isCancelled else { return }
         codexData = data
     }
