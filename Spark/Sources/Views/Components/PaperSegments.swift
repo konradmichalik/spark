@@ -1,5 +1,12 @@
 import SwiftUI
 
+/// What a segment shows. Kept apart from `rawValue` on purpose: some conformers' raw values are
+/// `@AppStorage` keys, so welding the label to the raw value would turn a wording change into a
+/// silent migration of every user's stored preference.
+protocol SegmentLabeled: Hashable {
+    var segmentLabel: String { get }
+}
+
 /// The segmented control of the popover's detail screens (boards 4 and 6). `trough` sits in a
 /// hairline trough with the selected segment raised as a card, like the provider tabs; `chips`
 /// are small mono labels with the selected one set in ink.

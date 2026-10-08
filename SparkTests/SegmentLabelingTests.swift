@@ -3,10 +3,7 @@ import XCTest
 
 final class SegmentLabelingTests: XCTestCase {
 
-    /// Doesn't exercise `SegmentPicker` or `SegmentLabeled` directly: it pins the option list
-    /// Volume mode hands to the picker. Task 9 wires `availableTimeRanges` straight into
-    /// `SegmentPicker`'s `options`, so a regression here would silently change what the picker
-    /// offers in Volume mode.
+    /// Pins the ranges Volume mode offers, so a regression cannot silently change them.
     func testVolumeModeOffersOnlyDayGranularityRanges() {
         XCTAssertEqual(GraphTimeRange.dayGranularityCases, [.sevenDays, .thirtyDays])
     }
