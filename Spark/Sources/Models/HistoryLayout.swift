@@ -13,6 +13,15 @@ struct HistoryColumn: Equatable {
 /// Buckets snapshots of the last `window` into `count` equal slots, oldest first, keeping the
 /// latest snapshot per slot. Slots without a snapshot stay empty instead of being stretched.
 enum HistoryColumns {
+    /// The newest session and week values in words, for VoiceOver on the history card.
+    static func spokenLatest(_ columns: [HistoryColumn], locale: Locale = .current) -> String? {
+        let parts = [
+            columns.last { $0.session != nil }?.session.map { "session \(UsageFormat.percent($0, locale: locale))" },
+            columns.last { $0.weekly != nil }?.weekly.map { "week \(UsageFormat.percent($0, locale: locale))" }
+        ].compactMap { $0 }
+        return parts.isEmpty ? nil : "Latest: " + parts.joined(separator: ", ")
+    }
+
     static func make(_ snapshots: [UsageSnapshot], now: Date, window: TimeInterval = 6 * 3600, count: Int = 34) -> [HistoryColumn] {
         guard count > 0, window > 0 else { return [] }
         let start = now.addingTimeInterval(-window)

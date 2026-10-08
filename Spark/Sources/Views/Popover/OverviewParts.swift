@@ -36,6 +36,7 @@ struct HistoryCard: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel("History, last 6 hours")
+        .accessibilityValue(HistoryColumns.spokenLatest(columns) ?? "")
         .accessibilityHint("Opens the history")
     }
 
