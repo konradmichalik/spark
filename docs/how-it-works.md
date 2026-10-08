@@ -13,6 +13,8 @@ Codex windows are classified by length, not by position: up to 6 hours is the se
 
 Local stats come from the rollout files in `sessions/` and `archived_sessions/`. `token_count` events hold cumulative totals, so `CodexSessionStats` counts the delta between consecutive events at each event's timestamp. `input_tokens` includes cached tokens, which are split out.
 
+Only sessions that leave a rollout file are counted. Codex Cloud, the desktop app on another machine and the Codex plugin for Claude Code (it starts ephemeral threads that write no rollout) use the plan limits shown from the usage endpoint, but never appear in the local stats.
+
 > [!WARNING]
 > The Codex usage endpoint is undocumented as well and has changed shape before. Decoding is lenient: unknown fields are ignored and missing windows are hidden.
 
