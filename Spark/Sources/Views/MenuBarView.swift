@@ -131,8 +131,8 @@ struct MenuBarView: View {
         provider == .codex ? codex.isLoading : state.isLoading
     }
 
-    private var lastUpdated: Date {
+    private var lastUpdated: Date? {
         guard provider == .codex else { return state.usageData.lastUpdated }
-        return codex.usage?.usageData.lastUpdated ?? .distantPast
+        return codex.usage?.usageData.lastUpdated
     }
 }

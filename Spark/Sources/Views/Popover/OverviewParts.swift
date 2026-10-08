@@ -146,7 +146,7 @@ struct OverviewRows: View {
 
 /// The overview's footer: the update time is the refresh button, quit on the right.
 struct PopoverFooter: View {
-    let lastUpdated: Date
+    let lastUpdated: Date?
     let isLoading: Bool
     let onRefresh: () -> Void
 
@@ -158,12 +158,18 @@ struct PopoverFooter: View {
         return "\(Int(interval / 3600))h ago"
     }
 
+    static func statusText(isLoading: Bool, lastUpdated: Date?, now: Date = Date()) -> String {
+        if isLoading { return "Updating\u{2026}" }
+        guard let lastUpdated else { return "Not updated yet" }
+        return "Updated \(relative(lastUpdated, now: now))"
+    }
+
     var body: some View {
         HStack {
             Button(action: onRefresh) {
                 HStack(spacing: 6) {
                     TablerIconView(.refresh, size: 13, color: Theme.inkSecondary)
-                    Text(isLoading ? "Updating\u{2026}" : "Updated \(Self.relative(lastUpdated))")
+                    Text(Self.statusText(isLoading: isLoading, lastUpdated: lastUpdated))
                         .font(.system(size: 11))
                         .foregroundStyle(Theme.inkSecondary)
                 }

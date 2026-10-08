@@ -81,6 +81,13 @@ final class OverviewModelsTests: XCTestCase {
         XCTAssertNil(ProviderTabSummary.codexPlan(""))
     }
 
+    func testFooterStatusText() {
+        let now = Date()
+        XCTAssertEqual(PopoverFooter.statusText(isLoading: true, lastUpdated: nil, now: now), "Updating\u{2026}")
+        XCTAssertEqual(PopoverFooter.statusText(isLoading: false, lastUpdated: nil, now: now), "Not updated yet")
+        XCTAssertEqual(PopoverFooter.statusText(isLoading: false, lastUpdated: now.addingTimeInterval(-150), now: now), "Updated 2m ago")
+    }
+
     func testFooterRelativeTime() {
         let now = Date()
         XCTAssertEqual(PopoverFooter.relative(now.addingTimeInterval(-2), now: now), "just now")
