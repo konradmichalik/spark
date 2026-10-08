@@ -19,9 +19,27 @@ struct MenuBarGlyph: Equatable {
     let opacities: [Double]
     let tone: UsageTone
 
-    init(value: Double, tone: UsageTone) {
-        opacities = DotRingLayout.partialOpacities(count: Self.dotCount, value: value)
+    /// A rise in the value fades the new dots in over three frames of 84 ms (about 250 ms):
+    /// two in-between images, then the final one. One-shot, never a loop (docs/design/rules.md,
+    /// "Motion").
+    static let fadeSteps: [Double] = [1.0 / 3, 2.0 / 3]
+    static let fadeFrame: Duration = .milliseconds(84)
+
+    /// `fadingFrom` and `progress` draw a frame of the fade from an earlier value.
+    init(value: Double, tone: UsageTone, fadingFrom old: Double? = nil, progress: Double = 1) {
+        let target = DotRingLayout.partialOpacities(count: Self.dotCount, value: value)
+        opacities = old.map {
+            Self.fade(from: DotRingLayout.partialOpacities(count: Self.dotCount, value: $0), to: target, progress: progress)
+        } ?? target
         self.tone = tone
+    }
+
+    /// Opacities `progress` of the way from `from` to `to`. Only dots that gain fade in; a dot
+    /// that loses shows its new opacity at once.
+    static func fade(from: [Double], to: [Double], progress: Double) -> [Double] {
+        guard from.count == to.count else { return to }
+        let share = min(max(progress, 0), 1)
+        return zip(from, to).map { old, new in new > old ? old + (new - old) * share : new }
     }
 
     var isTemplate: Bool { tone == .normal }

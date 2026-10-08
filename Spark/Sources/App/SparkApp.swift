@@ -152,6 +152,9 @@ struct MenuBarLabel: View {
     /// One shared timer, so re-rendering the label does not restart it. It only triggers a
     /// re-render; the staleness check reads the current time itself.
     private static let minuteTick = Timer.publish(every: 60, on: .main, in: .common).autoconnect()
+    /// The value a rise fades in from, and how far the fade has run. `nil` outside a fade.
+    @State private var fade: (from: Double, progress: Double)?
+    @State private var fadeTask: Task<Void, Never>?
 
     private var reading: MenuBarReading {
         MenuBarReading.resolve(
@@ -209,7 +212,7 @@ struct MenuBarLabel: View {
     var body: some View {
         let dimmed = isDimmed(now: max(now, Date()))
         let alpha: CGFloat = dimmed ? 0.35 : 1
-        let glyph = MenuBarGlyph(value: reading.value, tone: tone)
+        let glyph = MenuBarGlyph(value: reading.value, tone: tone, fadingFrom: fade?.from, progress: fade?.progress ?? 1)
         HStack(spacing: 5) {
             Image(nsImage: glyph.image(logo: logo, alpha: alpha))
             if state.menuBarValue != "none" {
@@ -222,5 +225,23 @@ struct MenuBarLabel: View {
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(accessibilityText(dimmed: dimmed))
         .onReceive(Self.minuteTick) { now = $0 }
+        .onChange(of: reading.value) { old, new in fadeIn(from: old, to: new) }
+    }
+
+    /// A rise fades the new dots in with two in-between images, then stops. Started only by a
+    /// value change, never at launch, and never a loop: a `TimelineView` in this label hung the
+    /// app at launch once.
+    private func fadeIn(from old: Double, to new: Double) {
+        fadeTask?.cancel()
+        fade = nil
+        guard new > old, !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion else { return }
+        fadeTask = Task { @MainActor in
+            for progress in MenuBarGlyph.fadeSteps {
+                fade = (old, progress)
+                try? await Task.sleep(for: MenuBarGlyph.fadeFrame)
+                guard !Task.isCancelled else { return }
+            }
+            fade = nil
+        }
     }
 }
