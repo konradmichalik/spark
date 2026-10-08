@@ -320,16 +320,6 @@ enum ClaudeServiceStatus: String, Codable, Sendable {
         case .unknown: StatusDot(tone: .normal, isHollow: true, pulses: false)
         }
     }
-
-    var icon: TablerIcon {
-        switch self {
-        case .operational, .none: .circleCheck
-        case .degradedPerformance: .alertTriangle
-        case .partialOutage: .alertTriangle
-        case .majorOutage: .circleX
-        case .unknown: .helpCircle
-        }
-    }
 }
 
 struct StatusPageResponse: Codable, Sendable {

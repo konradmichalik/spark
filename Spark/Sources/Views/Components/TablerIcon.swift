@@ -7,47 +7,22 @@ import SwiftUI
 /// `TablerIconTests.testEveryIconResolvesToABundledAsset` rather than rendering an empty frame.
 enum TablerIcon: String, CaseIterable {
     case activity
-    case adjustmentsHorizontal = "adjustments-horizontal"
     case alertTriangle = "alert-triangle"
-    case arrowDown = "arrow-down"
-    case arrowRight = "arrow-right"
-    case arrowUp = "arrow-up"
-    case bellBolt = "bell-bolt"
-    case bellRinging = "bell-ringing"
     case brandOpenai = "brand-openai"
     case calendarMonth = "calendar-month"
-    case chartBar = "chart-bar"
-    case chartLine = "chart-line"
     case chevronLeft = "chevron-left"
     case chevronRight = "chevron-right"
     case circleArrowUp = "circle-arrow-up"
     case circleCheck = "circle-check"
-    case circlePlus = "circle-plus"
-    case circleX = "circle-x"
-    case clock
-    case download
     case externalLink = "external-link"
-    case eye
-    case eyeOff = "eye-off"
     case helpCircle = "help-circle"
-    case heart
     case history
     case key
-    case layoutGrid = "layout-grid"
     case link
-    case linkPlus = "link-plus"
-    case moon
-    case numbers
-    case palette
     case power
     case refresh
     case refreshAlert = "refresh-alert"
-    case reportAnalytics = "report-analytics"
-    case rosetteDiscountCheck = "rosette-discount-check"
-    case send
-    case server
     case settings
-    case terminal2 = "terminal-2"
     case world
 
     var assetName: String { rawValue }
