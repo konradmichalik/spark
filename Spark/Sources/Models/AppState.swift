@@ -952,8 +952,8 @@ final class AppState: ObservableObject {
         let wantsCost = showApiCost
         Task.detached {
             let stats = await LiveStatsParser.parseStats(period: statsPeriodLabel, cutoffOverride: cutoff, upperCutoff: upperCutoff)
-            let topProjects = stats?.topProjects(limit: 5) ?? []
-            let topSessions = stats?.topSessions(limit: 5) ?? []
+            let topProjects = stats?.topProjects(limit: 20) ?? []
+            let topSessions = stats?.topSessions(limit: 10) ?? []
             let modelTotals = stats?.modelTotals ?? [:]
             var costSummary: CostSummary?
             if wantsCost, let stats, let prices = await PricingClient.currentTable() {
