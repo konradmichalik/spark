@@ -64,9 +64,7 @@ enum ActivityCalendar {
     }
 
     private static func dateText(_ date: Date, calendar: Calendar, locale: Locale) -> String {
-        let style = Date.FormatStyle(locale: locale, calendar: calendar, timeZone: calendar.timeZone)
-            .weekday(.abbreviated).month(.abbreviated).day()
-        return date.formatted(style)
+        ReportText.format(date, template: "EEEdMMM", locale: locale, timeZone: calendar.timeZone)
     }
 
     private static func cell(for day: Date, today: Date, peak: Int, dayTokens: [String: Int], calendar: Calendar) -> ActivityCell {

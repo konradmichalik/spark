@@ -61,7 +61,7 @@ enum NoticeWording {
             let left = "\(UsageFormat.percent(max(100 - value, 0), locale: locale)) left"
             switch (reset, resetsAt) {
             case let (.some(seconds), .some(date)) where seconds >= 86_400:
-                body = "\(left) until \(format(date, template: "EEEjmm", locale: locale, timeZone: timeZone))."
+                body = "\(left) until \(ReportText.format(date, template: "EEEjmm", locale: locale, timeZone: timeZone))."
             case let (.some(seconds), _):
                 body = "\(left). Resets in \(seconds.shortDuration)."
             default:
@@ -81,7 +81,7 @@ enum NoticeWording {
         var body = "Fully available again."
         if let nextReset {
             let isToday = nextReset.timeIntervalSince(now) < 86_400
-            let when = format(nextReset, template: isToday ? "jmm" : "EEEjmm", locale: locale, timeZone: timeZone)
+            let when = ReportText.format(nextReset, template: isToday ? "jmm" : "EEEjmm", locale: locale, timeZone: timeZone)
             body += isToday ? " Next reset at \(when)." : " Next reset \(when)."
         }
         return SparkNotice(
@@ -115,8 +115,4 @@ enum NoticeWording {
     }
 
     static let test = SparkNotice(title: "Spark · Test", body: "Notifications work.", thread: appThread)
-
-    private static func format(_ date: Date, template: String, locale: Locale, timeZone: TimeZone) -> String {
-        HistoryAxis.formatter(locale: locale, timeZone: timeZone, template: template).string(from: date)
-    }
 }
