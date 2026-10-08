@@ -13,6 +13,22 @@ struct MicroLabel: View {
     }
 }
 
+/// A whole percentage in Doto that rolls to a new value (docs/design/rules.md, "Motion").
+private struct HeroNumber: View {
+    let value: Double
+    let size: CGFloat
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
+        let rounded = Int(value.rounded())
+        Text(String(rounded))
+            .font(.doto(size: size))
+            .contentTransition(.numericText(value: Double(rounded)))
+            .animation(reduceMotion ? nil : .easeOut(duration: 0.25), value: rounded)
+    }
+}
+
 private func toneColor(_ tone: UsageTone) -> Color {
     tone == .normal ? Theme.ink : tone.color
 }
@@ -57,8 +73,7 @@ struct SessionBlock: View {
             }
             HStack(alignment: .bottom) {
                 HStack(alignment: .firstTextBaseline, spacing: 3) {
-                    Text(String(Int(reading.value.rounded())))
-                        .font(.doto(size: 60))
+                    HeroNumber(value: reading.value, size: 60)
                     Text("%")
                         .font(.system(size: 20, weight: .semibold))
                 }
@@ -81,7 +96,8 @@ struct SessionBlock: View {
             }
             DotBar(
                 value: reading.value, projected: reading.forecast.projected, marker: reading.elapsed.map { $0 * 100 },
-                tone: reading.tone, projectionTone: reading.forecast.tone
+                tone: reading.tone, projectionTone: reading.forecast.tone,
+                animatesFill: true, breathes: reading.forecast.reachesLimit
             )
             .frame(height: 10)
             // A taller hover target than the dots themselves.
@@ -137,14 +153,13 @@ struct WeekBlock: View {
                 MicroLabel(text: label)
                 Spacer()
                 HStack(alignment: .firstTextBaseline, spacing: 2) {
-                    Text(String(Int(value.rounded())))
-                        .font(.doto(size: 24))
+                    HeroNumber(value: value, size: 24)
                     Text("%")
                         .font(.system(size: 12, weight: .semibold))
                 }
                 .foregroundStyle(toneColor(tone))
             }
-            DotBar(value: value, marker: elapsed.map { $0 * 100 }, tone: tone, pitch: 4, dotSize: 2.6)
+            DotBar(value: value, marker: elapsed.map { $0 * 100 }, tone: tone, pitch: 4, dotSize: 2.6, animatesFill: true)
                 .frame(height: 8)
         }
         .contentShape(Rectangle())
@@ -196,11 +211,11 @@ struct RingsBlock: View {
         ZStack {
             DotRing(
                 value: reading.value, projected: reading.forecast.projected, marker: reading.elapsed.map { $0 * 100 },
-                tone: reading.tone, projectionTone: reading.forecast.tone
+                tone: reading.tone, projectionTone: reading.forecast.tone,
+                animatesFill: true, breathes: reading.forecast.reachesLimit
             )
             HStack(alignment: .firstTextBaseline, spacing: 1) {
-                Text(String(Int(reading.value.rounded())))
-                    .font(.doto(size: 38))
+                HeroNumber(value: reading.value, size: 38)
                 Text("%")
                     .font(.system(size: 13, weight: .semibold))
             }

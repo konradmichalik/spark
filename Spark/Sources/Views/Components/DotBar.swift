@@ -22,6 +22,10 @@ struct DotBarLayout: Equatable {
         markerIndex = total == 0 ? nil : marker.flatMap { $0.isFinite ? min(index($0), total - 1) : nil }
     }
 
+    var filledCount: Int {
+        dots.filter { $0 == .filled }.count
+    }
+
     static func count(width: CGFloat, pitch: CGFloat) -> Int {
         guard width.isFinite, width > 0, pitch > 0 else { return 0 }
         return Int((width / pitch).rounded(.down))
@@ -38,22 +42,35 @@ struct DotBar: View {
     var projectionTone: UsageTone = .normal
     var pitch: CGFloat = 6
     var dotSize: CGFloat = 3.8
+    /// Fills the dots in sequence on appear and when the value rises (docs/design/rules.md, "Motion").
+    var animatesFill = false
+    /// Lets the hollow dots breathe, for a forecast that reaches the limit before the reset.
+    var breathes = false
 
     var body: some View {
+        DotMotion(value: value, animates: animatesFill, breathes: breathes) { frame in
+            canvas(frame)
+        }
+        .accessibilityElement()
+        .accessibilityValue(UsageFormat.percent(value))
+    }
+
+    private func canvas(_ frame: DotMotionFrame) -> some View {
         Canvas { context, size in
             let layout = DotBarLayout(
                 count: DotBarLayout.count(width: size.width, pitch: pitch),
                 value: value, projected: projected, marker: marker
             )
+            let hollowColor = projectionColor.opacity(frame.projectionOpacity)
             let midY = size.height / 2
-            for (position, dot) in layout.dots.enumerated() {
+            for (position, dot) in frame.dots(of: layout).enumerated() {
                 let centerX = pitch * CGFloat(position) + pitch / 2
                 let rect = CGRect(x: centerX - dotSize / 2, y: midY - dotSize / 2, width: dotSize, height: dotSize)
                 switch dot {
                 case .filled:
                     context.fill(Path(ellipseIn: rect), with: .color(tone.color))
                 case .projected:
-                    context.stroke(Path(ellipseIn: rect.insetBy(dx: 0.6, dy: 0.6)), with: .color(projectionColor), lineWidth: 1.2)
+                    context.stroke(Path(ellipseIn: rect.insetBy(dx: 0.6, dy: 0.6)), with: .color(hollowColor), lineWidth: 1.2)
                 case .track:
                     context.fill(Path(ellipseIn: rect), with: .color(Theme.dotTrack))
                 }
@@ -63,8 +80,6 @@ struct DotBar: View {
                 context.fill(Path(roundedRect: CGRect(x: markerX, y: 0, width: 2, height: size.height), cornerRadius: 1), with: .color(markerColor))
             }
         }
-        .accessibilityElement()
-        .accessibilityValue(UsageFormat.percent(value))
     }
 
     private var projectionColor: Color {

@@ -44,20 +44,34 @@ struct DotRing: View {
     var count = 40
     var gap = 2
     var dotSize: CGFloat = 6
+    /// Fills the dots in sequence on appear and when the value rises (docs/design/rules.md, "Motion").
+    var animatesFill = false
+    /// Lets the hollow dots breathe, for a forecast that reaches the limit before the reset.
+    var breathes = false
 
     var body: some View {
+        DotMotion(value: value, animates: animatesFill, breathes: breathes) { frame in
+            canvas(frame)
+        }
+        .accessibilityElement()
+        .accessibilityValue(UsageFormat.percent(value))
+    }
+
+    private func canvas(_ frame: DotMotionFrame) -> some View {
         Canvas { context, size in
             let layout = DotBarLayout(count: count, value: value, projected: projected, marker: marker)
+            let dots = frame.dots(of: layout)
+            let hollowColor = projectionColor.opacity(frame.projectionOpacity)
             let radius = min(size.width, size.height) / 2 - dotSize - 4
             let center = CGPoint(x: size.width / 2, y: size.height / 2)
             let points = DotRingLayout.points(count: count, radius: radius, center: center, gap: gap)
             for (position, point) in points.enumerated() {
                 let rect = CGRect(x: point.x - dotSize / 2, y: point.y - dotSize / 2, width: dotSize, height: dotSize)
-                switch layout.dots[position] {
+                switch dots[position] {
                 case .filled:
                     context.fill(Path(ellipseIn: rect), with: .color(tone.color))
                 case .projected:
-                    context.stroke(Path(ellipseIn: rect.insetBy(dx: 0.6, dy: 0.6)), with: .color(projectionColor), lineWidth: 1.2)
+                    context.stroke(Path(ellipseIn: rect.insetBy(dx: 0.6, dy: 0.6)), with: .color(hollowColor), lineWidth: 1.2)
                 case .track:
                     context.fill(Path(ellipseIn: rect), with: .color(Theme.dotTrack))
                 }
@@ -71,8 +85,6 @@ struct DotRing: View {
                 context.stroke(tick, with: .color(markerColor), style: StrokeStyle(lineWidth: 2, lineCap: .round))
             }
         }
-        .accessibilityElement()
-        .accessibilityValue(UsageFormat.percent(value))
     }
 
     private var projectionColor: Color {

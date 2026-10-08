@@ -52,7 +52,9 @@ private struct LimitLineView: View {
                 trailing
             }
             if let value = line.value {
-                DotBar(value: value, marker: line.elapsed.map { $0 * 100 }, tone: line.tone, pitch: 4, dotSize: 2.6)
+                DotBar(
+                    value: value, marker: line.elapsed.map { $0 * 100 }, tone: line.tone, pitch: 4, dotSize: 2.6, animatesFill: true
+                )
                     .frame(height: 8)
             }
         }
