@@ -166,6 +166,9 @@ struct CodexOverview: View {
             noDataText()
         }
         OverviewRows(rows: rows, onOpen: open)
+            // "All" is not read on the poll, so the row would stay empty until Statistics was
+            // opened; the visit refresh reads it once and then at most every five minutes.
+            .onAppear { if showStats { codex.refreshStatsOnVisit() } }
     }
 
     private var rows: [OverviewRow] {

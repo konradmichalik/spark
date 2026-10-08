@@ -64,7 +64,7 @@ enum PaceColumns {
             return (dayName(day.day), lines.compactMap { $0 }.joined(separator: "\n"))
         case .gap(let range):
             guard let first = days[safe: range.lowerBound], let last = days[safe: range.upperBound - 1] else { return nil }
-            return ("\(dayName(first.day)) \u{2013} \(dayName(last.day))", "No data. The Mac was asleep or Spark was closed")
+            return ("\(dayName(first.day)) \u{2013} \(dayName(last.day))", HistoryLayout.noDataText)
         }
     }
 }

@@ -41,7 +41,7 @@ final class HistoryHoverTests: XCTestCase {
         let columns = [filled(0, 10), empty(1), empty(2), empty(3), filled(4, 20)]
         let text = HistoryHover.text(for: .gap(1..<4), in: columns, locale: Locale(identifier: "de_DE"), timeZone: utc)
         XCTAssertEqual(text?.title, "15:30\u{2013}16:00")
-        XCTAssertEqual(text?.body, "No data. The Mac was asleep or Spark was closed")
+        XCTAssertEqual(text?.body, "No data here. The Mac may have slept, or Spark was closed or polling slowly")
     }
 
     func testAxisLabelsFollowTheCompressedItems() {

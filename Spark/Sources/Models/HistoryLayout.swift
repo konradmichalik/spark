@@ -51,6 +51,10 @@ enum HistoryItem: Equatable {
 }
 
 enum HistoryLayout {
+    /// What a collapsed gap says. Smart refresh polls as rarely as every 30 minutes, so a gap is
+    /// not always sleep.
+    static let noDataText = "No data here. The Mac may have slept, or Spark was closed or polling slowly"
+
     /// Shorter runs of empty columns stay as they are; a missing poll or two is not a gap.
     static let minimumGap = 3
 
@@ -100,7 +104,7 @@ enum HistoryHover {
             return ((column.time ?? column.slotStart).map(format.string) ?? "", lines.compactMap { $0 }.joined(separator: "\n"))
         case .gap(let range):
             guard let start = columns[safe: range.lowerBound]?.slotStart, let end = gapEnd(range, columns) else { return nil }
-            return ("\(format.string(from: start))\u{2013}\(format.string(from: end))", "No data. The Mac was asleep or Spark was closed")
+            return ("\(format.string(from: start))\u{2013}\(format.string(from: end))", HistoryLayout.noDataText)
         }
     }
 

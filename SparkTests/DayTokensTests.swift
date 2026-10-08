@@ -35,18 +35,22 @@ final class DayTokensTests: XCTestCase {
 
     func testClaudeTotalsKeepFreshTokensPerDay() throws {
         let file = tempDir.appendingPathComponent("projects/-Users-me-app/11111111-1111-1111-1111-111111111111.jsonl")
-        func line(_ id: String, input: Int, output: Int, daysAgo: Int) -> String {
-            let stamp = ISO8601DateFormatter().string(from: Date().addingTimeInterval(TimeInterval(-daysAgo * 24 * 3600)))
-            return """
+        // Fixed stamps: the test must not depend on the clock or on midnight.
+        let recent = "2026-10-07T10:00:00Z"
+        let older = "2026-10-04T10:00:00Z"
+        func line(_ id: String, input: Int, output: Int, at stamp: String) -> String {
+            """
             {"message":{"id":"\(id)","role":"assistant","usage":{"input_tokens":\(input),"output_tokens":\(output)}},\
             "timestamp":"\(stamp)","requestId":"req_\(id)"}
             """
         }
-        let content = [line("a", input: 100, output: 50, daysAgo: 0), line("b", input: 10, output: 5, daysAgo: 3)].joined(separator: "\n") + "\n"
+        let content = [line("a", input: 100, output: 50, at: recent), line("b", input: 10, output: 5, at: older)]
+            .joined(separator: "\n") + "\n"
         try content.write(to: file, atomically: false, encoding: .utf8)
         var store = TranscriptCacheStore.empty
         let totals = TranscriptCache.aggregate(claudeDir: tempDir, cutoff: nil, store: &store)
-        XCTAssertEqual(totals.dayTokens[TranscriptCache.dayKey(for: Date())], 150)
+        let recentDate = try XCTUnwrap(ISO8601DateFormatter().date(from: recent))
+        XCTAssertEqual(totals.dayTokens[TranscriptCache.dayKey(for: recentDate)], 150)
         XCTAssertEqual(totals.dayTokens.values.reduce(0, +), 165)
         XCTAssertEqual(totals.activeDayCount, 2)
     }

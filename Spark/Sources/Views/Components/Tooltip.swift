@@ -62,7 +62,7 @@ extension View {
         let shape = RoundedRectangle(cornerRadius: 7)
         return background(Theme.ink, in: shape)
             .foregroundStyle(Theme.paper)
-            .shadow(color: .black.opacity(0.22), radius: 9, y: 3)
+            .shadow(color: Theme.shadow, radius: 9, y: 3)
     }
 }
 

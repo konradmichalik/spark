@@ -26,6 +26,17 @@ struct DotBarLayout: Equatable {
         dots.filter { $0 == .filled }.count
     }
 
+    /// Positions of the hollow dots: the only ones the breathing layer draws.
+    var projectedPositions: [Int] {
+        dots.indices.filter { dots[$0] == .projected }
+    }
+
+    /// The dots for the layer that never breathes: a hollow dot is `nil`, so nothing is drawn
+    /// under its outline and its centre stays empty.
+    static func baseDots(_ dots: [Dot]) -> [Dot?] {
+        dots.map { $0 == .projected ? nil : $0 }
+    }
+
     static func count(width: CGFloat, pitch: CGFloat) -> Int {
         guard width.isFinite, width > 0, pitch > 0 else { return 0 }
         return Int((width / pitch).rounded(.down))
@@ -33,6 +44,8 @@ struct DotBarLayout: Equatable {
 }
 
 /// A row of dots for a usage value, with optional projection (hollow dots) and time marker.
+/// The hollow dots sit on their own layer, so a breath only changes that layer's opacity and
+/// never redraws the filled dots.
 struct DotBar: View {
     var value: Double
     var projected: Double?
@@ -48,45 +61,64 @@ struct DotBar: View {
     var breathes = false
 
     var body: some View {
-        DotMotion(value: value, animates: animatesFill, breathes: breathes) { frame in
-            canvas(frame)
+        ZStack {
+            DotMotion(value: value, animates: animatesFill) { frame in
+                baseCanvas(frame)
+            }
+            if projected != nil {
+                DotBarProjectionLayer(
+                    value: value, projected: projected, pitch: pitch, dotSize: dotSize, color: projectionTone.color.opacity(0.55)
+                )
+                .equatable()
+                .breathing(isActive: breathes && animatesFill)
+            }
         }
         .accessibilityElement()
         .accessibilityValue(UsageFormat.percent(value))
     }
 
-    private func canvas(_ frame: DotMotionFrame) -> some View {
+    private func baseCanvas(_ frame: DotMotionFrame) -> some View {
         Canvas { context, size in
             let layout = DotBarLayout(
                 count: DotBarLayout.count(width: size.width, pitch: pitch),
                 value: value, projected: projected, marker: marker
             )
-            let hollowColor = projectionColor.opacity(frame.projectionOpacity)
             let midY = size.height / 2
-            for (position, dot) in frame.dots(of: layout).enumerated() {
+            for (position, dot) in DotBarLayout.baseDots(frame.dots(of: layout)).enumerated() {
+                guard let dot else { continue }
                 let centerX = pitch * CGFloat(position) + pitch / 2
                 let rect = CGRect(x: centerX - dotSize / 2, y: midY - dotSize / 2, width: dotSize, height: dotSize)
-                switch dot {
-                case .filled:
-                    context.fill(Path(ellipseIn: rect), with: .color(tone.color))
-                case .projected:
-                    context.stroke(Path(ellipseIn: rect.insetBy(dx: 0.6, dy: 0.6)), with: .color(hollowColor), lineWidth: 1.2)
-                case .track:
-                    context.fill(Path(ellipseIn: rect), with: .color(Theme.dotTrack))
-                }
+                context.fill(Path(ellipseIn: rect), with: .color(dot == .filled ? tone.color : Theme.dotTrack))
             }
             if let markerIndex = layout.markerIndex {
                 let markerX = pitch * CGFloat(markerIndex) + pitch / 2 - 1
-                context.fill(Path(roundedRect: CGRect(x: markerX, y: 0, width: 2, height: size.height), cornerRadius: 1), with: .color(markerColor))
+                let markerRect = CGRect(x: markerX, y: 0, width: 2, height: size.height)
+                context.fill(Path(roundedRect: markerRect, cornerRadius: 1), with: .color(projectionTone.color))
             }
         }
     }
+}
 
-    private var projectionColor: Color {
-        projectionTone.color.opacity(0.55)
-    }
+/// The hollow dots of a bar. `Equatable` and applied with `.equatable()`, so SwiftUI skips
+/// redrawing the canvas while only the opacity around it changes.
+private struct DotBarProjectionLayer: View, Equatable {
+    let value: Double
+    let projected: Double?
+    let pitch: CGFloat
+    let dotSize: CGFloat
+    let color: Color
 
-    private var markerColor: Color {
-        projectionTone.color
+    var body: some View {
+        Canvas { context, size in
+            let layout = DotBarLayout(
+                count: DotBarLayout.count(width: size.width, pitch: pitch), value: value, projected: projected
+            )
+            let midY = size.height / 2
+            for position in layout.projectedPositions {
+                let centerX = pitch * CGFloat(position) + pitch / 2
+                let rect = CGRect(x: centerX - dotSize / 2, y: midY - dotSize / 2, width: dotSize, height: dotSize)
+                context.stroke(Path(ellipseIn: rect.insetBy(dx: 0.6, dy: 0.6)), with: .color(color), lineWidth: 1.2)
+            }
+        }
     }
 }

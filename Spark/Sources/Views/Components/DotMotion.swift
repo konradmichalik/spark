@@ -42,13 +42,18 @@ enum DotFillSequence {
     static func projectionOpacity(breath: Double) -> Double {
         1 - 0.65 * min(max(breath, 0), 1)
     }
+
+    /// The hollow dots breathe only on a layer that is asked to, once it has settled, and never
+    /// under Reduce Motion.
+    static func shouldBreathe(isActive: Bool, reduceMotion: Bool, isSettled: Bool) -> Bool {
+        isActive && !reduceMotion && isSettled
+    }
 }
 
 /// One frame of the dot motion, handed to the bar or ring that draws it.
 struct DotMotionFrame {
     let fillFrom: Double
     let progress: Double
-    let breath: Double
 
     /// The layout's dots as they show in this frame.
     func dots(of layout: DotBarLayout) -> [DotBarLayout.Dot] {
@@ -57,26 +62,19 @@ struct DotMotionFrame {
         let revealed = DotFillSequence.revealed(from: from, to: layout.filledCount, progress: progress)
         return layout.dots.enumerated().map { DotFillSequence.dot($1, at: $0, revealed: revealed) }
     }
-
-    var projectionOpacity: Double {
-        DotFillSequence.projectionOpacity(breath: breath)
-    }
 }
 
-/// Runs the motion of a dot bar or ring: with `animates`, the filled dots appear in sequence on
-/// appear and when the value rises; with `breathes` as well, the hollow dots breathe. Under
-/// Reduce Motion it draws the end state and nothing moves.
+/// Runs the fill motion of a dot bar or ring: with `animates`, the filled dots appear in sequence
+/// on appear and when the value rises. Under Reduce Motion it draws the end state.
 struct DotMotion<Content: View>: View {
     let value: Double
     let animates: Bool
-    let breathes: Bool
     let content: (DotMotionFrame) -> Content
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var hasAppeared = false
     @State private var fillFrom: Double = 0
     @State private var fillTarget: Double = 0
-    @State private var isSettled = false
 
     private var isMoving: Bool { animates && !reduceMotion }
 
@@ -86,27 +84,12 @@ struct DotMotion<Content: View>: View {
         let isWaiting = isMoving && !hasAppeared
         AnimatedValue(value: fillTarget) { phase in
             let progress = isWaiting ? 0 : DotFillSequence.progress(phase: phase, target: target)
-            if isMoving && breathes && isSettled {
-                // Its own phase loop, so re-renders and animations around it cannot re-target
-                // the breath, and every loop starts from full opacity.
-                PhaseAnimator([0.0, 1.0]) { breath in
-                    AnimatedValue(value: breath) { breath in
-                        content(DotMotionFrame(fillFrom: from, progress: progress, breath: breath))
-                    }
-                } animation: { _ in
-                    .easeInOut(duration: DotFillSequence.breathPeriod / 2)
-                }
-                .transaction { $0.animation = nil }
-            } else {
-                content(DotMotionFrame(fillFrom: from, progress: progress, breath: 0))
-            }
+            content(DotMotionFrame(fillFrom: from, progress: progress))
         }
         .onAppear {
             hasAppeared = true
             fill(from: 0)
         }
-        // The breath starts only once the first layout has settled, like the live dot's halo.
-        .task { isSettled = await LiveDotHalo.settle() }
         .onChange(of: value) { old, new in
             if let start = DotFillSequence.start(old: old, new: new) { fill(from: start) }
         }
@@ -116,6 +99,43 @@ struct DotMotion<Content: View>: View {
         guard isMoving else { return }
         fillFrom = start
         withAnimation(.linear(duration: DotFillSequence.duration)) { fillTarget += 1 }
+    }
+}
+
+/// Lets a layer breathe: its opacity swings between full and 35 % in its own phase loop, so
+/// re-renders and animations around it cannot re-target it, and nothing under it is redrawn.
+/// The loop starts 300 ms after the view appears, like the live dot's halo.
+private struct Breathing: ViewModifier {
+    let isActive: Bool
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var isSettled = false
+
+    func body(content: Content) -> some View {
+        Group {
+            if DotFillSequence.shouldBreathe(isActive: isActive, reduceMotion: reduceMotion, isSettled: isSettled) {
+                PhaseAnimator([0.0, 1.0]) { breath in
+                    content.opacity(DotFillSequence.projectionOpacity(breath: breath))
+                } animation: { _ in
+                    .easeInOut(duration: DotFillSequence.breathPeriod / 2)
+                }
+                .transaction { $0.animation = nil }
+            } else {
+                content
+            }
+        }
+        .task(id: isActive) {
+            // Every activation waits for the layout to settle again, not only the first.
+            isSettled = false
+            guard isActive else { return }
+            isSettled = await LiveDotHalo.settle()
+        }
+    }
+}
+
+extension View {
+    func breathing(isActive: Bool) -> some View {
+        modifier(Breathing(isActive: isActive))
     }
 }
 

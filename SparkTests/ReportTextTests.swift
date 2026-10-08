@@ -82,7 +82,7 @@ final class PaceColumnsTests: XCTestCase {
     func testHoverOverAGapNamesItsDays() throws {
         let text = try XCTUnwrap(PaceColumns.hover(.gap(1..<4), in: days, locale: locale, timeZone: utc))
         XCTAssertEqual(text.title, "Tue 6 Oct \u{2013} Thu 8 Oct")
-        XCTAssertEqual(text.body, "No data. The Mac was asleep or Spark was closed")
+        XCTAssertEqual(text.body, "No data here. The Mac may have slept, or Spark was closed or polling slowly")
     }
 
     func testAxisLabelsAreDays() {

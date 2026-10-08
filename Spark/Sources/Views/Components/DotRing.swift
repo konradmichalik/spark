@@ -1,6 +1,11 @@
 import SwiftUI
 
 enum DotRingLayout {
+    /// Radius of the dot circle in a square of `size`, leaving room for the dots and the time tick.
+    static func radius(size: CGSize, dotSize: CGFloat) -> CGFloat {
+        min(size.width, size.height) / 2 - dotSize - 4
+    }
+
     /// Dot centres on a circle, starting at twelve o'clock and running clockwise in view
     /// coordinates (y grows downwards). `gap` leaves that many slots free, split around twelve
     /// o'clock, so start and end stay visible even on a full ring.
@@ -50,31 +55,33 @@ struct DotRing: View {
     var breathes = false
 
     var body: some View {
-        DotMotion(value: value, animates: animatesFill, breathes: breathes) { frame in
-            canvas(frame)
+        ZStack {
+            DotMotion(value: value, animates: animatesFill) { frame in
+                baseCanvas(frame)
+            }
+            if projected != nil {
+                DotRingProjectionLayer(
+                    value: value, projected: projected, count: count, gap: gap, dotSize: dotSize,
+                    color: projectionTone.color.opacity(0.55)
+                )
+                .equatable()
+                .breathing(isActive: breathes && animatesFill)
+            }
         }
         .accessibilityElement()
         .accessibilityValue(UsageFormat.percent(value))
     }
 
-    private func canvas(_ frame: DotMotionFrame) -> some View {
+    private func baseCanvas(_ frame: DotMotionFrame) -> some View {
         Canvas { context, size in
             let layout = DotBarLayout(count: count, value: value, projected: projected, marker: marker)
-            let dots = frame.dots(of: layout)
-            let hollowColor = projectionColor.opacity(frame.projectionOpacity)
-            let radius = min(size.width, size.height) / 2 - dotSize - 4
+            let radius = DotRingLayout.radius(size: size, dotSize: dotSize)
             let center = CGPoint(x: size.width / 2, y: size.height / 2)
             let points = DotRingLayout.points(count: count, radius: radius, center: center, gap: gap)
-            for (position, point) in points.enumerated() {
-                let rect = CGRect(x: point.x - dotSize / 2, y: point.y - dotSize / 2, width: dotSize, height: dotSize)
-                switch dots[position] {
-                case .filled:
-                    context.fill(Path(ellipseIn: rect), with: .color(tone.color))
-                case .projected:
-                    context.stroke(Path(ellipseIn: rect.insetBy(dx: 0.6, dy: 0.6)), with: .color(hollowColor), lineWidth: 1.2)
-                case .track:
-                    context.fill(Path(ellipseIn: rect), with: .color(Theme.dotTrack))
-                }
+            for (position, dot) in DotBarLayout.baseDots(frame.dots(of: layout)).enumerated() {
+                guard let dot else { continue }
+                let rect = CGRect(x: points[position].x - dotSize / 2, y: points[position].y - dotSize / 2, width: dotSize, height: dotSize)
+                context.fill(Path(ellipseIn: rect), with: .color(dot == .filled ? tone.color : Theme.dotTrack))
             }
             if let index = layout.markerIndex {
                 let inner = DotRingLayout.points(count: count, radius: radius + dotSize / 2 + 1, center: center, gap: gap)[index]
@@ -82,16 +89,31 @@ struct DotRing: View {
                 var tick = Path()
                 tick.move(to: inner)
                 tick.addLine(to: outer)
-                context.stroke(tick, with: .color(markerColor), style: StrokeStyle(lineWidth: 2, lineCap: .round))
+                context.stroke(tick, with: .color(projectionTone.color), style: StrokeStyle(lineWidth: 2, lineCap: .round))
             }
         }
     }
+}
 
-    private var projectionColor: Color {
-        projectionTone.color.opacity(0.55)
-    }
+/// The hollow dots of a ring, on their own `Equatable` layer like the bar's.
+private struct DotRingProjectionLayer: View, Equatable {
+    let value: Double
+    let projected: Double?
+    let count: Int
+    let gap: Int
+    let dotSize: CGFloat
+    let color: Color
 
-    private var markerColor: Color {
-        projectionTone.color
+    var body: some View {
+        Canvas { context, size in
+            let layout = DotBarLayout(count: count, value: value, projected: projected)
+            let radius = DotRingLayout.radius(size: size, dotSize: dotSize)
+            let center = CGPoint(x: size.width / 2, y: size.height / 2)
+            let points = DotRingLayout.points(count: count, radius: radius, center: center, gap: gap)
+            for position in layout.projectedPositions {
+                let rect = CGRect(x: points[position].x - dotSize / 2, y: points[position].y - dotSize / 2, width: dotSize, height: dotSize)
+                context.stroke(Path(ellipseIn: rect.insetBy(dx: 0.6, dy: 0.6)), with: .color(color), lineWidth: 1.2)
+            }
+        }
     }
 }

@@ -39,6 +39,8 @@ enum Theme {
     /// Claude's logo colour. Only for its logo and the faint tint of its selected tab, never data.
     static let claudeLogoNS = NSColor(hex: 0xC96442)
 
+    /// The tooltip's drop shadow, the same black in both modes (docs/design/rules.md, "Colour").
+    static let shadow = Color.black.opacity(0.22)
     static let paper = Color(nsColor: paperNS)
     static let card = Color(nsColor: cardNS)
     static let ink = Color(nsColor: inkNS)
