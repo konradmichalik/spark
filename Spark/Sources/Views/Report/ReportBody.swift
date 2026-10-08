@@ -9,34 +9,46 @@ struct ReportBody: View {
     let showApiCost: Bool
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 28) {
-            ReportTotals(report: report, scope: scope, codex: codex, showApiCost: showApiCost)
-            if ReportScoping.showsClaudeSections(scope) {
-                PaceSection(
-                    title: ReportScoping.title("PACE \u{00B7} PEAK PER DAY", scope: scope),
-                    days: PaceDaySeries.build(snapshots: state.history, start: report.rangeStart, end: report.rangeEnd),
-                    emptyText: report.periodOffset == 0 ? "Not enough data yet." : "No usage history for that period."
-                )
+        VStack(alignment: .leading, spacing: 12) {
+            ReportCard {
+                ReportTotals(report: report, scope: scope, codex: codex, showApiCost: showApiCost)
             }
-            ActivitySection(
-                report: report,
-                dayTokens: ReportScoping.dayTokens(scope, claude: report.dayTokens, codex: codex?.dayTokens ?? [:])
-            )
-            HStack(alignment: .top, spacing: 28) {
-                ModelShareSection(
-                    rows: ReportScoping.modelRows(
-                        scope, claude: ModelRow.rows(from: report.modelTotals, costByModel: report.costSummary?.byModel), codex: codex
-                    ),
-                    emptyText: report.periodOffset == 0 ? "No model usage yet." : "No model usage in that period."
-                )
-                .frame(maxWidth: .infinity, alignment: .topLeading)
-                if ReportScoping.showsClaudeSections(scope) {
-                    ReportList(title: ReportScoping.title("TOP PROJECTS", scope: scope), entries: projects)
-                        .frame(maxWidth: .infinity, alignment: .topLeading)
+            if ReportScoping.showsClaudeSections(scope) {
+                ReportCard {
+                    PaceSection(
+                        title: ReportScoping.title("PACE \u{00B7} PEAK PER DAY", scope: scope),
+                        days: PaceDaySeries.build(snapshots: state.history, start: report.rangeStart, end: report.rangeEnd),
+                        emptyText: report.periodOffset == 0 ? "Not enough data yet." : "No usage history for that period."
+                    )
                 }
             }
+            ReportCard {
+                ActivitySection(
+                    report: report,
+                    dayTokens: ReportScoping.dayTokens(scope, claude: report.dayTokens, codex: codex?.dayTokens ?? [:])
+                )
+            }
+            HStack(alignment: .top, spacing: 12) {
+                ReportCard {
+                    ModelShareSection(
+                        rows: ReportScoping.modelRows(
+                            scope, claude: ModelRow.rows(from: report.modelTotals, costByModel: report.costSummary?.byModel), codex: codex
+                        ),
+                        emptyText: report.periodOffset == 0 ? "No model usage yet." : "No model usage in that period."
+                    )
+                }
+                if ReportScoping.showsClaudeSections(scope) {
+                    ReportCard {
+                        ReportList(title: ReportScoping.title("TOP PROJECTS", scope: scope), entries: projects)
+                    }
+                }
+            }
+            // Both cards in the row are as tall as the taller one.
+            .fixedSize(horizontal: false, vertical: true)
             if ReportScoping.showsClaudeSections(scope), !report.topSessions.isEmpty {
-                ReportList(title: ReportScoping.title("TOP SESSIONS", scope: scope), entries: sessions)
+                ReportCard {
+                    ReportList(title: ReportScoping.title("TOP SESSIONS", scope: scope), entries: sessions)
+                }
             }
         }
     }

@@ -1,5 +1,19 @@
 import SwiftUI
 
+/// One section of the report on its own card, so the sections read as separate things: the same
+/// `card` with a hairline outline as the popover's cards (docs/design/rules.md, "Windows").
+struct ReportCard<Content: View>: View {
+    @ViewBuilder let content: () -> Content
+
+    var body: some View {
+        PaperCard {
+            content()
+                .padding(14)
+                .frame(maxWidth: .infinity, alignment: .topLeading)
+        }
+    }
+}
+
 /// A micro label over a figure, read as one element by VoiceOver, with the secondary facts in
 /// its tooltip. The shape shared by the report's totals and the activity figures.
 struct ReportFigure<Content: View>: View {
@@ -148,8 +162,7 @@ struct ReportEntry: Identifiable {
 }
 
 /// A ranked list, the first entries shown and the rest behind "Show N more"
-/// (docs/design/rules.md, "Navigation"). Rows are spaced, not ruled: there is no card to hold
-/// hairlines here.
+/// (docs/design/rules.md, "Navigation"). Rows are spaced, not ruled.
 struct ReportList: View {
     let title: String
     let entries: [ReportEntry]
