@@ -26,12 +26,22 @@ final class ReportTextTests: XCTestCase {
     }
 
     func testComparisonNamesThePreviousMonth() {
-        XCTAssertEqual(ReportText.comparisonLabel(.month, start: day(10, 1), locale: locale, timeZone: utc), "VS SEPTEMBER")
-        XCTAssertEqual(ReportText.comparisonLabel(.month, start: day(1, 1), locale: locale, timeZone: utc), "VS DECEMBER")
+        XCTAssertEqual(ReportText.comparisonLabel(.month, previousStart: day(9, 1), locale: locale, timeZone: utc), "VS SEPTEMBER")
+        XCTAssertEqual(ReportText.comparisonLabel(.month, previousStart: day(12, 1), locale: locale, timeZone: utc), "VS DECEMBER")
+    }
+
+    func testComparisonNamesTheDaysOfAPartialMonth() {
+        let label = ReportText.comparisonLabel(.month, previousStart: day(10, 1), previousEnd: day(10, 14), locale: locale, timeZone: utc)
+        XCTAssertEqual(label, "VS 1\u{2013}14 OCT")
+    }
+
+    func testComparisonOfASinglePartialDayNamesOnlyThatDay() {
+        let label = ReportText.comparisonLabel(.month, previousStart: day(10, 1), previousEnd: day(10, 1), locale: locale, timeZone: utc)
+        XCTAssertEqual(label, "VS 1 OCT")
     }
 
     func testComparisonForAWeek() {
-        XCTAssertEqual(ReportText.comparisonLabel(.week, start: day(10, 5), locale: locale, timeZone: utc), "VS LAST WEEK")
+        XCTAssertEqual(ReportText.comparisonLabel(.week, previousStart: day(10, 5), locale: locale, timeZone: utc), "VS LAST WEEK")
     }
 
     func testTrendIsSignedAndRoundedWithTheUnitApart() {

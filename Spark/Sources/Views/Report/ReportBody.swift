@@ -127,12 +127,19 @@ private struct ReportTotals: View {
     }
 
     private var previousText: String {
-        "\(formatTokenCount(totals.previous)) tokens the \(report.period == .month ? "month" : "week") before"
+        let tokens = formatTokenCount(totals.previous)
+        if report.comparesPartOfMonth {
+            let days = report.previousDayCount()
+            return "\(tokens) tokens in the first \(days) \(days == 1 ? "day" : "days") of the month before"
+        }
+        return "\(tokens) tokens the \(report.period == .month ? "month" : "week") before"
     }
 
     @ViewBuilder
     private var trendTotal: some View {
-        let label = ReportText.comparisonLabel(report.period, start: report.rangeStart)
+        let label = ReportText.comparisonLabel(
+            report.period, previousStart: report.previousStart, previousEnd: report.comparesPartOfMonth ? report.previousEnd : nil
+        )
         if let trend = ReportText.trend(totals.trendPercent) {
             ReportTotal(label: label, parts: trend, tooltip: previousText, size: totalsSize)
         } else {
@@ -161,7 +168,9 @@ private struct ReportTotals: View {
             }
             // Multi-turn use keeps the hit rate near the ceiling, so it only shows when it drops.
             if let rate = report.cacheHitRate, rate < Self.cacheHitRateWarningThreshold {
-                WarningBanner(message: "Cache hit rate dropped to \(UsageFormat.percent(rate * 100))")
+                let previous = report.previousCacheHitRate.flatMap { $0 > rate ? $0 : nil }
+                let was = previous.map { " (was \(UsageFormat.percent($0 * 100)))" } ?? ""
+                WarningBanner(message: "Cache hit rate dropped to \(UsageFormat.percent(rate * 100))\(was)")
             }
         }
     }

@@ -18,17 +18,18 @@ enum ReportText {
         }
     }
 
-    /// The micro label over the change tile: the previous month by name, or the previous week.
+    /// The micro label over the change tile: the previous week, the previous month by name, or
+    /// the days of it a half-finished month is compared with (`previousEnd`).
     static func comparisonLabel(
-        _ period: ReportPeriod, start: Date, locale: Locale = .current, timeZone: TimeZone = .current
+        _ period: ReportPeriod, previousStart: Date, previousEnd: Date? = nil, locale: Locale = .current, timeZone: TimeZone = .current
     ) -> String {
-        switch period {
-        case .week:
-            return "VS LAST WEEK"
-        case .month:
-            let previous = start.addingTimeInterval(-86_400)
-            return "VS \(format(previous, template: "MMMM", locale: locale, timeZone: timeZone).uppercased(with: locale))"
-        }
+        guard period == .month else { return "VS LAST WEEK" }
+        let text = { (template: String, date: Date) in format(date, template: template, locale: locale, timeZone: timeZone) }
+        guard let previousEnd else { return "VS \(text("MMMM", previousStart).uppercased(with: locale))" }
+        let first = text("d", previousStart)
+        let last = text("d", previousEnd)
+        let days = first == last ? first : "\(first)\u{2013}\(last)"
+        return "VS \(days) \(text("MMM", previousStart).uppercased(with: locale))"
     }
 
     /// The change against the previous period, signed and rounded, the unit apart for Doto.
