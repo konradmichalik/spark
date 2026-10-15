@@ -14,7 +14,7 @@ DEST="$(cd "$(dirname "$0")/.." && pwd)/Spark/Assets.xcassets/Icons"
 ICONS=(
   activity alert-triangle brand-openai calendar-month chevron-left chevron-right
   circle-arrow-up circle-check external-link help-circle history key link power refresh
-  refresh-alert settings world
+  refresh-alert settings world flame trending-up hourglass
 )
 
 tmp_download=""
