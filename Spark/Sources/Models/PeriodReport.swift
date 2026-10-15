@@ -28,6 +28,8 @@ struct PeriodReport {
     /// period (`cacheRead / (cacheRead + cacheCreation)`). `nil` when there's no cache activity
     /// at all — a rate against zero would be meaningless.
     let cacheHitRate: Double?
+    /// The same rate over the days `previousPeriodTokens` covers, to say what a drop is a drop from.
+    let previousCacheHitRate: Double?
     /// Total tokens per raw model ID, current period only. Real tokens (cache reads excluded),
     /// matching `currentPeriodTokens`.
     let modelTotals: [String: Int]
@@ -46,13 +48,22 @@ struct PeriodReport {
     /// The shown window's first and last calendar day.
     let rangeStart: Date
     let rangeEnd: Date
-    /// The same for the period before, which Codex's trend is summed over.
+    /// The same for the period before, which Codex's trend is summed over. For the current month
+    /// it covers only as many days as the month has had, never a whole month.
     let previousStart: Date
     let previousEnd: Date
     /// The days the activity calendar draws. Unlike `rangeStart` and `rangeEnd` it includes today
     /// for the current period, and the current week is the last seven days ending today.
     let calendarStart: Date
     let calendarEnd: Date
+
+    /// The days from `previousStart` through `previousEnd`, none for an empty window.
+    func previousDayCount(calendar: Calendar = .current) -> Int {
+        Self.dayCount(from: previousStart, to: previousEnd, calendar: calendar)
+    }
+
+    /// Whether `previousStart` to `previousEnd` is only the first days of the month before.
+    var comparesPartOfMonth: Bool { Self.comparesPartOfMonth(period: period, offset: periodOffset) }
 
     var hasData: Bool {
         currentPeriodTokens > 0 || previousPeriodTokens > 0 || !topProjects.isEmpty
@@ -77,7 +88,10 @@ struct PeriodReport {
         calendar: Calendar = .current
     ) -> PeriodReport {
         let range = periodRange(period: period, offset: periodOffset, rollups: rollups, now: now, calendar: calendar)
-        let previousRange = periodRange(period: period, offset: periodOffset + 1, rollups: rollups, now: now, calendar: calendar)
+        let fullPrevious = periodRange(period: period, offset: periodOffset + 1, rollups: rollups, now: now, calendar: calendar)
+        let previousRange = comparesPartOfMonth(period: period, offset: periodOffset)
+            ? sameDays(of: fullPrevious, as: range, calendar: calendar)
+            : fullPrevious
 
         let current = sum(rollups: rollups, start: range.start, end: range.end, calendar: calendar)
         let previous = sum(rollups: rollups, start: previousRange.start, end: previousRange.end, calendar: calendar)
@@ -85,8 +99,6 @@ struct PeriodReport {
         let trendPercent: Double? = previous.real > 0
             ? (Double(current.real - previous.real) / Double(previous.real)) * 100
             : nil
-        let cacheEligible = current.cacheRead + current.cacheCreation
-        let cacheHitRate: Double? = cacheEligible > 0 ? Double(current.cacheRead) / Double(cacheEligible) : nil
 
         let calendarRange = activityRange(range, period: period, offset: periodOffset, now: now, calendar: calendar)
 
@@ -94,7 +106,8 @@ struct PeriodReport {
             currentPeriodTokens: current.real,
             previousPeriodTokens: previous.real,
             trendPercent: trendPercent,
-            cacheHitRate: cacheHitRate,
+            cacheHitRate: current.cacheHitRate,
+            previousCacheHitRate: previous.cacheHitRate,
             modelTotals: modelTotals,
             topProjects: topProjects,
             topSessions: topSessions,
@@ -109,6 +122,25 @@ struct PeriodReport {
             calendarStart: calendarRange.start,
             calendarEnd: calendarRange.end
         )
+    }
+
+    /// The first days of `previous`, as many as `range` spans, never past its last day. How the
+    /// current month, still short of its end, is compared with the month before.
+    private static func sameDays(
+        of previous: (start: Date, end: Date), as range: (start: Date, end: Date), calendar: Calendar
+    ) -> (start: Date, end: Date) {
+        let elapsedDays = dayCount(from: range.start, to: range.end, calendar: calendar)
+        let sameDays = calendar.date(byAdding: .day, value: elapsedDays - 1, to: previous.start) ?? previous.end
+        return (previous.start, min(sameDays, previous.end))
+    }
+
+    private static func comparesPartOfMonth(period: ReportPeriod, offset: Int) -> Bool {
+        period == .month && offset == 0
+    }
+
+    private static func dayCount(from start: Date, to end: Date, calendar: Calendar) -> Int {
+        let days = calendar.dateComponents([.day], from: calendar.startOfDay(for: start), to: calendar.startOfDay(for: end)).day ?? -1
+        return max(days + 1, 0)
     }
 
     private static func activityRange(
@@ -225,6 +257,11 @@ struct PeriodReport {
         var real = 0
         var cacheRead = 0
         var cacheCreation = 0
+
+        var cacheHitRate: Double? {
+            let eligible = cacheRead + cacheCreation
+            return eligible > 0 ? Double(cacheRead) / Double(eligible) : nil
+        }
     }
 
     private static func sum(rollups: [String: DailyRollup], start: Date, end: Date, calendar: Calendar) -> PeriodTotals {

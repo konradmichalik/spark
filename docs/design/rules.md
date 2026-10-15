@@ -145,8 +145,20 @@ HStack(alignment: .firstTextBaseline, spacing: 3) {
 - One component, one style: ink background, paper text, uppercase SF Mono title, one to three lines.
 - No actions inside a tooltip.
 - At most one tooltip visible.
+- Averages and comparisons follow "Averages" below.
 - The Statistics tiles carry their averages in tooltips (per session, and per active day once more than one day had tokens; idle days never count), and the Tokens tooltip explains fresh tokens against cache reads. Top projects and top models are a card of rows like the active sessions, without bars.
 - Tooltips carry the secondary facts so the screen does not have to: plan and sign-in path on a tab, projection and burn rate on the session bar, reset times on limits, session ID and model on a session row, the meaning of API cost.
+
+## Averages
+
+A figure is set against the usual one in the same words everywhere (`AverageComparison`). The comparison is neutral: more use is neither good nor bad, so it has no colour and no verdict, only the size of the difference. The words carry it, never colour alone.
+
+- **Like for like.** A period still running is never compared with a finished one. The current month is compared with the same number of days from the first of the month before, never past that month's last day, and the label says so (`VS 1–14 SEP`). A finished month and a week compare whole periods.
+- **Enough data.** An average needs five days of use (`minimumActiveDays`). With fewer, nothing is compared.
+- **Typical day is the median**, of the closed days with use in the last 28 days, so one huge day does not make every other day look small. Idle days are not typical days.
+- **Today is a share, not above or below.** Today is not over, so Statistics shows it under the Tokens value as "38% of a typical day", with the typical day in the tooltip. Early in the day a plain "below average" would always be true.
+- **A finished day is a multiple or a share of the range's daily average,** only when it is a fifth or more away from it (`1.4× the daily average`, `60% of the daily average`), in the Volume graph's hover. Closer days carry no note, or every day would.
+- **The average per active day** sits as a note under the report totals once there are two active days. The weekday profile (`BY WEEKDAY · AVERAGE`, a card after the activity calendar, months only, from 14 days on) counts idle days as zero.
 
 ## States
 
@@ -185,7 +197,7 @@ Other providers stay usable when one is disconnected.
 - Claude has no show switch on its card: Claude cannot be hidden.
 - Everything that belongs to one provider lives on its card: installed CLI version, data folder and provider-only switches (Claude's model weeks, behind a disclosure). Appearance and About hold nothing provider-specific.
 - The report window takes the height of its content, so the whole report shows without scrolling, keeping its top edge and never growing past the visible screen; only then does it scroll. It refits when the period or provider changes. The three totals share one Doto size, set by the longest value (40, 36, 32 or 28 pt), so they read as one line.
-- Every report section sits on its own card (`ReportCard`: `card` with a hairline outline, 14 pt inside, 12 pt between cards): the totals, the pace graph, the activity calendar with its figures, By model, Top projects and Top sessions. By model and Top projects share a row and are as tall as the taller one. The lists inside a card still space their rows instead of ruling them, and show three entries and "Show N more".
+- Every report section sits on its own card (`ReportCard`: `card` with a hairline outline, 14 pt inside, 12 pt between cards): the totals, the pace graph, the activity calendar with its figures, By weekday (months only), By model, Top projects and Top sessions. By model and Top projects share a row and are as tall as the taller one. The lists inside a card still space their rows instead of ruling them, and show three entries and "Show N more".
 - A provider filter (`PaperSegments`, "Provider": All, Claude, Codex, full width) sits directly under the report header, only while both providers count: Codex is active, or signed out with local data in the period. With one provider there is no filter and the report is Claude's. It defaults to All and is not remembered.
 - The filter scopes the whole report. All adds Claude and Codex fresh tokens, for the total, the change against the previous period and the activity calendar. Claude shows Claude only. Codex shows its tokens, change, activity calendar and models, and hides the pace graph, API cost, top projects, top sessions and the cache and price notes, which only exist for Claude. In All, those Claude-only sections keep their place and carry "CLAUDE" in their title, and the API cost tooltip says it covers Claude only. By model lists both providers' models, largest first.
 - The activity calendar sits after the pace graph: one calendar for the selected scope, no provider logos and no provider colour. A day's tooltip (150 ms) gives the date and its fresh tokens, or "No use". A legend line ("Less" to "More") sits under it. Beside it, in a second column like By model and Top projects (under it when the window is too narrow), three figures for the scope: active days ("3 of 9 days", days up to today), the longest streak of days in a row, and the busiest day with its tokens (the latest on a tie), each a micro label over a Doto number with its words in SF Pro, each with a tooltip and one VoiceOver element. The calendar is one VoiceOver element that names the active days and the busiest day, and nothing in it moves.

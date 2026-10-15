@@ -100,4 +100,21 @@ final class ReportScopingTests: XCTestCase {
         XCTAssertNil(ReportScoping.codexData(nil, loadedFor: "week-1", wanted: "week-1"))
         XCTAssertNil(ReportScoping.codexData(codex, loadedFor: nil, wanted: "week-1"))
     }
+
+    func testActiveDaysCountsOnlyDaysWithUseInsideTheRange() {
+        let tokens = ["2026-08-09": 5, "2026-08-10": 0, "2026-08-11": 7, "2026-08-12": 9, "2026-08-20": 1]
+        let count = ReportScoping.activeDays(
+            tokens, from: TestCalendar.date("2026-08-10"), to: TestCalendar.date("2026-08-12"), calendar: TestCalendar.berlin()
+        )
+        XCTAssertEqual(count, 2)
+    }
+
+    func testPersistedDaysKeepRolledUpDaysWhoseTranscriptsAreGone() {
+        let rollups = [
+            "2026-08-01": DailyRollup(sessionCount: 1, input: 10, output: 5, cacheRead: 999),
+            "2026-08-02": DailyRollup(sessionCount: 1, input: 7)
+        ]
+        let days = ReportScoping.persistedDayTokens(rollups: rollups, live: ["2026-08-02": 7, "2026-08-03": 4])
+        XCTAssertEqual(days, ["2026-08-01": 15, "2026-08-02": 7, "2026-08-03": 4])
+    }
 }

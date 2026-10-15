@@ -43,12 +43,17 @@ struct ClaudeStatisticsScreen: View {
         let averages = StatisticsAverages(
             activeDays: live.activeDayCount, messages: live.messageCount, sessions: live.sessionCount, tokens: live.realTokens
         )
+        let today = state.statsPeriod == .today ? AverageComparison.todayHint(tokens: live.realTokens, rollups: state.rollups) : nil
+        let tokenAverages = [averages.tokens, today?.tooltip].compactMap { $0 }
         var facts = [
             StatFact(label: "Messages", parts: UsageFormat.count(live.messageCount), tooltip: averages.messages),
             StatFact(label: "Sessions", parts: UsageFormat.count(live.sessionCount), tooltip: averages.sessions),
             StatFact(
                 label: "Tokens", parts: UsageFormat.tokens(live.realTokens),
-                tooltip: TokenWording.withBreakdown(TokenWording.claude, live.tokenBreakdown, average: averages.tokens)
+                tooltip: TokenWording.withBreakdown(
+                    TokenWording.claude, live.tokenBreakdown, average: tokenAverages.isEmpty ? nil : tokenAverages.joined(separator: "\n")
+                ),
+                hint: today?.text
             )
         ]
         if state.showApiCost, let cost = state.liveCost {
@@ -149,9 +154,12 @@ private struct StatTileGrid: View {
                             rows[row][column]
                                 .padding(.horizontal, 12)
                                 .padding(.vertical, 10)
+                                .frame(maxHeight: .infinity, alignment: .topLeading)
                         }
                     }
                 }
+                // Both tiles of a row are as tall as the taller one, which carries a hint.
+                .fixedSize(horizontal: false, vertical: true)
             }
         }
     }

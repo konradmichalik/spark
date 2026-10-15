@@ -64,6 +64,19 @@ enum ReportScoping {
         }
     }
 
+    /// Claude's fresh tokens per day from the rollups and the live scan. Rollups outlive deleted
+    /// transcripts, so a total summed from them needs their days too, or its average runs high.
+    static func persistedDayTokens(rollups: [String: DailyRollup], live: [String: Int]) -> [String: Int] {
+        rollups.mapValues(\.real).merging(live, uniquingKeysWith: max)
+    }
+
+    /// The days of the range on which the scope used tokens.
+    static func activeDays(_ dayTokens: [String: Int], from start: Date, to end: Date, calendar: Calendar = .current) -> Int {
+        let first = TranscriptCache.dayKey(for: start, calendar: calendar)
+        let last = TranscriptCache.dayKey(for: end, calendar: calendar)
+        return dayTokens.filter { $0.key >= first && $0.key <= last && $0.value > 0 }.count
+    }
+
     static func totals(_ scope: ReportScope, report: PeriodReport, codex: CodexReportData?, calendar: Calendar = .current) -> ScopedTotals {
         let claudeShare = scope == .codex ? (0, 0) : (report.currentPeriodTokens, report.previousPeriodTokens)
         let codexShare = scope == .claude ? (0, 0) : (

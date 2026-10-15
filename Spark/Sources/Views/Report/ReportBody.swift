@@ -11,7 +11,7 @@ struct ReportBody: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             ReportCard {
-                ReportTotals(report: report, scope: scope, codex: codex, showApiCost: showApiCost)
+                ReportTotals(report: report, scope: scope, codex: codex, showApiCost: showApiCost, dayTokens: persistedDayTokens)
             }
             if ReportScoping.showsClaudeSections(scope) {
                 ReportCard {
@@ -23,10 +23,12 @@ struct ReportBody: View {
                 }
             }
             ReportCard {
-                ActivitySection(
-                    report: report,
-                    dayTokens: ReportScoping.dayTokens(scope, claude: report.dayTokens, codex: codex?.dayTokens ?? [:])
-                )
+                ActivitySection(report: report, dayTokens: scopedDayTokens)
+            }
+            if let weekdays = WeekdayProfile.make(dayTokens: persistedDayTokens, start: report.rangeStart, end: report.rangeEnd) {
+                ReportCard {
+                    WeekdaySection(profile: weekdays)
+                }
             }
             HStack(alignment: .top, spacing: 12) {
                 ReportCard {
@@ -54,6 +56,16 @@ struct ReportBody: View {
     }
 
     @EnvironmentObject private var state: AppState
+
+    private var scopedDayTokens: [String: Int] {
+        ReportScoping.dayTokens(scope, claude: report.dayTokens, codex: codex?.dayTokens ?? [:])
+    }
+
+    /// For the figures that divide the rollup totals, which reach back further than the transcripts.
+    private var persistedDayTokens: [String: Int] {
+        let claude = ReportScoping.persistedDayTokens(rollups: state.rollups, live: report.dayTokens)
+        return ReportScoping.dayTokens(scope, claude: claude, codex: codex?.dayTokens ?? [:])
+    }
 
     private var projects: [ReportEntry] {
         report.topProjects.map { project in
@@ -91,6 +103,7 @@ private struct ReportTotals: View {
     let scope: ReportScope
     let codex: CodexReportData?
     let showApiCost: Bool
+    let dayTokens: [String: Int]
 
     private static let cacheHitRateWarningThreshold = 0.9
 
@@ -107,9 +120,18 @@ private struct ReportTotals: View {
                     trendTotal
                     costTotal
                 }
+                if let average = dailyAverage {
+                    DetailNote(text: average)
+                }
             }
             notes
         }
+    }
+
+    private var dailyAverage: String? {
+        ReportText.dailyAverage(
+            total: totals.current, activeDays: ReportScoping.activeDays(dayTokens, from: report.rangeStart, to: report.rangeEnd)
+        )
     }
 
     private var costSummary: CostSummary? {
@@ -127,12 +149,19 @@ private struct ReportTotals: View {
     }
 
     private var previousText: String {
-        "\(formatTokenCount(totals.previous)) tokens the \(report.period == .month ? "month" : "week") before"
+        let tokens = formatTokenCount(totals.previous)
+        if report.comparesPartOfMonth {
+            let days = report.previousDayCount()
+            return "\(tokens) tokens in the first \(days) \(days == 1 ? "day" : "days") of the month before"
+        }
+        return "\(tokens) tokens the \(report.period == .month ? "month" : "week") before"
     }
 
     @ViewBuilder
     private var trendTotal: some View {
-        let label = ReportText.comparisonLabel(report.period, start: report.rangeStart)
+        let label = ReportText.comparisonLabel(
+            report.period, previousStart: report.previousStart, previousEnd: report.comparesPartOfMonth ? report.previousEnd : nil
+        )
         if let trend = ReportText.trend(totals.trendPercent) {
             ReportTotal(label: label, parts: trend, tooltip: previousText, size: totalsSize)
         } else {
@@ -161,7 +190,9 @@ private struct ReportTotals: View {
             }
             // Multi-turn use keeps the hit rate near the ceiling, so it only shows when it drops.
             if let rate = report.cacheHitRate, rate < Self.cacheHitRateWarningThreshold {
-                WarningBanner(message: "Cache hit rate dropped to \(UsageFormat.percent(rate * 100))")
+                let previous = report.previousCacheHitRate.flatMap { $0 > rate ? $0 : nil }
+                let was = previous.map { " (was \(UsageFormat.percent($0 * 100)))" } ?? ""
+                WarningBanner(message: "Cache hit rate dropped to \(UsageFormat.percent(rate * 100))\(was)")
             }
         }
     }

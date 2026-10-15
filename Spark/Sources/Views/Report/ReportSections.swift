@@ -153,6 +153,44 @@ struct ModelShareSection: View {
     }
 }
 
+/// Each weekday's average tokens as a dot bar against the busiest weekday.
+struct WeekdaySection: View {
+    let profile: WeekdayProfile
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            MicroLabel(text: "BY WEEKDAY \u{00B7} AVERAGE")
+                .accessibilityAddTraits(.isHeader)
+            VStack(spacing: 6) {
+                ForEach(profile.entries, id: \.name) { entry in
+                    HStack(spacing: 10) {
+                        Text(entry.name)
+                            .font(.system(size: 11, design: .monospaced))
+                            .foregroundStyle(Theme.inkSecondary)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.8)
+                            .frame(width: 34, alignment: .leading)
+                        DotBar(value: entry.share, pitch: 4, dotSize: 2.6)
+                            .frame(height: 6)
+                            .accessibilityHidden(true)
+                        Text(formatTokenCount(entry.average))
+                            .font(.system(size: 12))
+                            .monospacedDigit()
+                            .foregroundStyle(Theme.inkSecondary)
+                            .frame(width: 52, alignment: .trailing)
+                    }
+                    .frame(minHeight: 20)
+                    .contentShape(Rectangle())
+                    .tooltip(entry.tooltip, title: entry.fullName, delay: .quick)
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel(entry.fullName)
+                    .accessibilityValue(entry.tooltip)
+                }
+            }
+        }
+    }
+}
+
 struct ReportEntry: Identifiable {
     let id: String
     let name: String

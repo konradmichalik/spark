@@ -88,4 +88,24 @@ final class HistoryDetailTests: XCTestCase {
         XCTAssertEqual(VolumeHover.text(for: .column(0), days: days, columns: columns, locale: locale, timeZone: utc)?.title, "Thu 8 Oct")
         XCTAssertEqual(VolumeHover.text(for: .column(1), days: days, columns: columns, locale: locale, timeZone: utc)?.body, "No data")
     }
+
+    func testVolumeReadoutSetsADayAgainstTheDailyAverage() {
+        let days = [day(0, 1_000), day(1, 1_000), day(2, 1_000), day(3, 1_000), day(4, 3_000), day(5, 100), day(6, 0, hasRollup: false)]
+        let columns = VolumeColumns.make(days, calendar: calendar)
+        let locale = Locale(identifier: "en_US")
+        // The average over the six days with data is 1,183.
+        let busy = VolumeHover.text(for: .column(4), days: days, columns: columns, locale: locale, timeZone: utc)?.body
+        XCTAssertEqual(busy, "3.0K tokens\n2.5\u{00D7} the daily average")
+        let quiet = VolumeHover.text(for: .column(5), days: days, columns: columns, locale: locale, timeZone: utc)?.body
+        XCTAssertEqual(quiet, "100 tokens\n8% of the daily average")
+        let usual = VolumeHover.text(for: .column(0), days: days, columns: columns, locale: locale, timeZone: utc)?.body
+        XCTAssertEqual(usual, "1.0K tokens", "85% of the average is close enough to leave alone")
+    }
+
+    func testVolumeReadoutHasNoComparisonWithFewDaysOfUse() {
+        let days = [day(0, 1_000), day(1, 100), day(2, 5_000), day(3, 1_000)]
+        let columns = VolumeColumns.make(days, calendar: calendar)
+        let body = VolumeHover.text(for: .column(2), days: days, columns: columns, locale: Locale(identifier: "en_US"), timeZone: utc)?.body
+        XCTAssertEqual(body, "5.0K tokens")
+    }
 }
