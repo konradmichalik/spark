@@ -15,14 +15,17 @@ enum TablerIcon: String, CaseIterable {
     case circleArrowUp = "circle-arrow-up"
     case circleCheck = "circle-check"
     case externalLink = "external-link"
+    case flame
     case helpCircle = "help-circle"
     case history
+    case hourglass
     case key
     case link
     case power
     case refresh
     case refreshAlert = "refresh-alert"
     case settings
+    case trendingUp = "trending-up"
     case world
 
     var assetName: String { rawValue }
