@@ -64,10 +64,13 @@ struct SessionBlock: View {
                 MicroLabel(text: "SESSION")
                 Spacer()
                 if let resetIn = reading.resetIn {
-                    Text("Reset in \(resetIn)")
-                        .font(.system(size: 10.5))
-                        .monospacedDigit()
-                        .foregroundStyle(Theme.inkSecondary)
+                    HStack(spacing: 4) {
+                        TablerIconView(.hourglass, size: 11)
+                        Text("Reset in \(resetIn)")
+                            .font(.system(size: 10.5))
+                            .monospacedDigit()
+                    }
+                    .foregroundStyle(Theme.inkSecondary)
                 }
             }
             HStack(alignment: .bottom) {
@@ -82,11 +85,13 @@ struct SessionBlock: View {
                 Spacer(minLength: 12)
                 VStack(alignment: .trailing, spacing: 8) {
                     if let fact = reading.fact {
-                        SessionFact(label: "FORECAST", value: fact.text, tone: fact.tone, explanation: fact.explanation)
+                        SessionFact(
+                            icon: .trendingUp, label: "FORECAST", value: fact.text, tone: fact.tone, explanation: fact.explanation
+                        )
                     }
                     if let tokensPerMinute = reading.tokensPerMinute {
                         SessionFact(
-                            label: "BURN RATE", value: BurnRateFact.text(tokensPerMinute), tone: .normal,
+                            icon: .flame, label: "BURN RATE", value: BurnRateFact.text(tokensPerMinute), tone: .normal,
                             explanation: BurnRateFact.explanation
                         )
                     }
@@ -113,6 +118,7 @@ struct SessionBlock: View {
 /// while normal, otherwise in its tone.
 private struct SessionFact: View {
     var alignment: HorizontalAlignment = .trailing
+    var icon: TablerIcon?
     let label: String
     let value: String
     let tone: UsageTone
@@ -120,7 +126,12 @@ private struct SessionFact: View {
 
     var body: some View {
         VStack(alignment: alignment, spacing: 1) {
-            MicroLabel(text: label, size: 9)
+            HStack(spacing: 3) {
+                if let icon {
+                    TablerIconView(icon, size: 10, color: tone.color)
+                }
+                MicroLabel(text: label, size: 9)
+            }
             Text(value)
                 .font(.system(size: 11))
                 .monospacedDigit()
@@ -219,10 +230,13 @@ struct RingsBlock: View {
                 VStack(alignment: .leading, spacing: 3) {
                     MicroLabel(text: "SESSION")
                     if let resetIn = reading.resetIn {
-                        Text("Reset in \(resetIn)")
-                            .font(.system(size: 10.5))
-                            .monospacedDigit()
-                            .foregroundStyle(Theme.inkSecondary)
+                        HStack(spacing: 4) {
+                            TablerIconView(.hourglass, size: 11)
+                            Text("Reset in \(resetIn)")
+                                .font(.system(size: 10.5))
+                                .monospacedDigit()
+                        }
+                        .foregroundStyle(Theme.inkSecondary)
                     }
                 }
                 .accessibilityElement(children: .combine)
