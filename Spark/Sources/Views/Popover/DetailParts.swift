@@ -31,6 +31,8 @@ struct StatFact: View {
     let parts: NumberParts
     var prefix: String?
     var tooltip: String?
+    /// A short line under the value that sets it against the usual one.
+    var hint: String?
     /// Read by VoiceOver instead of the split number, e.g. "about 117 dollars".
     var spokenValue: String?
 
@@ -48,13 +50,23 @@ struct StatFact: View {
                 }
             }
             DotoValue(parts: parts, prefix: prefix)
+            if let hint {
+                Text(hint)
+                    .font(.system(size: 11))
+                    .foregroundStyle(Theme.inkSecondary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.9)
+            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .contentShape(Rectangle())
         .tooltip(tooltip, title: label, delay: .quick)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(label)
-        .accessibilityValue(spokenValue ?? [prefix, parts.number, parts.unit].compactMap { $0 }.joined(separator: " "))
+        .accessibilityValue(
+            [spokenValue ?? [prefix, parts.number, parts.unit].compactMap { $0 }.joined(separator: " "), hint]
+                .compactMap { $0 }.joined(separator: ", ")
+        )
         .accessibilityHint(tooltip ?? "")
     }
 }

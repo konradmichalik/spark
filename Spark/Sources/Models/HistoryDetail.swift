@@ -112,11 +112,22 @@ enum VolumeHover {
         switch item {
         case .column(let index):
             guard let day = days[safe: index], let start = columns[safe: index]?.slotStart else { return nil }
-            return (format.string(from: start), day.isEmpty ? "No data" : "\(formatTokenCount(day.tokens)) tokens")
+            guard !day.isEmpty else { return (format.string(from: start), "No data") }
+            let lines = ["\(formatTokenCount(day.tokens)) tokens", comparison(of: day, in: days, locale: locale)]
+            return (format.string(from: start), lines.compactMap { $0 }.joined(separator: "\n"))
         case .gap(let range):
             guard let first = columns[safe: range.lowerBound]?.slotStart,
                   let last = columns[safe: range.upperBound - 1]?.slotStart else { return nil }
             return ("\(format.string(from: first))\u{2013}\(format.string(from: last))", "No data")
         }
+    }
+
+    /// How the day stands against the range's daily average, once the range has enough days of
+    /// use for an average to mean anything.
+    private static func comparison(of day: VolumeDay, in days: [VolumeDay], locale: Locale) -> String? {
+        let active = days.filter { !$0.isEmpty }
+        guard active.count >= AverageComparison.minimumActiveDays else { return nil }
+        let average = active.reduce(0) { $0 + $1.tokens } / active.count
+        return AverageComparison.dayNote(tokens: day.tokens, average: average, locale: locale)
     }
 }
