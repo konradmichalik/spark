@@ -39,6 +39,13 @@ enum ReportText {
         return NumberParts(number: rounded > 0 ? "+\(rounded)" : "\(rounded)", unit: "%")
     }
 
+    /// The line under the totals. With a single active day it would repeat the total, so it waits
+    /// for a second one.
+    static func dailyAverage(total: Int, activeDays: Int) -> String? {
+        guard activeDays > 1, total > 0 else { return nil }
+        return "Average \(formatTokenCount(Int((Double(total) / Double(activeDays)).rounded()))) tokens per active day"
+    }
+
     static func format(_ date: Date, template: String, locale: Locale, timeZone: TimeZone) -> String {
         HistoryAxis.formatter(locale: locale, timeZone: timeZone, template: template).string(from: date)
     }

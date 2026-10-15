@@ -11,7 +11,7 @@ struct ReportBody: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             ReportCard {
-                ReportTotals(report: report, scope: scope, codex: codex, showApiCost: showApiCost)
+                ReportTotals(report: report, scope: scope, codex: codex, showApiCost: showApiCost, dayTokens: persistedDayTokens)
             }
             if ReportScoping.showsClaudeSections(scope) {
                 ReportCard {
@@ -23,10 +23,12 @@ struct ReportBody: View {
                 }
             }
             ReportCard {
-                ActivitySection(
-                    report: report,
-                    dayTokens: ReportScoping.dayTokens(scope, claude: report.dayTokens, codex: codex?.dayTokens ?? [:])
-                )
+                ActivitySection(report: report, dayTokens: scopedDayTokens)
+            }
+            if let weekdays = WeekdayProfile.make(dayTokens: persistedDayTokens, start: report.rangeStart, end: report.rangeEnd) {
+                ReportCard {
+                    WeekdaySection(profile: weekdays)
+                }
             }
             HStack(alignment: .top, spacing: 12) {
                 ReportCard {
@@ -54,6 +56,16 @@ struct ReportBody: View {
     }
 
     @EnvironmentObject private var state: AppState
+
+    private var scopedDayTokens: [String: Int] {
+        ReportScoping.dayTokens(scope, claude: report.dayTokens, codex: codex?.dayTokens ?? [:])
+    }
+
+    /// For the figures that divide the rollup totals, which reach back further than the transcripts.
+    private var persistedDayTokens: [String: Int] {
+        let claude = ReportScoping.persistedDayTokens(rollups: state.rollups, live: report.dayTokens)
+        return ReportScoping.dayTokens(scope, claude: claude, codex: codex?.dayTokens ?? [:])
+    }
 
     private var projects: [ReportEntry] {
         report.topProjects.map { project in
@@ -91,6 +103,7 @@ private struct ReportTotals: View {
     let scope: ReportScope
     let codex: CodexReportData?
     let showApiCost: Bool
+    let dayTokens: [String: Int]
 
     private static let cacheHitRateWarningThreshold = 0.9
 
@@ -107,9 +120,18 @@ private struct ReportTotals: View {
                     trendTotal
                     costTotal
                 }
+                if let average = dailyAverage {
+                    DetailNote(text: average)
+                }
             }
             notes
         }
+    }
+
+    private var dailyAverage: String? {
+        ReportText.dailyAverage(
+            total: totals.current, activeDays: ReportScoping.activeDays(dayTokens, from: report.rangeStart, to: report.rangeEnd)
+        )
     }
 
     private var costSummary: CostSummary? {

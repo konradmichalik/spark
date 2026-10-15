@@ -44,6 +44,12 @@ final class ReportTextTests: XCTestCase {
         XCTAssertEqual(ReportText.comparisonLabel(.week, previousStart: day(10, 5), locale: locale, timeZone: utc), "VS LAST WEEK")
     }
 
+    func testDailyAverageNeedsTwoActiveDays() {
+        XCTAssertEqual(ReportText.dailyAverage(total: 5_000_000, activeDays: 4), "Average 1.2M tokens per active day")
+        XCTAssertNil(ReportText.dailyAverage(total: 5_000_000, activeDays: 1))
+        XCTAssertNil(ReportText.dailyAverage(total: 0, activeDays: 4))
+    }
+
     func testTrendIsSignedAndRoundedWithTheUnitApart() {
         XCTAssertEqual(ReportText.trend(12.4), NumberParts(number: "+12", unit: "%"))
         XCTAssertEqual(ReportText.trend(-5.6), NumberParts(number: "-6", unit: "%"))

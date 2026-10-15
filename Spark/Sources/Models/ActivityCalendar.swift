@@ -89,7 +89,7 @@ enum ActivityCalendar {
 
     /// Each day is re-normalized to midnight: `date(byAdding:)` keeps the wall-clock time, which
     /// drifts across a DST change (see `PeriodReport.sum`).
-    private static func daysBetween(_ first: Date, _ last: Date, calendar: Calendar) -> [Date] {
+    static func daysBetween(_ first: Date, _ last: Date, calendar: Calendar) -> [Date] {
         var days: [Date] = []
         var day = first
         while day <= last {
