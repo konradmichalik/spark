@@ -76,8 +76,6 @@ struct PopoverHeader: View {
         }
         .padding(2)
         .background(Theme.hairline, in: RoundedRectangle(cornerRadius: 9))
-        // The selected background slides to the new tab (docs/design/rules.md, "Motion").
-        .animation(reduceMotion ? nil : .easeOut(duration: 0.2), value: provider)
     }
 
     private func tabButton(_ tab: ProviderTab) -> some View {
@@ -103,13 +101,17 @@ struct PopoverHeader: View {
                 }
             }
             .fixedSize()
+            // The popover height change runs in the same transaction and must not move the label.
+            .transaction { $0.animation = nil }
             .padding(.horizontal, 6)
             .frame(maxWidth: .infinity, minHeight: 30)
             .background {
+                // Only the selected background slides (docs/design/rules.md, "Motion").
                 if isSelected {
                     selectedBackground(for: tab.provider).matchedGeometryEffect(id: "selectedTab", in: tabSelection)
                 }
             }
+            .animation(reduceMotion ? nil : .easeOut(duration: 0.2), value: isSelected)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
