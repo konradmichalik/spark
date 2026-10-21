@@ -40,7 +40,11 @@ struct BurnRate: Equatable, Sendable {
     /// Divides by the full window rather than the span since the first turn, so a single turn
     /// right after a pause reads as a short burst instead of an extreme rate.
     static func calculate(files: [FileParseCache], now: Date = Date()) -> BurnRate? {
-        let recent = files.flatMap(\.recentTurns).filter { isRecent($0, now: now) }
+        calculate(turns: files.flatMap(\.recentTurns), now: now)
+    }
+
+    static func calculate(turns: [TurnSample], now: Date = Date()) -> BurnRate? {
+        let recent = turns.filter { isRecent($0, now: now) }
         guard !recent.isEmpty else { return nil }
         let tokens = recent.reduce(0) { $0 + $1.tokens }
         return BurnRate(tokensPerMinute: Int((Double(tokens) / (window / 60)).rounded()))

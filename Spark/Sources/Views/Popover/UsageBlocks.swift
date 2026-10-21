@@ -38,10 +38,12 @@ struct SessionReading {
     let resetIn: String?
     let resetDate: Date?
     let forecast: SessionForecast
+    var sessionWindow: TimeInterval = SessionProjection.defaultSessionLength
     let elapsed: Double?
     let tone: UsageTone
     var fact: ForecastFact?
     var tokensPerMinute: Int?
+    var burnRateExplanation = BurnRateFact.explanation
 
     var accessibilityValue: String {
         let facts = [fact?.text, tokensPerMinute.map { "\(BurnRateFact.text($0)) tokens" }].compactMap { $0 }
@@ -49,7 +51,13 @@ struct SessionReading {
     }
 
     func barTooltip(reset: String?) -> String {
-        BarTooltip.text(window: "5-hour", showsForecast: forecast.projected != nil, elapsed: elapsed, reset: reset)
+        let window: String
+        if sessionWindow.truncatingRemainder(dividingBy: 3600) == 0 {
+            window = "\(Int(sessionWindow / 3600))-hour"
+        } else {
+            window = "\(Int(sessionWindow / 60))-minute"
+        }
+        return BarTooltip.text(window: window, showsForecast: forecast.projected != nil, elapsed: elapsed, reset: reset)
     }
 }
 
@@ -92,7 +100,7 @@ struct SessionBlock: View {
                     if let tokensPerMinute = reading.tokensPerMinute {
                         SessionFact(
                             icon: .flame, label: "BURN RATE", value: BurnRateFact.text(tokensPerMinute), tone: .normal,
-                            explanation: BurnRateFact.explanation
+                            explanation: reading.burnRateExplanation
                         )
                     }
                 }

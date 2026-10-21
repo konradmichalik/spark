@@ -41,6 +41,8 @@ Each tab also shows that provider's session usage, colored from the warning thre
 
 If a Codex plan lacks the window picked under **Displayed value** (Pro has no 5-hour window, Free only a 30-day one), Spark uses that plan's highest window instead of showing 0%.
 
+With **Forecast** enabled, Codex shows where the current session is expected to land at reset. Its burn rate is the average fresh input and output tokens from local Codex CLI rollout files over the last 15 minutes; cached input is excluded. Codex Cloud, web and desktop activity is not included in this local rate. The forecast still works when no local rollout activity is available.
+
 ## Settings
 
 - **General**: refresh mode, launch at login and the data export.

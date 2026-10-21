@@ -44,6 +44,11 @@ final class BurnRateTests: XCTestCase {
         XCTAssertNil(BurnRate.calculate(files: [file([turn(minutesAgo: -5, tokens: 90_000)])], now: now))
     }
 
+    func testCalculatesFromDirectCodexTurnSamples() throws {
+        let rate = try XCTUnwrap(BurnRate.calculate(turns: [turn(minutesAgo: 1, tokens: 15_000)], now: now))
+        XCTAssertEqual(rate.tokensPerMinute, 1_000)
+    }
+
     // MARK: - pruned
 
     func testPrunedKeepsOnlyTurnsWithinTheWindowBeforeNow() {

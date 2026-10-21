@@ -11,6 +11,8 @@ Spark queries `api.anthropic.com/api/oauth/usage` using the OAuth token Claude C
 
 Codex windows are classified by length, not by position: up to 6 hours is the session window, 6 to 8 days the weekly one, anything else (the Free plan's 30-day window, per-model limits) gets its own row. `CodexUsage` maps them onto the existing `UsageData`, so the Claude rows and rings render them unchanged.
 
+The session forecast uses the API's actual session-window duration, reset time, and the recent snapshots in Codex history. The burn rate is recalculated from local rollout files over a separate 15-minute scan, regardless of the selected statistics period. Files modified before the cutoff are skipped; eligible files are read from their start to establish cumulative token baselines. Fresh input plus output is counted, cached input is excluded, and the rate refreshes every minute while the overview is visible so idle samples age out.
+
 Each successful Codex usage update records the session and weekly limits in `~/Library/Application Support/Spark/codex-history.json`, independently of Claude history. The newest 8,640 points survive restarts (about 30 days at five-minute intervals). The shared history display setting controls the overview card; clicking it opens Codex's Limits history with ranges from one hour to 30 days. Missing windows stay absent rather than appearing as 0%. Codex history has no Volume mode, and plans with only additional limits, such as a 30-day window, have no session/week graph. Recording starts with the first successful update; earlier usage is not reconstructed from local token statistics.
 
 Local stats come from the rollout files in `sessions/` and `archived_sessions/`. `token_count` events hold cumulative totals, so `CodexSessionStats` counts the delta between consecutive events at each event's timestamp. `input_tokens` includes cached tokens, which are split out.
@@ -26,7 +28,8 @@ Only sessions that leave a rollout file are counted. Codex Cloud, the desktop ap
 Spark/Sources/
   App/        SparkApp.swift — entry point, menu bar controller
   Models/     Models.swift, AppState.swift, StatsModels.swift, Theme.swift,
-              CodexState.swift, CodexUsage.swift, CodexSessionStats.swift, MenuBarReading.swift
+              CodexState.swift, CodexUsage.swift, CodexSessionStats.swift,
+              CodexTurnSamples.swift, CodexBurnRateRefresh.swift, MenuBarReading.swift
   Services/   UsageClient.swift, KeychainService.swift, CodexAuthReader.swift, CodexUsageClient.swift
   Views/      MenuBarView, ClaudeLogoShape
   Views/Settings/    SettingsView and one file per tab, the shared settings rows and cards

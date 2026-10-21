@@ -63,7 +63,7 @@ struct CodexSessionStats: Equatable, Sendable {
         dayTokens.merge(other.dayTokens, uniquingKeysWith: +)
     }
 
-    private static func rolloutFiles(in directory: URL) -> [URL] {
+    static func rolloutFiles(in directory: URL) -> [URL] {
         guard let enumerator = FileManager.default.enumerator(
             at: directory,
             includingPropertiesForKeys: [.contentModificationDateKey],
@@ -76,8 +76,16 @@ struct CodexSessionStats: Equatable, Sendable {
         }
     }
 
-    private static func modificationDate(of url: URL) -> Date? {
+    static func modificationDate(of url: URL) -> Date? {
         try? url.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate
+    }
+
+    /// Value-type format styles: cheap to reuse, unlike a fresh `ISO8601DateFormatter` per line.
+    private static let fractionalStyle = Date.ISO8601FormatStyle(includingFractionalSeconds: true)
+    private static let plainStyle = Date.ISO8601FormatStyle()
+
+    static func parseDate(_ string: String) -> Date? {
+        (try? fractionalStyle.parse(string)) ?? (try? plainStyle.parse(string))
     }
 }
 
@@ -136,7 +144,7 @@ private struct RolloutAccumulator {
         stats.outputTokens += output
         stats.reasoningTokens += max(total.reasoning - previous.reasoning, 0)
         stats.modelTokens[model ?? "unknown", default: 0] += fresh + output
-        if let date = timestamp.flatMap(Self.parseDate) {
+        if let date = timestamp.flatMap(CodexSessionStats.parseDate) {
             stats.dayTokens[TranscriptCache.dayKey(for: date), default: 0] += fresh + output
         }
         markActive()
@@ -151,34 +159,26 @@ private struct RolloutAccumulator {
     /// Lines without a parsable timestamp only count when there is no cutoff.
     private func isInPeriod(_ timestamp: String?) -> Bool {
         guard since != nil || until != nil else { return true }
-        guard let date = timestamp.flatMap(Self.parseDate) else { return false }
+        guard let date = timestamp.flatMap(CodexSessionStats.parseDate) else { return false }
         if let since, date < since { return false }
         if let until, date >= until { return false }
         return true
     }
-
-    /// Value-type format styles: cheap to reuse, unlike a fresh `ISO8601DateFormatter` per line.
-    private static let fractionalStyle = Date.ISO8601FormatStyle(includingFractionalSeconds: true)
-    private static let plainStyle = Date.ISO8601FormatStyle()
-
-    private static func parseDate(_ string: String) -> Date? {
-        (try? fractionalStyle.parse(string)) ?? (try? plainStyle.parse(string))
-    }
 }
 
-private struct RolloutLine: Decodable {
+struct RolloutLine: Decodable {
     let timestamp: String?
     let type: String
     let payload: RolloutPayload?
 }
 
-private struct RolloutPayload: Decodable {
+struct RolloutPayload: Decodable {
     let type: String?
     let model: String?
     let info: RolloutTokenInfo?
 }
 
-private struct RolloutTokenInfo: Decodable {
+struct RolloutTokenInfo: Decodable {
     let totalTokenUsage: RolloutTokenUsage?
 
     enum CodingKeys: String, CodingKey {
@@ -186,7 +186,7 @@ private struct RolloutTokenInfo: Decodable {
     }
 }
 
-private struct RolloutTokenUsage: Decodable {
+struct RolloutTokenUsage: Decodable {
     var input = 0
     var cached = 0
     var output = 0

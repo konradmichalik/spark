@@ -219,7 +219,7 @@ enum ProjectionResult: Sendable {
 enum SessionProjection {
     /// Minutes of data the rate needs before it is worth extrapolating to the reset.
     static let minimumSpan: TimeInterval = 15 * 60
-    private static let sessionLength: TimeInterval = 5 * 3600
+    static let defaultSessionLength: TimeInterval = 5 * 3600
 
     /// Calculate projection from the last 60 minutes of the current session's snapshots, current
     /// utilization, and reset date. Snapshots from before the session started would mix two
@@ -228,15 +228,16 @@ enum SessionProjection {
         history: [UsageSnapshot],
         currentUtilization: Double,
         resetsAt: Date?,
+        sessionLength: TimeInterval = defaultSessionLength,
         now: Date = Date()
     ) -> ProjectionResult {
-        guard let resetsAt else { return .insufficientData }
+        guard let resetsAt, sessionLength > 0 else { return .insufficientData }
 
         let hoursUntilReset = resetsAt.timeIntervalSince(now) / 3600
         guard hoursUntilReset > 0 else { return .insufficientData }
 
         let cutoff = max(now.addingTimeInterval(-3600), resetsAt.addingTimeInterval(-sessionLength))
-        let recent = history.filter { $0.timestamp > cutoff }
+        let recent = history.filter { $0.timestamp > cutoff && $0.timestamp <= now && $0.sessionHistoryValue != nil }
 
         guard recent.count >= 2,
               let oldest = recent.first,
@@ -248,7 +249,10 @@ enum SessionProjection {
         guard span >= minimumSpan else { return .insufficientData }
         let timeDiffHours = span / 3600
 
-        let rate = (newest.sessionUtilization - oldest.sessionUtilization) / timeDiffHours
+        guard let oldestUtilization = oldest.sessionHistoryValue, let newestUtilization = newest.sessionHistoryValue else {
+            return .insufficientData
+        }
+        let rate = (newestUtilization - oldestUtilization) / timeDiffHours
         guard rate > 0 else { return .insufficientData }
 
         let projectedAtReset = currentUtilization + (rate * hoursUntilReset)
