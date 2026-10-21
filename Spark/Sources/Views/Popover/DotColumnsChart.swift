@@ -54,14 +54,13 @@ struct DotColumnsChart: View {
             context.fill(Path(guide), with: .color(isDetailed ? Theme.ink : Theme.hairline))
         }
         var line = Path()
-        var lineIsOpen = false
+        let weeklyStarts = HistoryLayout.weeklySegmentStarts(items: items, columns: columns)
         for (position, item) in items.enumerated() {
             let centerX = pitch * (CGFloat(position) + 0.5)
             guard case .column(let index) = item else {
                 let bandWidth = min(max(pitch - 2, 2), 6)
                 let band = CGRect(x: centerX - bandWidth / 2, y: 0, width: bandWidth, height: size.height)
                 context.fill(Path(roundedRect: band, cornerRadius: 2), with: .color(Theme.dotTrack.opacity(0.7)))
-                lineIsOpen = false
                 continue
             }
             let column = columns[index]
@@ -70,14 +69,13 @@ struct DotColumnsChart: View {
             }
             guard let weekly = column.weekly else { continue }
             let point = CGPoint(x: centerX, y: size.height * (1 - min(max(weekly, 0), 100) / 100))
-            if lineIsOpen {
+            if !weeklyStarts.contains(position) {
                 line.addLine(to: point)
             } else {
                 // A segment can be a single point between two gaps; the dot keeps it visible.
                 line.move(to: point)
                 context.fill(Path(ellipseIn: CGRect(x: point.x - 1.5, y: point.y - 1.5, width: 3, height: 3)), with: .color(Theme.accent))
             }
-            lineIsOpen = true
         }
         context.stroke(line, with: .color(Theme.accent), style: StrokeStyle(lineWidth: 1.75, lineCap: .round, lineJoin: .round))
     }
@@ -108,7 +106,8 @@ struct DotColumnsChart: View {
                     .font(.system(size: 11))
                     .monospacedDigit()
             }
-            .fixedSize()
+            .frame(maxWidth: TooltipLayout.maxWidth, alignment: .leading)
+            .fixedSize(horizontal: false, vertical: true)
             .padding(.horizontal, 8)
             .padding(.vertical, 5)
             .tooltipChrome()

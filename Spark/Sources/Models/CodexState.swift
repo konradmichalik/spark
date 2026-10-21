@@ -8,6 +8,7 @@ import SwiftUI
 @MainActor
 final class CodexState: ObservableObject {
     @Published private(set) var usage: CodexUsage?
+    @Published private(set) var history: [UsageSnapshot] = []
     @Published private(set) var isAvailable = false
     @Published private(set) var needsSignIn = false
     @Published private(set) var isLoading = false
@@ -37,16 +38,20 @@ final class CodexState: ObservableObject {
     private var statsTask: Task<Void, Never>?
     private var lastStatsRefresh: Date?
     private var reportDataTask: Task<CodexReportData, Never>?
+    private let historyURL: URL?
 
     /// Arguments only seed state for tests; the app starts empty and fills in via `onLaunch()`.
-    init(usage: CodexUsage? = nil, isAvailable: Bool = false) {
+    init(usage: CodexUsage? = nil, isAvailable: Bool = false, historyURL: URL? = nil) {
         self.usage = usage
         self.isAvailable = isAvailable
+        self.historyURL = historyURL
+        if let historyURL { history = CodexHistory.load(from: historyURL) }
     }
 
     // MARK: - Lifecycle
 
     func onLaunch() {
+        history = CodexHistory.load(from: resolvedHistoryURL)
         refreshAvailability()
         guard isActive else { return }
         refreshStats(trigger: .poll)
@@ -108,12 +113,26 @@ final class CodexState: ObservableObject {
         }.value
         // Codex may have been switched off while the request was in flight.
         guard isEnabled else { return }
-        usage = CodexUsage(response: response)
+        applyUsage(CodexUsage(response: response))
         needsSignIn = false
         lastError = nil
         consecutiveRateLimits = 0
         startPolling(interval: Self.pollInterval)
         refreshStats(trigger: .poll)
+    }
+
+    /// Apply only successful responses, including a successful retry after a CLI token rotation.
+    func applyUsage(_ newUsage: CodexUsage) {
+        guard isEnabled else { return }
+        usage = newUsage
+        let recorded = CodexHistory.recording(newUsage, in: history, at: newUsage.usageData.lastUpdated)
+        guard recorded.last?.id != history.last?.id else { return }
+        history = recorded
+        CodexHistory.save(history, to: resolvedHistoryURL)
+    }
+
+    private var resolvedHistoryURL: URL {
+        historyURL ?? AppSupportDirectory.spark.appendingPathComponent("codex-history.json")
     }
 
     /// The CLI refreshes its own token and rewrites `auth.json`. A 401 usually means Spark read

@@ -44,7 +44,9 @@ struct HistoryCard: View {
         HStack(spacing: 10) {
             Text("History").font(.system(size: 12.5)).foregroundStyle(Theme.ink)
             Spacer()
-            HistoryLegend()
+            HistoryLegend(
+                showSession: columns.contains { $0.session != nil }, showWeek: columns.contains { $0.weekly != nil }
+            )
             TablerIconView(.chevronRight, size: 11, color: Theme.inkTertiary)
         }
     }
@@ -52,15 +54,22 @@ struct HistoryCard: View {
 
 /// Session as a grey dot, week as a red stroke: the two series told apart by shape.
 struct HistoryLegend: View {
+    var showSession = true
+    var showWeek = true
+
     var body: some View {
         HStack(spacing: 10) {
-            HStack(spacing: 4) {
-                Circle().fill(Theme.ink.opacity(0.4)).frame(width: 5, height: 5)
-                Text("Session")
+            if showSession {
+                HStack(spacing: 4) {
+                    Circle().fill(Theme.ink.opacity(0.4)).frame(width: 5, height: 5)
+                    Text("Session")
+                }
             }
-            HStack(spacing: 4) {
-                Capsule().fill(Theme.accent).frame(width: 10, height: 2)
-                Text("Week")
+            if showWeek {
+                HStack(spacing: 4) {
+                    Capsule().fill(Theme.accent).frame(width: 10, height: 2)
+                    Text("Week")
+                }
             }
         }
         .font(.system(size: 11))

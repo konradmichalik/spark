@@ -5,6 +5,7 @@ import SwiftUI
 struct HistoryScreen: View {
     let history: [UsageSnapshot]
     let rollups: [String: DailyRollup]
+    var showsVolume = true
 
     @State private var mode: GraphMode = .limits
     @State private var range: GraphTimeRange = .sixHours
@@ -14,7 +15,9 @@ struct HistoryScreen: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             HStack {
-                PaperSegments(selection: modeBinding, options: GraphMode.allCases, label: "Graph")
+                if showsVolume {
+                    PaperSegments(selection: modeBinding, options: GraphMode.allCases, label: "Graph")
+                }
                 Spacer(minLength: 8)
                 PaperSegments(
                     selection: $range, options: mode == .volume ? GraphTimeRange.dayGranularityCases : GraphTimeRange.allCases,
@@ -64,7 +67,9 @@ struct HistoryScreen: View {
                 HistoryAxisLabels(labels: HistoryAxis.labels(
                     items: HistoryLayout.items(columns), columns: columns, includesDate: range.spansDays
                 ))
-                HistoryLegend().padding(.top, 2)
+                HistoryLegend(
+                    showSession: columns.contains { $0.session != nil }, showWeek: columns.contains { $0.weekly != nil }
+                ).padding(.top, 2)
             }
             summaryCard(limitsFacts(summary))
         }
@@ -72,7 +77,8 @@ struct HistoryScreen: View {
 
     private func limitsValue(_ snapshots: [UsageSnapshot], _ summary: HistorySummary) -> String {
         let parts = [
-            snapshots.last.map { "Session now \(UsageFormat.percent($0.sessionUtilization)), week \(UsageFormat.percent($0.weeklyUtilization))" },
+            snapshots.last?.sessionHistoryValue.map { "Session now \(UsageFormat.percent($0))" },
+            snapshots.last?.weeklyHistoryValue.map { "Week now \(UsageFormat.percent($0))" },
             summary.peakSession.map { "Session peak \(UsageFormat.percent($0))" }
         ]
         return parts.compactMap { $0 }.joined(separator: ". ")

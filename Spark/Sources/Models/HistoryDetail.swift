@@ -69,8 +69,8 @@ struct HistorySummary: Equatable {
 
     static func make(_ snapshots: [UsageSnapshot]) -> HistorySummary {
         HistorySummary(
-            peakSession: snapshots.map(\.sessionUtilization).max(),
-            peakWeek: snapshots.map(\.weeklyUtilization).max()
+            peakSession: snapshots.compactMap(\.sessionHistoryValue).max(),
+            peakWeek: snapshots.compactMap(\.weeklyHistoryValue).max()
         )
     }
 }

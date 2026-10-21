@@ -127,14 +127,14 @@ struct ClaudeOverview: View {
     }
 }
 
-/// The Codex overview: sign-in and error notices, session and week, and the rows. Codex has no
-/// usage history, so there is no history card.
+/// The Codex overview: sign-in and error notices, session and week, independent history and rows.
 struct CodexOverview: View {
     @ObservedObject var codex: CodexState
     let warning: Double
     let critical: Double
     let style: String
     let showStats: Bool
+    let showGraph: Bool
     let open: (PopoverScreen) -> Void
 
     var body: some View {
@@ -164,6 +164,9 @@ struct CodexOverview: View {
             noDataText(HeadlineLimit.emptyText(limitReached: usage.limitReached))
         } else if !codex.isLoading, !codex.needsSignIn, codex.lastError == nil {
             noDataText()
+        }
+        if showGraph, !codex.history.isEmpty {
+            HistoryCard(columns: HistoryColumns.make(codex.history, now: Date())) { open(.history) }
         }
         OverviewRows(rows: rows, onOpen: open)
             // "All" is not read on the poll, so the row would stay empty until Statistics was
