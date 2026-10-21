@@ -289,15 +289,15 @@ final class CodexState: ObservableObject {
     }
 
     /// What the usage report needs from Codex: fresh tokens per day from `previousStart` on (for the
-    /// calendar and the trend) and per model for the shown period. A separate scan from
+    /// calendar and the trend), plus per model and project for the shown period. A separate scan from
     /// `refreshStats`, off the main actor, and a newer request cancels the previous one.
     func reportData(previousStart: Date, start: Date, until: Date?) async -> CodexReportData {
         let directories = rolloutDirectories
         reportDataTask?.cancel()
         let task = Task.detached {
             let days = CodexSessionStats.parse(directories: directories, since: previousStart, until: until).dayTokens
-            let models = CodexSessionStats.parse(directories: directories, since: start, until: until).modelTokens
-            return CodexReportData(dayTokens: days, modelTokens: models)
+            let stats = CodexSessionStats.parse(directories: directories, since: start, until: until)
+            return CodexReportData(dayTokens: days, modelTokens: stats.modelTokens, projectTokens: stats.projectTokens)
         }
         reportDataTask = task
         return await task.value

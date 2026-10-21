@@ -21,7 +21,8 @@ final class ReportScopingTests: XCTestCase {
 
     private let codex = CodexReportData(
         dayTokens: ["2026-08-16": 300, "2026-08-09": 100, "2026-08-21": 50, "2026-08-01": 999],
-        modelTokens: ["gpt-5.5": 300, "gpt-5.5-codex": 100]
+        modelTokens: ["gpt-5.5": 300, "gpt-5.5-codex": 100],
+        projectTokens: ["/work/codex": 400]
     )
 
     func testHiddenCodexForcesClaude() {
@@ -36,6 +37,15 @@ final class ReportScopingTests: XCTestCase {
         XCTAssertEqual(ReportScoping.dayTokens(.all, claude: claude, codex: other), ["a": 10, "b": 6, "c": 2])
         XCTAssertEqual(ReportScoping.dayTokens(.claude, claude: claude, codex: other), claude)
         XCTAssertEqual(ReportScoping.dayTokens(.codex, claude: claude, codex: other), other)
+    }
+
+    func testProjectTokensFollowSelectedProviderScope() {
+        let claude = ["/work/claude": 200]
+
+        XCTAssertEqual(ReportScoping.projectTokens(.claude, claude: claude, codex: codex), claude)
+        XCTAssertEqual(ReportScoping.projectTokens(.codex, claude: claude, codex: codex), ["/work/codex": 400])
+        XCTAssertEqual(ReportScoping.projectTokens(.all, claude: claude, codex: codex), claude)
+        XCTAssertEqual(ReportScoping.projectTokens(.codex, claude: claude, codex: nil), [:])
     }
 
     func testTotalsPerScope() {
