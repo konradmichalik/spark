@@ -1,7 +1,7 @@
 import AppKit
 import SwiftUI
 
-private let fiveHours: TimeInterval = 5 * 3600
+private let fiveHours = SessionProjection.defaultSessionLength
 private let sevenDays: TimeInterval = 7 * 24 * 3600
 
 /// Session and week for one provider in the user's display style (bars or ring).
@@ -11,18 +11,21 @@ private struct UsageSection: View {
     let forecast: SessionForecast
     var fact: ForecastFact?
     var tokensPerMinute: Int?
+    var burnRateExplanation = BurnRateFact.explanation
+    var sessionWindow: TimeInterval = fiveHours
     let warning: Double
     let critical: Double
     let style: String
 
     var body: some View {
         if let session {
-            let elapsed = Pace.calculate(utilization: session.utilization, resetsAt: session.resetsAtDate, windowLength: fiveHours)?
+            let elapsed = Pace.calculate(utilization: session.utilization, resetsAt: session.resetsAtDate, windowLength: sessionWindow)?
                 .elapsedFraction
             let reading = SessionReading(
                 value: session.utilization, resetIn: session.timeUntilReset, resetDate: session.resetsAtDate,
-                forecast: forecast, elapsed: elapsed, tone: UsageTone(value: session.utilization, warning: warning, critical: critical),
-                fact: fact, tokensPerMinute: tokensPerMinute
+                forecast: forecast, sessionWindow: sessionWindow, elapsed: elapsed,
+                tone: UsageTone(value: session.utilization, warning: warning, critical: critical),
+                fact: fact, tokensPerMinute: tokensPerMinute, burnRateExplanation: burnRateExplanation
             )
             if style == "bars" {
                 VStack(alignment: .leading, spacing: 16) {
@@ -135,6 +138,7 @@ struct CodexOverview: View {
     let style: String
     let showStats: Bool
     let showGraph: Bool
+    let showProjection: Bool
     let open: (PopoverScreen) -> Void
 
     var body: some View {
@@ -146,7 +150,9 @@ struct CodexOverview: View {
         }
         if let usage = codex.usage, usage.usageData.session != nil {
             UsageSection(
-                session: usage.usageData.session, week: usage.usageData.weekly, forecast: SessionForecast(.insufficientData),
+                session: usage.usageData.session, week: usage.usageData.weekly, forecast: SessionForecast(projection),
+                fact: forecastFact, tokensPerMinute: showProjection ? codex.burnRate?.tokensPerMinute : nil,
+                burnRateExplanation: BurnRateFact.codexExplanation, sessionWindow: usage.sessionWindow ?? fiveHours,
                 warning: warning, critical: critical, style: style
             )
         } else if let usage = codex.usage,
@@ -169,9 +175,34 @@ struct CodexOverview: View {
             HistoryCard(columns: HistoryColumns.make(codex.history, now: Date())) { open(.history) }
         }
         OverviewRows(rows: rows, onOpen: open)
-            // "All" is not read on the poll, so the row would stay empty until Statistics was
-            // opened; the visit refresh reads it once and then at most every five minutes.
             .onAppear { if showStats { codex.refreshStatsOnVisit() } }
+            .task(id: showProjection) {
+                guard showProjection else { return }
+                codex.refreshBurnRate()
+                while !Task.isCancelled {
+                    do { try await Task.sleep(for: .seconds(CodexBurnRateRefresh.minimumInterval)) } catch { return }
+                    codex.refreshBurnRate()
+                }
+            }
+    }
+
+    private var projection: ProjectionResult {
+        guard showProjection, let usage = codex.usage,
+              let session = usage.usageData.session, let sessionWindow = usage.sessionWindow else { return .insufficientData }
+        return SessionProjection.calculate(
+            history: codex.history, currentUtilization: session.utilization, resetsAt: session.resetsAtDate,
+            sessionLength: sessionWindow
+        )
+    }
+
+    private var forecastFact: ForecastFact? {
+        guard showProjection, let usage = codex.usage,
+              let session = usage.usageData.session, let sessionWindow = usage.sessionWindow else { return nil }
+        let secondsToReset = session.resetsAtDate.map { $0.timeIntervalSinceNow }
+        return ForecastFact.make(
+            projection: projection, utilization: session.utilization, secondsToReset: secondsToReset,
+            elapsedInWindow: secondsToReset.map { sessionWindow - $0 }
+        )
     }
 
     private var rows: [OverviewRow] {

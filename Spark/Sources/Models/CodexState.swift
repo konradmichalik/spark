@@ -18,6 +18,7 @@ final class CodexState: ObservableObject {
     @Published private(set) var isRateLimited = false
 
     @Published private(set) var stats: CodexSessionStats?
+    @Published private(set) var burnRate: BurnRate?
 
     @AppStorage("codexEnabled") var isEnabled: Bool = true
     /// Separate from Claude's `statsPeriod`: switching one tab's period must not leave the
@@ -37,6 +38,9 @@ final class CodexState: ObservableObject {
     private var levelTracker = UsageLevelTracker()
     private var statsTask: Task<Void, Never>?
     private var lastStatsRefresh: Date?
+    private var burnRateTask: Task<Void, Never>?
+    private var lastBurnRateRefresh: Date?
+    private var burnRateRefreshID = UUID()
     private var reportDataTask: Task<CodexReportData, Never>?
     private let historyURL: URL?
 
@@ -66,8 +70,12 @@ final class CodexState: ObservableObject {
         } else {
             stopPolling()
             statsTask?.cancel()
+            burnRateTask?.cancel()
+            burnRateRefreshID = UUID()
+            lastBurnRateRefresh = nil
             usage = nil
             stats = nil
+            burnRate = nil
             lastError = nil
             needsSignIn = false
         }
@@ -201,7 +209,7 @@ final class CodexState: ObservableObject {
             guard CodexStatsRefresh.shouldRefresh(period: period, trigger: trigger, lastRefresh: lastStatsRefresh, now: Date()) else { return }
         }
         lastStatsRefresh = Date()
-        let directories = [CodexHome.sessionsDirectory, CodexHome.current.appendingPathComponent("archived_sessions")]
+        let directories = rolloutDirectories
         statsTask?.cancel()
         statsTask = Task.detached {
             let stats = CodexSessionStats.parse(directories: directories, since: period.startDate)
@@ -213,8 +221,37 @@ final class CodexState: ObservableObject {
         }
     }
 
+    /// Recent local token activity is deliberately scanned independently from the statistics
+    /// period, and only while the overview that shows it is visible.
+    func refreshBurnRate() {
+        guard isActive else { return }
+        let now = Date()
+        guard CodexBurnRateRefresh.shouldRefresh(lastRefresh: lastBurnRateRefresh, now: now) else { return }
+        lastBurnRateRefresh = now
+        let refreshID = UUID()
+        burnRateRefreshID = refreshID
+        let cutoff = now.addingTimeInterval(-BurnRate.window)
+        let directories = rolloutDirectories
+        burnRateTask?.cancel()
+        burnRateTask = Task.detached {
+            let samples = CodexTurnSamples.parse(directories: directories, cutoff: cutoff, now: now)
+            guard !Task.isCancelled else { return }
+            let rate = BurnRate.calculate(turns: samples, now: now)
+            await MainActor.run {
+                guard CodexBurnRateRefresh.canPublish(
+                    scanID: refreshID, currentScanID: self.burnRateRefreshID, isActive: self.isActive
+                ) else { return }
+                self.burnRate = rate
+            }
+        }
+    }
+
+    private var rolloutDirectories: [URL] {
+        [CodexHome.sessionsDirectory, CodexHome.current.appendingPathComponent("archived_sessions")]
+    }
+
     func earliestActivityDay() async -> String? {
-        let directories = [CodexHome.sessionsDirectory, CodexHome.current.appendingPathComponent("archived_sessions")]
+        let directories = rolloutDirectories
         return await Task.detached { CodexEarliestDay.dayKey(in: directories) }.value
     }
 
@@ -222,7 +259,7 @@ final class CodexState: ObservableObject {
     /// calendar and the trend) and per model for the shown period. A separate scan from
     /// `refreshStats`, off the main actor, and a newer request cancels the previous one.
     func reportData(previousStart: Date, start: Date, until: Date?) async -> CodexReportData {
-        let directories = [CodexHome.sessionsDirectory, CodexHome.current.appendingPathComponent("archived_sessions")]
+        let directories = rolloutDirectories
         reportDataTask?.cancel()
         let task = Task.detached {
             let days = CodexSessionStats.parse(directories: directories, since: previousStart, until: until).dayTokens

@@ -23,6 +23,7 @@ final class CodexUsageTests: XCTestCase {
         let usage = CodexUsage(response: response)
 
         XCTAssertEqual(usage.usageData.session?.utilization, 42)
+        XCTAssertEqual(usage.sessionWindow, 5 * 3600)
         XCTAssertEqual(usage.usageData.weekly?.utilization, 71)
         XCTAssertEqual(usage.usageData.session?.resetsAtDate, Date(timeIntervalSince1970: 1_791_360_000))
         XCTAssertEqual(usage.usageData.weekly?.resetsAtDate, Date(timeIntervalSince1970: 1_791_446_400))
@@ -49,6 +50,7 @@ final class CodexUsageTests: XCTestCase {
         let usage = CodexUsage(response: response)
 
         XCTAssertNil(usage.usageData.session)
+        XCTAssertNil(usage.sessionWindow)
         XCTAssertEqual(usage.usageData.weekly?.utilization, 12)
         XCTAssertEqual(usage.planDisplayName, "Pro")
     }

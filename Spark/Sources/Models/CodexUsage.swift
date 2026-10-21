@@ -93,6 +93,7 @@ struct CodexNamedLimit: Sendable, Identifiable {
 /// threshold logic render it unchanged.
 struct CodexUsage: Sendable {
     let usageData: UsageData
+    let sessionWindow: TimeInterval?
     let additionalLimits: [CodexNamedLimit]
     let planType: String?
     let creditsBalance: String?
@@ -107,6 +108,7 @@ struct CodexUsage: Sendable {
 
     init(response: CodexUsageResponse, now: Date = Date()) {
         var session: UsageBucket?
+        var sessionWindow: TimeInterval?
         var weekly: UsageBucket?
         var additional: [CodexNamedLimit] = []
 
@@ -114,6 +116,7 @@ struct CodexUsage: Sendable {
             let bucket = Self.bucket(for: window)
             if window.limitWindowSeconds <= Self.sessionWindowMax, session == nil {
                 session = bucket
+                sessionWindow = TimeInterval(window.limitWindowSeconds)
             } else if Self.weeklyWindowRange.contains(window.limitWindowSeconds), weekly == nil {
                 weekly = bucket
             } else {
@@ -138,6 +141,7 @@ struct CodexUsage: Sendable {
         }
 
         usageData = UsageData(session: session, weekly: weekly, lastUpdated: now)
+        self.sessionWindow = sessionWindow
         additionalLimits = additional
         planType = response.planType
         limitReached = response.rateLimit?.limitReached == true || response.rateLimitReachedType != nil

@@ -46,6 +46,10 @@ final class ForecastLineTests: XCTestCase {
         XCTAssertNil(fact(.insufficientData, toReset: 3600, elapsed: 3600))
     }
 
+    func testExpiredResetDoesNotSuggestWaitingForMoreData() {
+        XCTAssertNil(fact(.insufficientData, toReset: -60, elapsed: 5 * 3600 + 60))
+    }
+
     func testBurnRateFact() {
         XCTAssertEqual(BurnRateFact.text(25_500), "25.5K/min")
     }

@@ -51,6 +51,8 @@ struct ForecastFact: Equatable {
 enum BurnRateFact {
     static let explanation = "Fresh tokens per minute across all sessions, averaged over the last "
         + "\(Int(BurnRate.window / 60)) minutes. Cache reads are not counted."
+    static let codexExplanation = "Fresh tokens per minute from local Codex CLI sessions, averaged over the last "
+        + "\(Int(BurnRate.window / 60)) minutes. Cache reads are not counted."
 
     static func text(_ tokensPerMinute: Int) -> String {
         "\(formatTokenCount(tokensPerMinute))/min"
