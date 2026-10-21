@@ -71,6 +71,7 @@ final class CodexState: ObservableObject {
             stopPolling()
             statsTask?.cancel()
             burnRateTask?.cancel()
+            burnRateRefreshID = UUID()
             lastBurnRateRefresh = nil
             usage = nil
             stats = nil
