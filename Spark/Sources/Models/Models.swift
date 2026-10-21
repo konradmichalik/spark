@@ -172,6 +172,12 @@ struct UsageSnapshot: Codable, Identifiable, Equatable, Sendable {
     let timestamp: Date
     let sessionUtilization: Double
     let weeklyUtilization: Double
+    /// Absent metadata means both windows exist, preserving older Claude history files.
+    let sessionMissing: Bool?
+    let weeklyMissing: Bool?
+
+    var sessionHistoryValue: Double? { sessionMissing == true ? nil : sessionUtilization }
+    var weeklyHistoryValue: Double? { weeklyMissing == true ? nil : weeklyUtilization }
     /// Optional so snapshots written before these fields existed still decode.
     let sonnetUtilization: Double?
     let opusUtilization: Double?
@@ -182,6 +188,8 @@ struct UsageSnapshot: Codable, Identifiable, Equatable, Sendable {
         timestamp: Date = Date(),
         sessionUtilization: Double,
         weeklyUtilization: Double,
+        sessionMissing: Bool? = nil,
+        weeklyMissing: Bool? = nil,
         sonnetUtilization: Double? = nil,
         opusUtilization: Double? = nil,
         fableUtilization: Double? = nil,
@@ -191,6 +199,8 @@ struct UsageSnapshot: Codable, Identifiable, Equatable, Sendable {
         self.timestamp = timestamp
         self.sessionUtilization = sessionUtilization
         self.weeklyUtilization = weeklyUtilization
+        self.sessionMissing = sessionMissing
+        self.weeklyMissing = weeklyMissing
         self.sonnetUtilization = sonnetUtilization
         self.opusUtilization = opusUtilization
         self.fableUtilization = fableUtilization

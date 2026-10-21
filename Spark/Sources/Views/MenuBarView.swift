@@ -80,7 +80,7 @@ struct MenuBarView: View {
         case .codex:
             CodexOverview(
                 codex: codex, warning: state.warningThreshold, critical: state.criticalThreshold,
-                style: state.usageDisplayStyle, showStats: state.showStats
+                style: state.usageDisplayStyle, showStats: state.showStats, showGraph: state.showGraph
             ) { screen = $0 }
         }
     }

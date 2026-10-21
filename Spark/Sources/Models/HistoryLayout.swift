@@ -15,9 +15,10 @@ struct HistoryColumn: Equatable {
 enum HistoryColumns {
     /// The newest session and week values in words, for VoiceOver on the history card.
     static func spokenLatest(_ columns: [HistoryColumn], locale: Locale = .current) -> String? {
+        guard let latest = columns.last(where: \.hasValue) else { return nil }
         let parts = [
-            columns.last { $0.session != nil }?.session.map { "session \(UsageFormat.percent($0, locale: locale))" },
-            columns.last { $0.weekly != nil }?.weekly.map { "week \(UsageFormat.percent($0, locale: locale))" }
+            latest.session.map { "session \(UsageFormat.percent($0, locale: locale))" },
+            latest.weekly.map { "week \(UsageFormat.percent($0, locale: locale))" }
         ].compactMap { $0 }
         return parts.isEmpty ? nil : "Latest: " + parts.joined(separator: ", ")
     }
@@ -36,7 +37,7 @@ enum HistoryColumns {
             let slotStart = start.addingTimeInterval(Double(index) * slot)
             guard let snapshot = latest[index] else { return HistoryColumn(session: nil, weekly: nil, slotStart: slotStart) }
             return HistoryColumn(
-                session: snapshot.sessionUtilization, weekly: snapshot.weeklyUtilization,
+                session: snapshot.sessionHistoryValue, weekly: snapshot.weeklyHistoryValue,
                 time: snapshot.timestamp, slotStart: slotStart
             )
         }
@@ -57,6 +58,23 @@ enum HistoryLayout {
 
     /// Shorter runs of empty columns stay as they are; a missing poll or two is not a gap.
     static let minimumGap = 3
+
+    /// Positions that start a weekly line segment. A missing week breaks the line even when
+    /// the same column still has a session value; compressed gaps break it too.
+    static func weeklySegmentStarts(items: [HistoryItem], columns: [HistoryColumn]) -> Set<Int> {
+        var starts: Set<Int> = []
+        var previousHasWeek = false
+        for (position, item) in items.enumerated() {
+            let hasWeek: Bool
+            switch item {
+            case .column(let index): hasWeek = columns[index].weekly != nil
+            case .gap: hasWeek = false
+            }
+            if hasWeek, !previousHasWeek { starts.insert(position) }
+            previousHasWeek = hasWeek
+        }
+        return starts
+    }
 
     static func items(_ columns: [HistoryColumn]) -> [HistoryItem] {
         var items: [HistoryItem] = []

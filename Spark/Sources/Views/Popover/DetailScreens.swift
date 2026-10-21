@@ -14,7 +14,10 @@ struct DetailScreen: View {
         case .overview:
             EmptyView()
         case .history:
-            HistoryScreen(history: state.history, rollups: state.rollups)
+            switch provider {
+            case .claude: HistoryScreen(history: state.history, rollups: state.rollups)
+            case .codex: HistoryScreen(history: codex.history, rollups: [:], showsVolume: false)
+            }
         case .sessions:
             SessionsScreen(sessions: state.activeSessions)
         case .statistics:

@@ -11,6 +11,8 @@ Spark queries `api.anthropic.com/api/oauth/usage` using the OAuth token Claude C
 
 Codex windows are classified by length, not by position: up to 6 hours is the session window, 6 to 8 days the weekly one, anything else (the Free plan's 30-day window, per-model limits) gets its own row. `CodexUsage` maps them onto the existing `UsageData`, so the Claude rows and rings render them unchanged.
 
+Each successful Codex usage update records the session and weekly limits in `~/Library/Application Support/Spark/codex-history.json`, independently of Claude history. The newest 8,640 points survive restarts (about 30 days at five-minute intervals). The shared history display setting controls the overview card; clicking it opens Codex's Limits history with ranges from one hour to 30 days. Missing windows stay absent rather than appearing as 0%. Codex history has no Volume mode, and plans with only additional limits, such as a 30-day window, have no session/week graph. Recording starts with the first successful update; earlier usage is not reconstructed from local token statistics.
+
 Local stats come from the rollout files in `sessions/` and `archived_sessions/`. `token_count` events hold cumulative totals, so `CodexSessionStats` counts the delta between consecutive events at each event's timestamp. `input_tokens` includes cached tokens, which are split out.
 
 Only sessions that leave a rollout file are counted. Codex Cloud, the desktop app on another machine and the Codex plugin for Claude Code (it starts ephemeral threads that write no rollout) use the plan limits shown from the usage endpoint, but never appear in the local stats.
