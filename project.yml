@@ -7,8 +7,8 @@ options:
 settings:
   base:
     SWIFT_VERSION: "6.0"
-    MARKETING_VERSION: "0.15.0"
-    CURRENT_PROJECT_VERSION: "29"
+    MARKETING_VERSION: "0.16.0"
+    CURRENT_PROJECT_VERSION: "30"
 targets:
   Spark:
     type: application
