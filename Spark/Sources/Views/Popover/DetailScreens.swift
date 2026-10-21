@@ -16,7 +16,13 @@ struct DetailScreen: View {
         case .history:
             switch provider {
             case .claude: HistoryScreen(history: state.history, rollups: state.rollups)
-            case .codex: HistoryScreen(history: codex.history, rollups: [:], showsVolume: false)
+            case .codex:
+                HistoryScreen(
+                    history: codex.history, rollups: [:], showsVolume: true,
+                    volumeTokensByDay: codex.volumeTokensByDay,
+                    isLoadingVolumeHistory: codex.isLoadingVolumeHistory,
+                    onRequestVolume: codex.refreshVolumeHistory
+                )
             }
         case .sessions:
             SessionsScreen(sessions: state.activeSessions)

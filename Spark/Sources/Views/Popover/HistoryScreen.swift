@@ -6,6 +6,9 @@ struct HistoryScreen: View {
     let history: [UsageSnapshot]
     let rollups: [String: DailyRollup]
     var showsVolume = true
+    var volumeTokensByDay: [String: Int]?
+    var isLoadingVolumeHistory = false
+    var onRequestVolume: () -> Void = {}
 
     @State private var mode: GraphMode = .limits
     @State private var range: GraphTimeRange = .sixHours
@@ -41,6 +44,7 @@ struct HistoryScreen: View {
                 if newMode == .volume, !GraphTimeRange.dayGranularityCases.contains(range) {
                     range = .sevenDays
                 }
+                if newMode == .volume { onRequestVolume() }
             }
         )
     }
@@ -105,9 +109,20 @@ struct HistoryScreen: View {
 
     @ViewBuilder
     private var volume: some View {
-        let days = VolumeDaySeries.build(rollups: rollups, timeRange: range)
+        let days = volumeTokensByDay.map { VolumeDaySeries.build(tokensByDay: $0, timeRange: range) }
+            ?? VolumeDaySeries.build(rollups: rollups, timeRange: range)
         if days.allSatisfy(\.isEmpty) {
-            DetailNote(text: "No daily totals for this range yet. A day is added once it has ended.")
+            if isLoadingVolumeHistory {
+                HStack(spacing: 8) {
+                    ProgressView().controlSize(.small)
+                    DetailNote(text: "Reading local Codex token history…")
+                }
+                .accessibilityElement(children: .combine)
+            } else {
+                DetailNote(text: volumeTokensByDay == nil
+                    ? "No daily totals for this range yet. A day is added once it has ended."
+                    : "No local Codex token volume in this range.")
+            }
         } else {
             let columns = VolumeColumns.make(days)
             let summary = VolumeSummary.make(days)

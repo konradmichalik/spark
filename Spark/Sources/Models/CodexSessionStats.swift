@@ -17,6 +17,7 @@ struct CodexSessionStats: Equatable, Sendable {
     var outputTokens = 0
     var reasoningTokens = 0
     var modelTokens: [String: Int] = [:]
+    var projectTokens: [String: Int] = [:]
     /// Fresh tokens per day key (`TranscriptCache.dayKey(for:)`), the input of the report's activity calendar.
     var dayTokens: [String: Int] = [:]
     /// Rollout files found at all, regardless of period. Zero means Codex never ran locally.
@@ -60,6 +61,7 @@ struct CodexSessionStats: Equatable, Sendable {
         outputTokens += other.outputTokens
         reasoningTokens += other.reasoningTokens
         modelTokens.merge(other.modelTokens, uniquingKeysWith: +)
+        projectTokens.merge(other.projectTokens, uniquingKeysWith: +)
         dayTokens.merge(other.dayTokens, uniquingKeysWith: +)
     }
 
@@ -98,6 +100,7 @@ private struct RolloutAccumulator {
     private let decoder = JSONDecoder()
     private var previous = RolloutTokenUsage()
     private var model: String?
+    private var projectPath: String?
     private var hasActivity = false
 
     init(since: Date?, until: Date?) {
@@ -114,6 +117,7 @@ private struct RolloutAccumulator {
         switch (entry.type, entry.payload?.type) {
         case ("turn_context", _):
             model = entry.payload?.model ?? model
+            projectPath = entry.payload?.cwd ?? projectPath
         case ("event_msg", "user_message"):
             guard isInPeriod(entry.timestamp) else { return }
             stats.messageCount += 1
@@ -144,6 +148,9 @@ private struct RolloutAccumulator {
         stats.outputTokens += output
         stats.reasoningTokens += max(total.reasoning - previous.reasoning, 0)
         stats.modelTokens[model ?? "unknown", default: 0] += fresh + output
+        if let projectPath {
+            stats.projectTokens[projectPath, default: 0] += fresh + output
+        }
         if let date = timestamp.flatMap(CodexSessionStats.parseDate) {
             stats.dayTokens[TranscriptCache.dayKey(for: date), default: 0] += fresh + output
         }
@@ -175,6 +182,7 @@ struct RolloutLine: Decodable {
 struct RolloutPayload: Decodable {
     let type: String?
     let model: String?
+    let cwd: String?
     let info: RolloutTokenInfo?
 }
 

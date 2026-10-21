@@ -78,8 +78,8 @@ struct ClaudeStatisticsScreen: View {
     }
 }
 
-/// The Codex Statistics screen: the same structure with Codex's own fields, top models in
-/// place of top projects. Codex has no price list, so there is no API cost.
+/// The Codex Statistics screen: the same structure with Codex's own fields. Codex has no price
+/// list, so there is no API cost.
 struct CodexStatisticsScreen: View {
     @ObservedObject var codex: CodexState
 
@@ -89,6 +89,7 @@ struct CodexStatisticsScreen: View {
             if let stats = codex.stats, stats.fileCount > 0 {
                 StatTileGrid(facts: facts(stats))
                 RankedList(title: "TOP MODELS", noun: "models", entries: models(stats))
+                RankedList(title: "TOP PROJECTS", noun: "projects", entries: projects(stats))
             } else {
                 DetailNote(text: "No local Codex activity in this period.")
             }
@@ -122,6 +123,16 @@ struct CodexStatisticsScreen: View {
             RankedEntry(
                 id: model.name, name: model.name, tokens: model.tokens,
                 tooltip: StatisticsText.projectTooltip(tokens: model.tokens, cost: nil), path: nil
+            )
+        }
+    }
+
+    private func projects(_ stats: CodexSessionStats) -> [RankedEntry] {
+        StatisticsText.rankedProjects(stats.projectTokens).map { project in
+            let name = ProjectFamily.displayName(forKey: project.path, cwd: project.path)
+            return RankedEntry(
+                id: project.path, name: name, tokens: project.tokens,
+                tooltip: "\(formatTokenCount(project.tokens)) tokens", path: project.path
             )
         }
     }

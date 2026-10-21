@@ -25,19 +25,26 @@ enum VolumeDaySeries {
         now: Date = Date(),
         calendar: Calendar = .current
     ) -> [VolumeDay] {
+        build(tokensByDay: rollups.mapValues(\.real), timeRange: timeRange, now: now, calendar: calendar)
+    }
+
+    static func build(
+        tokensByDay: [String: Int],
+        timeRange: GraphTimeRange,
+        now: Date = Date(),
+        calendar: Calendar = .current
+    ) -> [VolumeDay] {
         // Only closed days are rolled up (see `DailyRollup.merging`), so today would draw as an
         // idle lane for the whole day. The window ends on the last day that can carry data.
         let todayKey = TranscriptCache.dayKey(for: now, calendar: calendar)
-        let lastDay = rollups[todayKey] == nil
+        let lastDay = tokensByDay[todayKey] == nil
             ? calendar.date(byAdding: .day, value: -1, to: now) ?? now
             : now
-
         let dayCount = max(1, Int(timeRange.seconds / 86_400))
         return (0..<dayCount).reversed().compactMap { offset in
             guard let date = calendar.date(byAdding: .day, value: -offset, to: lastDay) else { return nil }
             let key = TranscriptCache.dayKey(for: date, calendar: calendar)
-            let rollup = rollups[key]
-            return VolumeDay(day: key, tokens: rollup?.real ?? 0, hasRollup: rollup != nil)
+            return VolumeDay(day: key, tokens: tokensByDay[key] ?? 0, hasRollup: tokensByDay[key] != nil)
         }
     }
 }

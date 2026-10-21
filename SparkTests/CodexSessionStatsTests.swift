@@ -34,8 +34,8 @@ final class CodexSessionStatsTests: XCTestCase {
         #"{"timestamp":"\#(time)","type":"event_msg","payload":{"type":"user_message","message":"hi token_count"}}"#
     }
 
-    private func turnContext(_ time: String, model: String) -> String {
-        #"{"timestamp":"\#(time)","type":"turn_context","payload":{"cwd":"/tmp","model":"\#(model)","effort":"high"}}"#
+    private func turnContext(_ time: String, model: String, cwd: String = "/tmp") -> String {
+        #"{"timestamp":"\#(time)","type":"turn_context","payload":{"cwd":"\#(cwd)","model":"\#(model)","effort":"high"}}"#
     }
 
     private func date(_ iso: String) throws -> Date {
@@ -124,6 +124,20 @@ final class CodexSessionStatsTests: XCTestCase {
         let stats = CodexSessionStats.parse(directories: [tempDir], since: nil)
 
         XCTAssertEqual(stats.modelTokens, ["gpt-5.5": 110, "gpt-5.5-mini": 210])
+    }
+
+    func testAggregatesFreshTokensByProjectPath() throws {
+        _ = try writeRollout("rollout-projects.jsonl", lines: [
+            turnContext("2026-10-07T08:00:00.000Z", model: "gpt-5.5", cwd: "/work/alpha"),
+            tokenCount("2026-10-07T08:00:10.000Z", input: 100, cached: 0, output: 10),
+            tokenCount("2026-10-07T08:01:10.000Z", input: 300, cached: 0, output: 20),
+            turnContext("2026-10-07T08:05:00.000Z", model: "gpt-5.5", cwd: "/work/beta"),
+            tokenCount("2026-10-07T08:05:10.000Z", input: 100, cached: 0, output: 10)
+        ])
+
+        let stats = CodexSessionStats.parse(directories: [tempDir], since: nil)
+
+        XCTAssertEqual(stats.projectTokens, ["/work/alpha": 320, "/work/beta": 110])
     }
 
     /// A total lower than the previous one is a fresh counter: count it from zero, not drop it.

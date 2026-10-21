@@ -19,6 +19,8 @@ final class CodexState: ObservableObject {
 
     @Published private(set) var stats: CodexSessionStats?
     @Published private(set) var burnRate: BurnRate?
+    @Published private(set) var volumeTokensByDay: [String: Int]?
+    @Published private(set) var isLoadingVolumeHistory = false
 
     @AppStorage("codexEnabled") var isEnabled: Bool = true
     /// Separate from Claude's `statsPeriod`: switching one tab's period must not leave the
@@ -31,6 +33,7 @@ final class CodexState: ObservableObject {
     private static let log = Logger(subsystem: "com.konradmichalik.spark", category: "codex")
     private static let pollInterval: TimeInterval = 300
     private static let signInRecheckInterval: TimeInterval = 900
+    private static let volumeRefreshInterval: TimeInterval = 300
 
     private var pollCancellable: AnyCancellable?
     private var lastFetchTime: Date = .distantPast
@@ -41,6 +44,9 @@ final class CodexState: ObservableObject {
     private var burnRateTask: Task<Void, Never>?
     private var lastBurnRateRefresh: Date?
     private var burnRateRefreshID = UUID()
+    private var volumeTask: Task<Void, Never>?
+    private var lastVolumeRefresh: Date?
+    private var volumeRefreshID = UUID()
     private var reportDataTask: Task<CodexReportData, Never>?
     private let historyURL: URL?
 
@@ -71,11 +77,16 @@ final class CodexState: ObservableObject {
             stopPolling()
             statsTask?.cancel()
             burnRateTask?.cancel()
+            volumeTask?.cancel()
             burnRateRefreshID = UUID()
+            volumeRefreshID = UUID()
             lastBurnRateRefresh = nil
+            lastVolumeRefresh = nil
             usage = nil
             stats = nil
             burnRate = nil
+            volumeTokensByDay = nil
+            isLoadingVolumeHistory = false
             lastError = nil
             needsSignIn = false
         }
@@ -248,6 +259,28 @@ final class CodexState: ObservableObject {
 
     private var rolloutDirectories: [URL] {
         [CodexHome.sessionsDirectory, CodexHome.current.appendingPathComponent("archived_sessions")]
+    }
+
+    func refreshVolumeHistory() {
+        guard isActive else { return }
+        let now = Date()
+        guard lastVolumeRefresh.map({ now.timeIntervalSince($0) >= Self.volumeRefreshInterval }) ?? true else { return }
+        lastVolumeRefresh = now
+        let refreshID = UUID()
+        volumeRefreshID = refreshID
+        isLoadingVolumeHistory = true
+        let cutoff = Calendar.current.date(byAdding: .day, value: -31, to: now) ?? now.addingTimeInterval(-31 * 86_400)
+        let directories = rolloutDirectories
+        volumeTask?.cancel()
+        volumeTask = Task.detached {
+            let totals = CodexSessionStats.parse(directories: directories, since: cutoff).dayTokens
+            guard !Task.isCancelled else { return }
+            await MainActor.run {
+                guard self.isActive, self.volumeRefreshID == refreshID else { return }
+                self.volumeTokensByDay = totals
+                self.isLoadingVolumeHistory = false
+            }
+        }
     }
 
     func earliestActivityDay() async -> String? {
