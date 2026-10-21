@@ -98,4 +98,15 @@ final class VolumeDaySeriesTests: XCTestCase {
         XCTAssertEqual(days.last?.tokens, 0)
         XCTAssertEqual(days.last?.isEmpty, false)
     }
+
+    func testBuildsDailySeriesFromCodexTokenTotals() {
+        let days = VolumeDaySeries.build(
+            tokensByDay: ["2026-08-18": 125], timeRange: .sevenDays, now: date("2026-08-21"), calendar: calendar
+        )
+
+        XCTAssertEqual(days.count, 7)
+        XCTAssertEqual(days.first { $0.day == "2026-08-18" }?.tokens, 125)
+        XCTAssertFalse(days.first { $0.day == "2026-08-18" }?.isEmpty ?? true)
+        XCTAssertTrue(days.first { $0.day == "2026-08-17" }?.isEmpty ?? false)
+    }
 }

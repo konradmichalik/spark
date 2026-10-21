@@ -35,4 +35,11 @@ final class StatisticsTextTests: XCTestCase {
         XCTAssertEqual(StatisticsText.rankedModels(stats).map(\.name), ["gpt-5-codex", "gpt-5"])
         XCTAssertEqual(StatisticsText.rankedModels(stats).map(\.tokens), [900, 100])
     }
+
+    func testCodexProjectsRankByTokensThenPathAndIgnoreZeroEntries() {
+        let ranked = StatisticsText.rankedProjects(["/work/zeta": 100, "/work/alpha": 100, "/work/empty": 0])
+
+        XCTAssertEqual(ranked.map(\.path), ["/work/alpha", "/work/zeta"])
+        XCTAssertEqual(ranked.map(\.tokens), [100, 100])
+    }
 }

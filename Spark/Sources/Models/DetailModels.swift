@@ -125,4 +125,11 @@ enum StatisticsText {
             .sorted { $0.value != $1.value ? $0.value > $1.value : $0.key < $1.key }
             .map { (name: $0.key, tokens: $0.value) }
     }
+
+    static func rankedProjects(_ projects: [String: Int]) -> [(path: String, tokens: Int)] {
+        projects
+            .filter { $0.value > 0 }
+            .sorted { $0.value != $1.value ? $0.value > $1.value : $0.key < $1.key }
+            .map { (path: $0.key, tokens: $0.value) }
+    }
 }
