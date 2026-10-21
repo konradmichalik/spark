@@ -39,7 +39,7 @@ struct ReportBody: View {
                         emptyText: report.periodOffset == 0 ? "No model usage yet." : "No model usage in that period."
                     )
                 }
-                if !projectEntries.isEmpty {
+                if ReportScoping.showsClaudeSections(scope) || !projectEntries.isEmpty {
                     ReportCard {
                         ReportList(title: ReportScoping.title("TOP PROJECTS", scope: scope), entries: projectEntries)
                     }
