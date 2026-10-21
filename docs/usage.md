@@ -19,14 +19,14 @@ The popover opens on an overview of the selected provider:
 
 - **Session**: the current value, a dot bar with the forecast (hollow dots up to where the session lands at the reset, red when the limit comes first) and a marker for how much of the 5-hour window has passed. Hover the bar for the details.
 - **Week**: the weekly value and its bar.
-- **History**: the last six hours, session as dot columns and the week as a line. Click the card for the full history.
+- **History**: the last six hours, session as dot columns and the week as a line. Available for Claude and Codex; each provider has its own recorded history. Click the card for the full history.
 - **Rows** to Active sessions, Statistics and, when there is one, More limits.
 
 A detail screen opens in place. The header stays, and the breadcrumb (`‹ Claude / History`) leads back. Switching the provider tab or closing the popover returns to the overview.
 
 The detail screens:
 
-- **History**: Limits (session as dot columns, week as a red line) or Volume (tokens per day), over 1 hour to 30 days. Hover the graph for the values at that point; in Volume a day clearly above or below the range's daily average also says by how much. Below it the peak session and the peak week of the range.
+- **History**: Limits (session as dot columns, week as a red line) or, for Claude, Volume (tokens per day), over 1 hour to 30 days. Hover the graph for the values at that point; in Volume a day clearly above or below the range's daily average also says by how much. Below it the peak session and the peak week of the range. Codex records history from its first successful usage update; plans without session or weekly limits have no graph.
 - **Active sessions**: sessions with a transcript write in the last 5 minutes, with how long ago and their context size. Hover a row for its session ID, start time and model. Click to reveal the project in Finder, right-click to open it in Terminal or copy its path.
 - **Statistics**: messages, sessions, tokens and, with **API cost estimate** on under **Settings → Display**, the API cost for Today, 7 days, 30 days or all time, plus the top projects as a list like the active sessions. Hover Messages, Sessions or Tokens for the averages per session and per active day (days without token use are not counted), and Tokens for what it counts. For Today, Tokens also shows how far today is toward a typical day, the median of the days you used Claude in the last 28 days (once there are five of them). Codex shows its own counts and top models. Its counts cover local Codex CLI sessions only, so use through the Claude Code plugin, Codex Cloud or another machine moves the limit bars but not these numbers.
 - **More limits**: the limits the overview does not show, such as the Sonnet, Opus and Fable weeks you enabled, or Codex's extra windows and credits, each with its bar and time marker. Hover one for its reset time. Claude's extra usage appears under the week on the overview once something was spent.
