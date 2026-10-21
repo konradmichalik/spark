@@ -15,6 +15,8 @@ struct CodexReportData: Equatable, Sendable {
     var dayTokens: [String: Int]
     /// Fresh tokens per raw model name, for the shown period.
     var modelTokens: [String: Int]
+    /// Fresh tokens per Codex working directory, for the shown period.
+    var projectTokens: [String: Int] = [:]
 
     var hasUse: Bool { dayTokens.values.contains { $0 > 0 } }
 
@@ -31,8 +33,8 @@ struct ScopedTotals: Equatable {
     let trendPercent: Double?
 }
 
-/// Which sections the report shows for a scope and how the scopes combine their numbers. The pace
-/// graph, API cost, top lists and cache notes only exist for Claude, so Codex alone hides them.
+/// Which sections the report shows for a scope and how the scopes combine their numbers. Pace,
+/// API cost and cache notes only use Claude data; each provider gets its own project list in its scope.
 enum ReportScoping {
     /// Without a second provider the filter is gone and the report is Claude's.
     static func effective(_ selected: ReportScope, codexShown: Bool) -> ReportScope {
@@ -62,6 +64,11 @@ enum ReportScoping {
         case .codex: codex
         case .all: claude.merging(codex, uniquingKeysWith: +)
         }
+    }
+
+    /// Project lists stay provider-specific in All, matching the report's existing Claude-only list.
+    static func projectTokens(_ scope: ReportScope, claude: [String: Int], codex: CodexReportData?) -> [String: Int] {
+        scope == .codex ? codex?.projectTokens ?? [:] : claude
     }
 
     /// Claude's fresh tokens per day from the rollups and the live scan. Rollups outlive deleted

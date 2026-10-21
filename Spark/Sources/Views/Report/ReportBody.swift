@@ -1,7 +1,7 @@
 import SwiftUI
 
-/// The report's sections for the selected provider scope (`ReportScoping`): Codex alone has no pace,
-/// cost, top lists or cache notes, since only Claude's data has them.
+/// The report's sections for the selected provider scope (`ReportScoping`): Claude-specific pace,
+/// cost and cache notes stay hidden for Codex, which has its own top-project list.
 struct ReportBody: View {
     let report: PeriodReport
     let scope: ReportScope
@@ -39,9 +39,9 @@ struct ReportBody: View {
                         emptyText: report.periodOffset == 0 ? "No model usage yet." : "No model usage in that period."
                     )
                 }
-                if ReportScoping.showsClaudeSections(scope) {
+                if ReportScoping.showsClaudeSections(scope) || !projectEntries.isEmpty {
                     ReportCard {
-                        ReportList(title: ReportScoping.title("TOP PROJECTS", scope: scope), entries: projects)
+                        ReportList(title: ReportScoping.title("TOP PROJECTS", scope: scope), entries: projectEntries)
                     }
                 }
             }
@@ -75,6 +75,21 @@ struct ReportBody: View {
                 path: project.cwd
             )
         }
+    }
+
+    private var codexProjects: [ReportEntry] {
+        let projects = ReportScoping.projectTokens(scope, claude: [:], codex: codex)
+        return StatisticsText.rankedProjects(projects).map { project in
+            ReportEntry(
+                id: project.path, name: ProjectFamily.displayName(forKey: project.path, cwd: project.path),
+                value: formatTokenCount(project.tokens), tooltip: "\(formatTokenCount(project.tokens)) tokens",
+                path: project.path
+            )
+        }
+    }
+
+    private var projectEntries: [ReportEntry] {
+        scope == .codex ? codexProjects : projects
     }
 
     private var sessions: [ReportEntry] {
