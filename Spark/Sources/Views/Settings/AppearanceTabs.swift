@@ -95,7 +95,17 @@ struct DisplayTab: View {
                     )
                     if state.showApiCost {
                         SettingsDivider()
-                        PlanPriceRow(planPrice: $state.planPrice, listPrice: PlanPrice.listPrice(for: state.accountTier))
+                        PlanPriceRow(
+                            title: codex.isActive ? "Claude plan price" : "Plan price",
+                            planPrice: $state.planPrice, listPrice: PlanPrice.listPrice(for: state.accountTier)
+                        )
+                        if codex.isActive {
+                            SettingsDivider()
+                            PlanPriceRow(
+                                title: "Codex plan price", planPrice: $codex.planPrice,
+                                listPrice: PlanPrice.listPrice(codexPlanType: codex.usage?.planType)
+                            )
+                        }
                     }
                 }
             }
@@ -122,6 +132,7 @@ struct DisplayTab: View {
 
 /// The monthly plan price the plan value compares with. Empty keeps the plan's list price.
 private struct PlanPriceRow: View {
+    let title: String
     @Binding var planPrice: Double
     let listPrice: Double?
 
@@ -138,7 +149,7 @@ private struct PlanPriceRow: View {
     }
 
     var body: some View {
-        SettingsRow(title: "Plan price", subtitle: subtitle) {
+        SettingsRow(title: title, subtitle: subtitle) {
             HStack(spacing: 4) {
                 Text("$")
                     .font(.system(size: 13))
@@ -148,7 +159,7 @@ private struct PlanPriceRow: View {
                     .textFieldStyle(.roundedBorder)
                     .multilineTextAlignment(.trailing)
                     .frame(width: 72)
-                    .accessibilityLabel("Plan price")
+                    .accessibilityLabel(title)
                     .accessibilityHint(subtitle)
             }
         }

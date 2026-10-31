@@ -20,6 +20,9 @@ final class CodexState: ObservableObject {
     @Published private(set) var stats: CodexSessionStats?
     /// The API cost estimate for `stats`. `nil` while the setting is off or no prices loaded.
     @Published private(set) var cost: CostSummary?
+    /// The period `stats` and `cost` were scanned for. `statsPeriod` switches at once, while the
+    /// new scan still runs, so anything that counts days must use this one.
+    @Published private(set) var scannedPeriod: StatsPeriod?
     @Published private(set) var burnRate: BurnRate?
     @Published private(set) var volumeTokensByDay: [String: Int]?
     @Published private(set) var isLoadingVolumeHistory = false
@@ -30,6 +33,10 @@ final class CodexState: ObservableObject {
     @AppStorage("codexStatsPeriod") private(set) var statsPeriod: StatsPeriod = .today
     /// Shared with Claude: one setting turns the estimate on for both providers.
     @AppStorage("showApiCost") private(set) var showApiCost: Bool = false
+    /// The monthly ChatGPT plan price entered in Settings, 0 while the plan's list price applies.
+    @AppStorage("codexPlanPrice") var planPrice: Double = 0
+
+    var monthlyPlanPrice: Double? { planPrice > 0 ? planPrice : PlanPrice.listPrice(codexPlanType: usage?.planType) }
 
     /// Shown in tabs, the menu bar and notifications only when this is true.
     var isActive: Bool { isEnabled && isAvailable }
@@ -240,6 +247,7 @@ final class CodexState: ObservableObject {
                 guard period == self.statsPeriod else { return }
                 self.stats = stats
                 self.cost = cost
+                self.scannedPeriod = period
             }
         }
     }

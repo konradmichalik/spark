@@ -115,10 +115,10 @@ enum StatisticsText {
         return costTooltip(cost) + "\n\(multiple.number)\(multiple.unit) the \(planShare(planValue))."
     }
 
-    static func planValueTooltip(_ value: PlanValue) -> String {
+    static func planValueTooltip(_ value: PlanValue, tool: String = "Claude Code") -> String {
         let unknownExtra = value.extraSpend == nil ? "\nExtra usage is not counted, the history does not reach back that far." : ""
         return "API cost against the \(planShare(value)), at \(formatCost(value.monthlyPrice)) a month.\n"
-            + "Only Claude Code on this Mac counts, so the real value is higher." + unknownExtra
+            + "Only \(tool) on this Mac counts, so the real value is higher." + unknownExtra
     }
 
     private static func planShare(_ value: PlanValue) -> String {

@@ -1,6 +1,6 @@
 import Foundation
 
-/// What the Claude plan costs per month, in dollars without tax like the API cost estimate.
+/// What the Claude or ChatGPT plan costs per month, in dollars without tax like the API cost estimate.
 enum PlanPrice {
     static let daysPerMonth = 365.25 / 12
 
@@ -12,6 +12,27 @@ enum PlanPrice {
         case "Max": 100
         case "Ultra": 200
         default: nil
+        }
+    }
+
+    /// ChatGPT plans by `plan_type`. Business, Team and Enterprise are priced per seat, so they only
+    /// count once the user enters a price.
+    static func listPrice(codexPlanType: String?) -> Double? {
+        switch codexPlanType {
+        case "plus": 20
+        case "prolite": 100
+        case "pro": 200
+        default: nil
+        }
+    }
+
+    /// Codex keeps the exact window since the cutoff rather than whole days, so 7d spans seven.
+    static func codexDays(for period: StatsPeriod, dayTokens: [String: Int], now: Date, calendar: Calendar) -> Int? {
+        switch period {
+        case .today: 1
+        case .week: 7
+        case .month: 30
+        case .all: days(for: .all, dayTokens: dayTokens, now: now, calendar: calendar)
         }
     }
 

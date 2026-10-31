@@ -129,8 +129,20 @@ struct CodexStatisticsScreen: View {
                 label: "API cost", parts: UsageFormat.cost(cost.total), prefix: "\u{2248}", tooltip: StatisticsText.costTooltip(cost),
                 spokenValue: "about \(formatCost(cost.total))"
             ))
+            if let planValue = planValueFact(cost: cost, stats: stats) { facts.append(planValue) }
         }
         return facts
+    }
+
+    private func planValueFact(cost: CostSummary, stats: CodexSessionStats) -> StatFact? {
+        guard let period = codex.scannedPeriod else { return nil }
+        let days = PlanPrice.codexDays(for: period, dayTokens: stats.dayTokens, now: Date(), calendar: .current)
+        guard let value = PlanValue(apiCost: cost.total, monthlyPrice: codex.monthlyPlanPrice, days: days) else { return nil }
+        return StatFact(
+            label: "Plan value", parts: UsageFormat.multiple(value.multiple),
+            tooltip: StatisticsText.planValueTooltip(value, tool: "the Codex CLI"),
+            spokenValue: "\(value.multiple.formatted(.number.precision(.fractionLength(0...1)))) times what you paid"
+        )
     }
 
     private func tokenBreakdown(_ stats: CodexSessionStats, average: String?) -> String {
