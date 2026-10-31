@@ -93,6 +93,10 @@ struct DisplayTab: View {
                             + "Downloads the public price list from GitHub once a day.",
                         isOn: $state.showApiCost
                     )
+                    if state.showApiCost {
+                        SettingsDivider()
+                        PlanPriceRow(planPrice: $state.planPrice, listPrice: PlanPrice.listPrice(for: state.accountTier))
+                    }
                 }
             }
             .onChange(of: state.showApiCost) { state.refreshLiveStats() }
@@ -110,5 +114,41 @@ struct DisplayTab: View {
                 }
             }
         }
+    }
+}
+
+/// The monthly plan price the plan value compares with. Empty keeps the plan's list price.
+private struct PlanPriceRow: View {
+    @Binding var planPrice: Double
+    let listPrice: Double?
+
+    private var subtitle: String {
+        let fallback = listPrice.map { "Empty uses the list price, \(formatCost($0))." } ?? "Enter it to see the plan value."
+        return "Per month in dollars, without tax. \(fallback)"
+    }
+
+    /// Placeholder and input share one format, so what the placeholder shows parses back.
+    private static let priceFormat = FloatingPointFormatStyle<Double>.number.precision(.fractionLength(0...2))
+
+    private var entered: Binding<Double?> {
+        Binding(get: { planPrice > 0 ? planPrice : nil }, set: { planPrice = max($0 ?? 0, 0) })
+    }
+
+    var body: some View {
+        SettingsRow(title: "Plan price", subtitle: subtitle) {
+            HStack(spacing: 4) {
+                Text("$")
+                    .font(.system(size: 13))
+                    .foregroundStyle(Theme.inkSecondary)
+                    .accessibilityHidden(true)
+                TextField(listPrice.map { $0.formatted(Self.priceFormat) } ?? "", value: entered, format: Self.priceFormat)
+                    .textFieldStyle(.roundedBorder)
+                    .multilineTextAlignment(.trailing)
+                    .frame(width: 72)
+                    .accessibilityLabel("Plan price")
+                    .accessibilityHint(subtitle)
+            }
+        }
+        .accessibilityElement(children: .contain)
     }
 }
