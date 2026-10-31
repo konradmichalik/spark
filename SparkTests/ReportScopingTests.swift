@@ -86,7 +86,7 @@ final class ReportScopingTests: XCTestCase {
     }
 
     func testCostTooltipNamesClaudeOnlyInAll() {
-        XCTAssertTrue(ReportScoping.costTooltip("Estimated.", scope: .all).hasPrefix("Claude only."))
+        XCTAssertEqual(ReportScoping.costTooltip("Estimated.", scope: .all), "Claude only. Estimated.")
         XCTAssertEqual(ReportScoping.costTooltip("Estimated.", scope: .claude), "Estimated.")
     }
 

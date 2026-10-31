@@ -89,13 +89,16 @@ struct DisplayTab: View {
                     SettingsDivider()
                     SettingsToggle(
                         title: "API cost estimate",
-                        subtitle: "What the tokens would cost at API list prices, in Statistics and the report. "
+                        subtitle: "What the tokens would cost at API list prices, in Statistics (Claude and Codex) and the report. "
                             + "Downloads the public price list from GitHub once a day.",
                         isOn: $state.showApiCost
                     )
                 }
             }
-            .onChange(of: state.showApiCost) { state.refreshLiveStats() }
+            .onChange(of: state.showApiCost) {
+                state.refreshLiveStats()
+                if codex.isActive { codex.refreshStats() }
+            }
 
             if codex.isActive {
                 SettingsSection(title: "Provider tabs") {

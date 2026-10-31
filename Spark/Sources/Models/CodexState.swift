@@ -18,6 +18,8 @@ final class CodexState: ObservableObject {
     @Published private(set) var isRateLimited = false
 
     @Published private(set) var stats: CodexSessionStats?
+    /// The API cost estimate for `stats`. `nil` while the setting is off or no prices loaded.
+    @Published private(set) var cost: CostSummary?
     @Published private(set) var burnRate: BurnRate?
     @Published private(set) var volumeTokensByDay: [String: Int]?
     @Published private(set) var isLoadingVolumeHistory = false
@@ -26,6 +28,8 @@ final class CodexState: ObservableObject {
     /// Separate from Claude's `statsPeriod`: switching one tab's period must not leave the
     /// other tab's numbers computed for a period it no longer shows.
     @AppStorage("codexStatsPeriod") private(set) var statsPeriod: StatsPeriod = .today
+    /// Shared with Claude: one setting turns the estimate on for both providers.
+    @AppStorage("showApiCost") private(set) var showApiCost: Bool = false
 
     /// Shown in tabs, the menu bar and notifications only when this is true.
     var isActive: Bool { isEnabled && isAvailable }
@@ -221,13 +225,21 @@ final class CodexState: ObservableObject {
         }
         lastStatsRefresh = Date()
         let directories = rolloutDirectories
+        let wantsCost = showApiCost
         statsTask?.cancel()
         statsTask = Task.detached {
             let stats = CodexSessionStats.parse(directories: directories, since: period.startDate)
             guard !Task.isCancelled else { return }
+            var cost: CostSummary?
+            if wantsCost, let prices = await PricingClient.currentTable() {
+                cost = prices.summary(modelTotals: stats.modelTokenTotals, projectModelTotals: [:])
+            }
+            // The price download can outlast a newer refresh, which must not be overwritten.
+            guard !Task.isCancelled else { return }
             await MainActor.run {
                 guard period == self.statsPeriod else { return }
                 self.stats = stats
+                self.cost = cost
             }
         }
     }

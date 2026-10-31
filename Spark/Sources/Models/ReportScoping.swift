@@ -55,7 +55,7 @@ enum ReportScoping {
     }
 
     static func costTooltip(_ text: String, scope: ReportScope) -> String {
-        scope == .all ? "Claude only. Codex has no price list. \(text)" : text
+        scope == .all ? "Claude only. \(text)" : text
     }
 
     static func dayTokens(_ scope: ReportScope, claude: [String: Int], codex: [String: Int]) -> [String: Int] {

@@ -2,8 +2,12 @@ import Foundation
 import os
 
 struct PricingCache: Codable, Equatable, Sendable {
+    /// 2 added the OpenAI prices. An older cache lacks them and counts as stale.
+    static let currentVersion = 2
+
     let fetchedAt: Date
     let table: PricingTable
+    var version: Int? = PricingCache.currentVersion
 }
 
 enum PricingClient {
@@ -28,7 +32,7 @@ enum PricingClient {
         fetch: @Sendable () async throws -> PricingTable = fetchTable
     ) async -> PricingTable? {
         let cached = loadCache(from: cacheURL)
-        if let cached, now.timeIntervalSince(cached.fetchedAt) < maxCacheAge {
+        if let cached, cached.version == PricingCache.currentVersion, now.timeIntervalSince(cached.fetchedAt) < maxCacheAge {
             return cached.table
         }
         do {
