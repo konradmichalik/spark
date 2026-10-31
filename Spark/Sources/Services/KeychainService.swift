@@ -355,7 +355,7 @@ struct AccountTier: Equatable {
     /// credentials still read `max` with a `max_5x` or `max_20x` tier.
     init(plan: String, multiplier: String?) {
         switch (plan, multiplier) {
-        case ("Max", "20x"):
+        case ("Max", "20x"), ("Ultra", _):
             self.plan = "Ultra"
             self.multiplier = nil
         case ("Max", _):

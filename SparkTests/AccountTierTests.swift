@@ -30,6 +30,12 @@ final class AccountTierTests: XCTestCase {
         XCTAssertEqual(creds.accountTier.displayName, "Ultra")
     }
 
+    func testUltraDropsALeftoverMultiplier() {
+        let creds = ClaudeCredentials(accessToken: "token", subscriptionType: "ultra", rateLimitTier: "default_claude_max_20x")
+        XCTAssertEqual(creds.accountTier.displayName, "Ultra")
+        XCTAssertEqual(AccountTier(displayName: "Ultra 20x").displayName, "Ultra")
+    }
+
     func testEnterpriseTier() {
         let creds = ClaudeCredentials(accessToken: "token", subscriptionType: "enterprise", rateLimitTier: nil)
         XCTAssertEqual(creds.accountTier.displayName, "Enterprise")
