@@ -68,11 +68,16 @@ struct ClaudeStatisticsScreen: View {
     }
 
     private func planValueFact(cost: CostSummary, live: LiveStats) -> StatFact? {
-        let days = PlanPrice.days(for: state.statsPeriod, dayTokens: live.dayTokens, now: Date(), calendar: .current)
-        guard let value = PlanValue(apiCost: cost.total, monthlyPrice: state.monthlyPlanPrice, days: days) else { return nil }
+        let now = Date()
+        guard let days = PlanPrice.days(for: state.statsPeriod, dayTokens: live.dayTokens, now: now, calendar: .current) else { return nil }
+        let window = DateInterval(start: PlanPrice.start(days: days, now: now, calendar: .current), end: now)
+        let extra = state.extraUsageSpend(in: window)
+        guard let value = PlanValue(apiCost: cost.total, monthlyPrice: state.monthlyPlanPrice, days: days, extraSpend: extra) else {
+            return nil
+        }
         return StatFact(
             label: "Plan value", parts: UsageFormat.multiple(value.multiple), tooltip: StatisticsText.planValueTooltip(value),
-            spokenValue: "\(value.multiple.formatted(.number.precision(.fractionLength(0...1)))) times the plan share"
+            spokenValue: "\(value.multiple.formatted(.number.precision(.fractionLength(0...1)))) times what you paid"
         )
     }
 

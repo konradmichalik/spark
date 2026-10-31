@@ -68,6 +68,14 @@ struct PeriodReport {
         Self.dayCount(from: rangeStart, to: periodOffset == 0 ? now : rangeEnd, calendar: calendar)
     }
 
+    /// The time the cost scan covers, from midnight of the first day through now for the current
+    /// period and through the last day otherwise.
+    func costWindow(now: Date = Date(), calendar: Calendar = .current) -> DateInterval {
+        let start = calendar.startOfDay(for: rangeStart)
+        let dayAfter = calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: rangeEnd)) ?? rangeEnd
+        return DateInterval(start: start, end: max(periodOffset == 0 ? now : dayAfter, start))
+    }
+
     /// Whether `previousStart` to `previousEnd` is only the first days of the month before.
     var comparesPartOfMonth: Bool { Self.comparesPartOfMonth(period: period, offset: periodOffset) }
 

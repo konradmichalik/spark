@@ -34,6 +34,12 @@ enum PlanPrice {
         }
     }
 
+    /// Midnight of the first of `days` calendar days that end today.
+    static func start(days: Int, now: Date, calendar: Calendar) -> Date {
+        let today = calendar.startOfDay(for: now)
+        return calendar.date(byAdding: .day, value: -(days - 1), to: today) ?? today
+    }
+
     private static func date(fromDayKey key: String, calendar: Calendar) -> Date? {
         let parser = DateFormatter()
         parser.calendar = calendar
@@ -50,12 +56,34 @@ struct PlanValue: Equatable {
     let planShare: Double
     let days: Int
     let monthlyPrice: Double
+    /// Nil when extra usage is billed in dollars but the history does not cover the period.
+    let extraSpend: Double?
 
-    init?(apiCost: Double, monthlyPrice: Double?, days: Int?) {
+    init?(apiCost: Double, monthlyPrice: Double?, days: Int?, extraSpend: Double? = 0) {
         guard let monthlyPrice, monthlyPrice > 0, let days, days > 0 else { return nil }
         planShare = monthlyPrice * Double(days) / PlanPrice.daysPerMonth
-        multiple = apiCost / planShare
+        self.extraSpend = extraSpend.map { max($0, 0) }
+        multiple = apiCost / (planShare + (self.extraSpend ?? 0))
         self.days = days
         self.monthlyPrice = monthlyPrice
+    }
+}
+
+/// Extra usage spent in a stretch of time, from the running monthly totals the history records.
+enum ExtraUsageSpend {
+    /// `history` is in time order, as `AppState` records it. Nil when it starts after `start`, since
+    /// the spend before its first snapshot is unknown. A snapshot without a spend is skipped: it can
+    /// be a response without `extra_usage` as well as a month with nothing spent.
+    static func spent(in history: [UsageSnapshot], from start: Date, to end: Date) -> Double? {
+        guard let first = history.first, first.timestamp <= start else { return nil }
+        var previous = history.last { $0.timestamp <= start && $0.extraUsageSpend != nil }?.extraUsageSpend ?? 0
+        var total = 0.0
+        for snapshot in history where snapshot.timestamp > start && snapshot.timestamp <= end {
+            guard let current = snapshot.extraUsageSpend else { continue }
+            // A lower total means the monthly spend reset, so all of the new total is new spend.
+            total += current >= previous ? current - previous : current
+            previous = current
+        }
+        return total
     }
 }

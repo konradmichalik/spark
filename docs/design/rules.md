@@ -86,7 +86,7 @@ HStack(alignment: .firstTextBaseline, spacing: 3) {
 
 - Durations are short: `1h 49m`, `3d 18h`. An absolute time goes in a tooltip.
 - API cost is always marked as an estimate (`≈`) and its tooltip says it is priced at API list prices, not the subscription.
-- Plan value is the API cost as a multiple of the plan share, the monthly plan price spread over the days of the period (`5.4×`, `12×`, `1,234×`, never more than five characters). Its tooltip names the plan share and says only Claude Code on this Mac counts. In the report it is a line in the API cost tooltip, not a fourth total.
+- Plan value is the API cost as a multiple of what the user paid for the period: the plan share, the monthly plan price spread over the days of the period, plus the extra usage spent in it when that is billed in dollars and the history reaches back to the period's start (`5.4×`, `12×`, `1,234×`, never more than five characters). Its tooltip names the plan share and says only Claude Code on this Mac counts. In the report it is a line in the API cost tooltip, not a fourth total.
 - "Tokens" always means fresh tokens: input, output and cache writes for Claude, input and output for Codex. Cache reads and cached input are never part of a headline figure, a graph or a tile, and the tooltip says so (`TokenWording`).
 
 ## Dot language
