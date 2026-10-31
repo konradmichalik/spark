@@ -86,6 +86,7 @@ HStack(alignment: .firstTextBaseline, spacing: 3) {
 
 - Durations are short: `1h 49m`, `3d 18h`. An absolute time goes in a tooltip.
 - API cost is always marked as an estimate (`≈`) and its tooltip says it is priced at API list prices, not the subscription.
+- Plan value is the API cost as a multiple of the plan share, the monthly plan price spread over the days of the period (`5.4×`, `12×`, `1,234×`, never more than five characters). Its tooltip names the plan share and says only Claude Code on this Mac counts. In the report it is a line in the API cost tooltip, not a fourth total.
 - "Tokens" always means fresh tokens: input, output and cache writes for Claude, input and output for Codex. Cache reads and cached input are never part of a headline figure, a graph or a tile, and the tooltip says so (`TokenWording`).
 
 ## Dot language
@@ -135,7 +136,7 @@ HStack(alignment: .firstTextBaseline, spacing: 3) {
 
 - Switches use `PaperSegments`: a trough with the selected segment raised as a card for modes and periods, small mono chips with the selected one in ink for graph ranges.
 - History shows the peak session and the peak week of the range under the graph, both in percent. A weekly reset does not lower the peak.
-- Stat tiles go two to a row. With the API cost estimate switched off in Settings, Tokens takes the whole second row.
+- Stat tiles go two to a row. With the API cost estimate switched off in Settings, Tokens takes the whole second row. With it on and a plan price known, Plan value takes the whole third row.
 - "Show N more" appears only when at least two entries are hidden; a single extra entry is shown right away. An expanded list of more than ten entries scrolls.
 - More Limits lists only what the overview does not show: the model weeks the user enabled (Claude) and extra windows (Codex). Session and week are never repeated, Claude's extra usage sits under the week on the overview once something was spent, and the plan is in the tab tooltip. The row only exists when there is at least one such limit. Codex credits are set apart with a hairline outside a card, the one exception to "hairlines only inside a card". A warning or critical percentage there carries an alert icon, because 13pt ochre text alone does not reach 4.5:1.
 - Without a Claude sign-in the popover still opens. The Claude tab shows the not-connected state and other providers stay usable in their tabs.
