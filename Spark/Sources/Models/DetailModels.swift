@@ -109,6 +109,23 @@ enum StatisticsText {
         return estimate + " No price for \(cost.unpricedModels.joined(separator: ", "))."
     }
 
+    static func costTooltip(_ cost: CostSummary, planValue: PlanValue?) -> String {
+        guard let planValue else { return costTooltip(cost) }
+        let multiple = UsageFormat.multiple(planValue.multiple)
+        return costTooltip(cost) + "\n\(multiple.number)\(multiple.unit) the \(planShare(planValue))."
+    }
+
+    static func planValueTooltip(_ value: PlanValue) -> String {
+        let unknownExtra = value.extraSpend == nil ? "\nExtra usage is not counted, the history does not reach back that far." : ""
+        return "API cost against the \(planShare(value)), at \(formatCost(value.monthlyPrice)) a month.\n"
+            + "Only Claude Code on this Mac counts, so the real value is higher." + unknownExtra
+    }
+
+    private static func planShare(_ value: PlanValue) -> String {
+        let extra = (value.extraSpend ?? 0) > 0 ? " plus \(formatCost(value.extraSpend ?? 0)) extra usage" : ""
+        return "plan share of \u{2248} \(formatCost(value.planShare))\(extra) for \(value.days) \(value.days == 1 ? "day" : "days")"
+    }
+
     /// A list entry's share of the largest one, as the percent its dot bar fills.
     static func share(_ value: Int, of largest: Int) -> Double {
         largest > 0 ? Double(value) / Double(largest) * 100 : 0

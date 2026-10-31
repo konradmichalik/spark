@@ -62,6 +62,20 @@ struct PeriodReport {
         Self.dayCount(from: previousStart, to: previousEnd, calendar: calendar)
     }
 
+    /// The days the cost scan covers. For the current period it has no upper cutoff and runs
+    /// through today, while `rangeEnd` waits for today's rollup.
+    func costDayCount(now: Date = Date(), calendar: Calendar = .current) -> Int {
+        Self.dayCount(from: rangeStart, to: periodOffset == 0 ? now : rangeEnd, calendar: calendar)
+    }
+
+    /// The time the cost scan covers, from midnight of the first day through now for the current
+    /// period and through the last day otherwise.
+    func costWindow(now: Date = Date(), calendar: Calendar = .current) -> DateInterval {
+        let start = calendar.startOfDay(for: rangeStart)
+        let dayAfter = calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: rangeEnd)) ?? rangeEnd
+        return DateInterval(start: start, end: max(periodOffset == 0 ? now : dayAfter, start))
+    }
+
     /// Whether `previousStart` to `previousEnd` is only the first days of the month before.
     var comparesPartOfMonth: Bool { Self.comparesPartOfMonth(period: period, offset: periodOffset) }
 
@@ -138,7 +152,7 @@ struct PeriodReport {
         period == .month && offset == 0
     }
 
-    private static func dayCount(from start: Date, to end: Date, calendar: Calendar) -> Int {
+    static func dayCount(from start: Date, to end: Date, calendar: Calendar) -> Int {
         let days = calendar.dateComponents([.day], from: calendar.startOfDay(for: start), to: calendar.startOfDay(for: end)).day ?? -1
         return max(days + 1, 0)
     }

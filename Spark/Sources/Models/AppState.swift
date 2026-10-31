@@ -24,6 +24,7 @@ final class AppState: ObservableObject {
     @Published var needsReconnect = false
     @Published var authMethod: AuthMethod = .none
     @Published var accountTier: AccountTier = .free
+    var monthlyPlanPrice: Double? { PlanPrice.monthly(setting: planPrice, tier: accountTier) }
     @Published var currentRefreshInterval: TimeInterval = 300
     @Published var latestCLIVersion: String?
     @Published var localCLIVersion: String?
@@ -47,6 +48,8 @@ final class AppState: ObservableObject {
     @AppStorage("showProjection") var showProjection: Bool = true
     /// Off by default: turning it on makes the report download the public price list.
     @AppStorage("showApiCost") var showApiCost: Bool = false
+    /// The monthly plan price entered in Settings, 0 while the plan's list price applies.
+    @AppStorage("planPrice") var planPrice: Double = 0
     @AppStorage("refreshMode") var refreshMode: String = "smart"
     @AppStorage("refreshInterval") var refreshInterval: Double = 300
     @AppStorage("notificationsEnabled") var notificationsEnabled: Bool = true
@@ -721,6 +724,13 @@ final class AppState: ObservableObject {
     }
 
     // MARK: - History
+
+    /// Extra usage spent in `window`. Only dollars count, like the plan value, so another currency
+    /// reads as 0. Nil when it is in dollars but the history does not cover the window.
+    func extraUsageSpend(in window: DateInterval) -> Double? {
+        guard usageData.extraUsage?.currency == "USD" else { return 0 }
+        return ExtraUsageSpend.spent(in: history, from: window.start, to: window.end)
+    }
 
     private func addHistorySnapshot() {
         let snapshot = UsageSnapshot(

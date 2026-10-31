@@ -114,6 +114,7 @@ struct ReportBody: View {
 /// Tokens, the change against the previous period and the API cost estimate, then the notes
 /// that qualify them.
 private struct ReportTotals: View {
+    @EnvironmentObject private var state: AppState
     let report: PeriodReport
     let scope: ReportScope
     let codex: CodexReportData?
@@ -191,10 +192,17 @@ private struct ReportTotals: View {
         if ReportScoping.showsClaudeSections(scope), let summary = report.costSummary {
             ReportTotal(
                 label: "API COST", parts: UsageFormat.cost(summary.total), prefix: "\u{2248}",
-                tooltip: ReportScoping.costTooltip(StatisticsText.costTooltip(summary), scope: scope),
+                tooltip: ReportScoping.costTooltip(StatisticsText.costTooltip(summary, planValue: planValue(summary)), scope: scope),
                 spokenValue: "about \(formatCost(summary.total))", size: totalsSize
             )
         }
+    }
+
+    private func planValue(_ summary: CostSummary) -> PlanValue? {
+        PlanValue(
+            apiCost: summary.total, monthlyPrice: state.monthlyPlanPrice, days: report.costDayCount(),
+            extraSpend: state.extraUsageSpend(in: report.costWindow())
+        )
     }
 
     @ViewBuilder
