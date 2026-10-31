@@ -322,7 +322,9 @@ struct ClaudeCredentials {
         let plan: String = switch subscriptionType {
         case "pro": "Pro"
         case "max": "Max"
+        case "ultra": "Ultra"
         case "team": "Team"
+        case "enterprise": "Enterprise"
         default: "Free"
         }
 
@@ -343,16 +345,26 @@ struct AccountTier: Equatable {
         return plan
     }
 
-    /// Restore from cached displayName (e.g. "Max 5x" → plan: "Max", multiplier: "5x")
+    /// Restore from cached displayName (e.g. "Team 5x" → plan: "Team", multiplier: "5x")
     init(displayName: String) {
         let parts = displayName.split(separator: " ", maxSplits: 1)
-        self.plan = String(parts.first ?? "Free")
-        self.multiplier = parts.count > 1 ? String(parts[1]) : nil
+        self.init(plan: String(parts.first ?? "Free"), multiplier: parts.count > 1 ? String(parts[1]) : nil)
     }
 
+    /// Anthropic renamed Max 5x to Max and Max 20x to Ultra on 30 October 2026, but the
+    /// credentials still read `max` with a `max_5x` or `max_20x` tier.
     init(plan: String, multiplier: String?) {
-        self.plan = plan
-        self.multiplier = multiplier
+        switch (plan, multiplier) {
+        case ("Max", "20x"):
+            self.plan = "Ultra"
+            self.multiplier = nil
+        case ("Max", _):
+            self.plan = "Max"
+            self.multiplier = nil
+        default:
+            self.plan = plan
+            self.multiplier = multiplier
+        }
     }
 
     static let free = AccountTier(plan: "Free", multiplier: nil)

@@ -15,14 +15,24 @@ final class AccountTierTests: XCTestCase {
         XCTAssertEqual(creds.accountTier.displayName, "Max")
     }
 
-    func testMax5xTier() {
+    func testMax5xTierReadsAsMax() {
         let creds = ClaudeCredentials(accessToken: "token", subscriptionType: "max", rateLimitTier: "default_claude_max_5x")
-        XCTAssertEqual(creds.accountTier.displayName, "Max 5x")
+        XCTAssertEqual(creds.accountTier.displayName, "Max")
     }
 
-    func testMax20xTier() {
+    func testMax20xTierReadsAsUltra() {
         let creds = ClaudeCredentials(accessToken: "token", subscriptionType: "max", rateLimitTier: "default_claude_max_20x")
-        XCTAssertEqual(creds.accountTier.displayName, "Max 20x")
+        XCTAssertEqual(creds.accountTier.displayName, "Ultra")
+    }
+
+    func testUltraTier() {
+        let creds = ClaudeCredentials(accessToken: "token", subscriptionType: "ultra", rateLimitTier: nil)
+        XCTAssertEqual(creds.accountTier.displayName, "Ultra")
+    }
+
+    func testEnterpriseTier() {
+        let creds = ClaudeCredentials(accessToken: "token", subscriptionType: "enterprise", rateLimitTier: nil)
+        XCTAssertEqual(creds.accountTier.displayName, "Enterprise")
     }
 
     func testTeamTier() {
@@ -50,10 +60,24 @@ final class AccountTierTests: XCTestCase {
         XCTAssertEqual(creds.accountTier.displayName, "Free")
     }
 
+    // MARK: - AccountTier from a cached display name
+
+    func testCachedMax20xRestoresAsUltra() {
+        XCTAssertEqual(AccountTier(displayName: "Max 20x").displayName, "Ultra")
+    }
+
+    func testCachedMax5xRestoresAsMax() {
+        XCTAssertEqual(AccountTier(displayName: "Max 5x").displayName, "Max")
+    }
+
+    func testCachedTeam5xKeepsItsMultiplier() {
+        XCTAssertEqual(AccountTier(displayName: "Team 5x").displayName, "Team 5x")
+    }
+
     // MARK: - AccountTier Equality
 
     func testAccountTierEquality() {
         XCTAssertEqual(AccountTier.free, AccountTier(plan: "Free", multiplier: nil))
-        XCTAssertNotEqual(AccountTier(plan: "Max", multiplier: "5x"), AccountTier(plan: "Max", multiplier: nil))
+        XCTAssertNotEqual(AccountTier(plan: "Team", multiplier: "5x"), AccountTier(plan: "Team", multiplier: nil))
     }
 }
