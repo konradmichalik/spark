@@ -41,8 +41,8 @@ enum PaceDaySeries {
             let samples = byDay[TranscriptCache.dayKey(for: day, calendar: calendar)]
             days.append(PaceDay(
                 day: day,
-                sessionUtilization: samples?.map(\.sessionUtilization).max(),
-                weeklyUtilization: samples?.map(\.weeklyUtilization).max()
+                sessionUtilization: samples?.compactMap(\.sessionHistoryValue).max(),
+                weeklyUtilization: samples?.compactMap(\.weeklyHistoryValue).max()
             ))
             // Re-normalized via `startOfDay`, not used as-is — `date(byAdding:)` preserves
             // wall-clock time, so accumulating the raw result across a DST transition drifts the

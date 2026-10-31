@@ -678,14 +678,15 @@ final class AppState: ObservableObject {
         if usageData.sessionUtilization >= 10 { hasSentSessionResetNotification = false }
         if usageData.weeklyUtilization >= 10 { hasSentWeeklyResetNotification = false }
 
-        if usageData.sessionUtilization < 5, !hasSentSessionResetNotification {
-            let notice = NoticeWording.reset(provider: .claude, window: "Session", nextReset: usageData.session?.resetsAtDate)
+        // A plan without a session limit has no session to reset.
+        if let session = usageData.session, session.utilization < 5, !hasSentSessionResetNotification {
+            let notice = NoticeWording.reset(provider: .claude, window: "Session", nextReset: session.resetsAtDate)
             NotificationPoster.post(notice, id: "reset-session")
             hasSentSessionResetNotification = true
         }
 
-        if usageData.weeklyUtilization < 5, !hasSentWeeklyResetNotification {
-            let notice = NoticeWording.reset(provider: .claude, window: "Week", nextReset: usageData.weekly?.resetsAtDate)
+        if let weekly = usageData.weekly, weekly.utilization < 5, !hasSentWeeklyResetNotification {
+            let notice = NoticeWording.reset(provider: .claude, window: "Week", nextReset: weekly.resetsAtDate)
             NotificationPoster.post(notice, id: "reset-weekly")
             hasSentWeeklyResetNotification = true
         }
@@ -726,6 +727,8 @@ final class AppState: ObservableObject {
         let snapshot = UsageSnapshot(
             sessionUtilization: usageData.sessionUtilization,
             weeklyUtilization: usageData.weeklyUtilization,
+            sessionMissing: usageData.session == nil,
+            weeklyMissing: usageData.weekly == nil,
             sonnetUtilization: usageData.weeklySonnet?.utilization,
             opusUtilization: usageData.weeklyOpus?.utilization,
             fableUtilization: usageData.weeklyFable?.utilization,

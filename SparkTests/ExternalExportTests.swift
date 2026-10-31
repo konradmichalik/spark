@@ -147,6 +147,12 @@ final class ExternalExportBuilderTests: XCTestCase {
         )
     }
 
+    func testAPlanWithoutASessionLimitExportsNoSession() {
+        let ultra = UsageData(session: nil, weekly: UsageBucket(utilization: 37, resetsAt: nil))
+        let ids = ExternalExportBuilder.views(makeInput(usageData: ultra)).map(\.id)
+        XCTAssertEqual(ids, ["week", "today", "active"])
+    }
+
     func testStateIsOkBelowWarningThreshold() {
         let state = ExternalExportBuilder.state(for: 50, input: makeInput())
         XCTAssertEqual(state, .ok)
