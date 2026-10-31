@@ -116,12 +116,14 @@ enum StatisticsText {
     }
 
     static func planValueTooltip(_ value: PlanValue) -> String {
-        "API cost against the \(planShare(value)), at \(formatCost(value.monthlyPrice)) a month.\n"
-            + "Only Claude Code on this Mac counts, so the real value is higher."
+        let unknownExtra = value.extraSpend == nil ? "\nExtra usage is not counted, the history does not reach back that far." : ""
+        return "API cost against the \(planShare(value)), at \(formatCost(value.monthlyPrice)) a month.\n"
+            + "Only Claude Code on this Mac counts, so the real value is higher." + unknownExtra
     }
 
     private static func planShare(_ value: PlanValue) -> String {
-        "plan share of \u{2248} \(formatCost(value.planShare)) for \(value.days) \(value.days == 1 ? "day" : "days")"
+        let extra = (value.extraSpend ?? 0) > 0 ? " plus \(formatCost(value.extraSpend ?? 0)) extra usage" : ""
+        return "plan share of \u{2248} \(formatCost(value.planShare))\(extra) for \(value.days) \(value.days == 1 ? "day" : "days")"
     }
 
     /// A list entry's share of the largest one, as the percent its dot bar fills.

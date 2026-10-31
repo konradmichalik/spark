@@ -725,6 +725,13 @@ final class AppState: ObservableObject {
 
     // MARK: - History
 
+    /// Extra usage spent in `window`. Only dollars count, like the plan value, so another currency
+    /// reads as 0. Nil when it is in dollars but the history does not cover the window.
+    func extraUsageSpend(in window: DateInterval) -> Double? {
+        guard usageData.extraUsage?.currency == "USD" else { return 0 }
+        return ExtraUsageSpend.spent(in: history, from: window.start, to: window.end)
+    }
+
     private func addHistorySnapshot() {
         let snapshot = UsageSnapshot(
             sessionUtilization: usageData.sessionUtilization,

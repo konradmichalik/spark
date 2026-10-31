@@ -11,10 +11,7 @@ struct ReportBody: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             ReportCard {
-                ReportTotals(
-                    report: report, scope: scope, codex: codex, showApiCost: showApiCost,
-                    monthlyPlanPrice: state.monthlyPlanPrice, dayTokens: persistedDayTokens
-                )
+                ReportTotals(report: report, scope: scope, codex: codex, showApiCost: showApiCost, dayTokens: persistedDayTokens)
             }
             if ReportScoping.showsClaudeSections(scope) {
                 ReportCard {
@@ -117,11 +114,11 @@ struct ReportBody: View {
 /// Tokens, the change against the previous period and the API cost estimate, then the notes
 /// that qualify them.
 private struct ReportTotals: View {
+    @EnvironmentObject private var state: AppState
     let report: PeriodReport
     let scope: ReportScope
     let codex: CodexReportData?
     let showApiCost: Bool
-    let monthlyPlanPrice: Double?
     let dayTokens: [String: Int]
 
     private static let cacheHitRateWarningThreshold = 0.9
@@ -202,7 +199,10 @@ private struct ReportTotals: View {
     }
 
     private func planValue(_ summary: CostSummary) -> PlanValue? {
-        PlanValue(apiCost: summary.total, monthlyPrice: monthlyPlanPrice, days: report.costDayCount())
+        PlanValue(
+            apiCost: summary.total, monthlyPrice: state.monthlyPlanPrice, days: report.costDayCount(),
+            extraSpend: state.extraUsageSpend(in: report.costWindow())
+        )
     }
 
     @ViewBuilder
