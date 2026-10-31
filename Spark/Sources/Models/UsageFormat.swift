@@ -26,6 +26,19 @@ enum UsageFormat {
         return NumberParts(number: compactValue.number, unit: compactValue.unit + "$")
     }
 
+    /// How many times the plan share the API cost is, at most five characters like the cost.
+    static func multiple(_ value: Double) -> NumberParts {
+        let clamped = value.isFinite ? max(value, 0) : 0
+        if (clamped * 10).rounded() / 10 < 10 {
+            return NumberParts(number: clamped.formatted(.number.precision(.fractionLength(1)).locale(enUS)), unit: "\u{00D7}")
+        }
+        if clamped.rounded() < 10_000 {
+            return NumberParts(number: clamped.rounded().formatted(.number.precision(.fractionLength(0)).locale(enUS)), unit: "\u{00D7}")
+        }
+        let compactValue = compact(clamped)
+        return NumberParts(number: compactValue.number, unit: compactValue.unit + "\u{00D7}")
+    }
+
     static func tokens(_ count: Int) -> NumberParts {
         compact(Double(max(count, 0)))
     }

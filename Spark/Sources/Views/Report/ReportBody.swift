@@ -11,7 +11,10 @@ struct ReportBody: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             ReportCard {
-                ReportTotals(report: report, scope: scope, codex: codex, showApiCost: showApiCost, dayTokens: persistedDayTokens)
+                ReportTotals(
+                    report: report, scope: scope, codex: codex, showApiCost: showApiCost,
+                    monthlyPlanPrice: state.monthlyPlanPrice, dayTokens: persistedDayTokens
+                )
             }
             if ReportScoping.showsClaudeSections(scope) {
                 ReportCard {
@@ -118,6 +121,7 @@ private struct ReportTotals: View {
     let scope: ReportScope
     let codex: CodexReportData?
     let showApiCost: Bool
+    let monthlyPlanPrice: Double?
     let dayTokens: [String: Int]
 
     private static let cacheHitRateWarningThreshold = 0.9
@@ -191,10 +195,14 @@ private struct ReportTotals: View {
         if ReportScoping.showsClaudeSections(scope), let summary = report.costSummary {
             ReportTotal(
                 label: "API COST", parts: UsageFormat.cost(summary.total), prefix: "\u{2248}",
-                tooltip: ReportScoping.costTooltip(StatisticsText.costTooltip(summary), scope: scope),
+                tooltip: ReportScoping.costTooltip(StatisticsText.costTooltip(summary, planValue: planValue(summary)), scope: scope),
                 spokenValue: "about \(formatCost(summary.total))", size: totalsSize
             )
         }
+    }
+
+    private func planValue(_ summary: CostSummary) -> PlanValue? {
+        PlanValue(apiCost: summary.total, monthlyPrice: monthlyPlanPrice, days: report.costDayCount())
     }
 
     @ViewBuilder

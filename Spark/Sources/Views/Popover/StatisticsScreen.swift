@@ -12,7 +12,7 @@ extension StatsPeriod {
 }
 
 /// The Claude Statistics screen (board 6): period, four Doto tiles with API cost as an
-/// estimate, and the top projects as dot bars.
+/// estimate and the plan value under them, and the top projects as dot bars.
 struct ClaudeStatisticsScreen: View {
     @EnvironmentObject var state: AppState
 
@@ -62,8 +62,18 @@ struct ClaudeStatisticsScreen: View {
                 label: "API cost", parts: parts, prefix: "\u{2248}", tooltip: StatisticsText.costTooltip(cost),
                 spokenValue: "about \(formatCost(cost.total))"
             ))
+            if let planValue = planValueFact(cost: cost, live: live) { facts.append(planValue) }
         }
         return facts
+    }
+
+    private func planValueFact(cost: CostSummary, live: LiveStats) -> StatFact? {
+        let days = PlanPrice.days(for: state.statsPeriod, dayTokens: live.dayTokens, now: Date(), calendar: .current)
+        guard let value = PlanValue(apiCost: cost.total, monthlyPrice: state.monthlyPlanPrice, days: days) else { return nil }
+        return StatFact(
+            label: "Plan value", parts: UsageFormat.multiple(value.multiple), tooltip: StatisticsText.planValueTooltip(value),
+            spokenValue: "\(value.multiple.formatted(.number.precision(.fractionLength(0...1)))) times the plan share"
+        )
     }
 
     private func projects(_ live: LiveStats) -> [RankedEntry] {
