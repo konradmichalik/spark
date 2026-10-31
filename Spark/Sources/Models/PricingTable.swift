@@ -36,7 +36,7 @@ struct CostSummary: Equatable, Sendable {
     let unpricedModels: [String]
 }
 
-/// Claude prices from the LiteLLM `model_prices_and_context_window.json`, keyed by raw model ID.
+/// Claude and OpenAI prices from the LiteLLM `model_prices_and_context_window.json`, keyed by raw model ID.
 struct PricingTable: Codable, Equatable, Sendable {
     let prices: [String: ModelPrice]
 
@@ -51,7 +51,7 @@ struct PricingTable: Codable, Equatable, Sendable {
             throw URLError(.cannotParseResponse)
         }
         var prices: [String: ModelPrice] = [:]
-        for (key, value) in root where isClaudeModelKey(key) {
+        for (key, value) in root where isPricedModelKey(key) {
             guard let entry = value as? [String: Any],
                   let input = entry["input_cost_per_token"] as? Double,
                   let output = entry["output_cost_per_token"] as? Double else { continue }
@@ -71,13 +71,18 @@ struct PricingTable: Codable, Equatable, Sendable {
 
     /// Exact ID first, then the same model with the date suffix ignored on either side
     /// (`claude-opus-4-5` against `claude-opus-4-5-20251101`). A different version never matches.
+    /// A `-codex` model without its own entry costs what its base model does, as every listed one
+    /// does (`gpt-5.2-codex` and `gpt-5.2`); `-codex-mini` has its own price and never falls back.
     func price(forRawModelId rawId: String) -> ModelPrice? {
         if let exact = prices[rawId] { return exact }
         let base = ModelFamily.withoutDateSuffix(rawId)
-        return prices
+        let dated = prices
             .filter { ModelFamily.withoutDateSuffix($0.key) == base }
             .min { $0.key < $1.key }?
             .value
+        if let dated { return dated }
+        guard rawId.hasSuffix("-codex") else { return nil }
+        return price(forRawModelId: String(rawId.dropLast("-codex".count)))
     }
 
     func cost(forModelTotals modelTotals: [String: ModelTokenTotals]) -> CostEstimate {
@@ -114,9 +119,9 @@ struct PricingTable: Codable, Equatable, Sendable {
         )
     }
 
-    /// Provider-prefixed (`bedrock/...`) and versioned (`...-v1:0`) entries are other offerings
-    /// of the same models.
-    private static func isClaudeModelKey(_ key: String) -> Bool {
-        key.hasPrefix("claude-") && !key.contains("/") && !key.contains(":")
+    /// Provider-prefixed (`bedrock/...`, `azure/...`) and versioned (`...-v1:0`) entries are other
+    /// offerings of the same models.
+    private static func isPricedModelKey(_ key: String) -> Bool {
+        (key.hasPrefix("claude-") || key.hasPrefix("gpt-")) && !key.contains("/") && !key.contains(":")
     }
 }

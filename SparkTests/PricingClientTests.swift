@@ -30,6 +30,20 @@ final class PricingClientTests: XCTestCase {
         XCTAssertEqual(PricingClient.loadCache(from: cacheURL)?.table, fresh)
     }
 
+    func testACacheFromBeforeGPTPricesIsRefreshed() async throws {
+        let legacy = #"{"fetchedAt":\#(now.addingTimeInterval(-3_600).timeIntervalSinceReferenceDate),"table":{"prices":{}}}"#
+        try Data(legacy.utf8).write(to: cacheURL)
+        let fetched = FetchCounter()
+
+        _ = await PricingClient.currentTable(now: now, cacheURL: cacheURL) { [fresh] in
+            await fetched.increment()
+            return fresh
+        }
+
+        let count = await fetched.count
+        XCTAssertEqual(count, 1)
+    }
+
     func testFreshCacheSkipsTheNetwork() async {
         PricingClient.saveCache(PricingCache(fetchedAt: now.addingTimeInterval(-3_600), table: old), to: cacheURL)
         let fetched = FetchCounter()

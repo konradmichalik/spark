@@ -31,7 +31,9 @@ final class StatisticsTextTests: XCTestCase {
 
     func testCodexModelsRankByTokens() {
         var stats = CodexSessionStats()
-        stats.modelTokens = ["gpt-5": 100, "gpt-5-codex": 900, "o3": 0]
+        stats.modelTokenTotals = [
+            "gpt-5": ModelTokenTotals(input: 100), "gpt-5-codex": ModelTokenTotals(input: 900), "o3": ModelTokenTotals()
+        ]
         XCTAssertEqual(StatisticsText.rankedModels(stats).map(\.name), ["gpt-5-codex", "gpt-5"])
         XCTAssertEqual(StatisticsText.rankedModels(stats).map(\.tokens), [900, 100])
     }

@@ -93,8 +93,8 @@ struct ClaudeStatisticsScreen: View {
     }
 }
 
-/// The Codex Statistics screen: the same structure with Codex's own fields. Codex has no price
-/// list, so there is no API cost.
+/// The Codex Statistics screen: the same structure with Codex's own fields, the API cost priced
+/// from the OpenAI entries of the same price list.
 struct CodexStatisticsScreen: View {
     @ObservedObject var codex: CodexState
 
@@ -116,7 +116,7 @@ struct CodexStatisticsScreen: View {
         let averages = StatisticsAverages(
             activeDays: stats.activeDayCount, messages: stats.messageCount, sessions: stats.sessionCount, tokens: stats.realTokens
         )
-        return [
+        var facts = [
             StatFact(label: "Messages", parts: UsageFormat.count(stats.messageCount), tooltip: averages.messages),
             StatFact(label: "Sessions", parts: UsageFormat.count(stats.sessionCount), tooltip: averages.sessions),
             StatFact(
@@ -124,6 +124,13 @@ struct CodexStatisticsScreen: View {
                 tooltip: tokenBreakdown(stats, average: averages.tokens)
             )
         ]
+        if codex.showApiCost, let cost = codex.cost {
+            facts.append(StatFact(
+                label: "API cost", parts: UsageFormat.cost(cost.total), prefix: "\u{2248}", tooltip: StatisticsText.costTooltip(cost),
+                spokenValue: "about \(formatCost(cost.total))"
+            ))
+        }
+        return facts
     }
 
     private func tokenBreakdown(_ stats: CodexSessionStats, average: String?) -> String {
@@ -137,7 +144,7 @@ struct CodexStatisticsScreen: View {
         return ranked.map { model in
             RankedEntry(
                 id: model.name, name: model.name, tokens: model.tokens,
-                tooltip: StatisticsText.projectTooltip(tokens: model.tokens, cost: nil), path: nil
+                tooltip: StatisticsText.projectTooltip(tokens: model.tokens, cost: codex.cost?.byModel[model.name]), path: nil
             )
         }
     }

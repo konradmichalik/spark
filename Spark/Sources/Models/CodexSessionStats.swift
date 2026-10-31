@@ -16,7 +16,11 @@ struct CodexSessionStats: Equatable, Sendable {
     /// Includes `reasoningTokens`, which OpenAI bills as output.
     var outputTokens = 0
     var reasoningTokens = 0
-    var modelTokens: [String: Int] = [:]
+    /// The per-model split the API cost estimate prices: fresh input, cached input as cache reads,
+    /// and output with the reasoning inside it.
+    var modelTokenTotals: [String: ModelTokenTotals] = [:]
+    /// Fresh tokens per model, like the headline.
+    var modelTokens: [String: Int] { modelTokenTotals.mapValues(\.real) }
     var projectTokens: [String: Int] = [:]
     /// Fresh tokens per day key (`TranscriptCache.dayKey(for:)`), the input of the report's activity calendar.
     var dayTokens: [String: Int] = [:]
@@ -60,7 +64,9 @@ struct CodexSessionStats: Equatable, Sendable {
         cachedInputTokens += other.cachedInputTokens
         outputTokens += other.outputTokens
         reasoningTokens += other.reasoningTokens
-        modelTokens.merge(other.modelTokens, uniquingKeysWith: +)
+        for (model, totals) in other.modelTokenTotals {
+            modelTokenTotals[model, default: ModelTokenTotals()].merge(totals)
+        }
         projectTokens.merge(other.projectTokens, uniquingKeysWith: +)
         dayTokens.merge(other.dayTokens, uniquingKeysWith: +)
     }
@@ -147,7 +153,8 @@ private struct RolloutAccumulator {
         stats.cachedInputTokens += cached
         stats.outputTokens += output
         stats.reasoningTokens += max(total.reasoning - previous.reasoning, 0)
-        stats.modelTokens[model ?? "unknown", default: 0] += fresh + output
+        stats.modelTokenTotals[model ?? "unknown", default: ModelTokenTotals()]
+            .merge(ModelTokenTotals(input: fresh, output: output, cacheRead: cached))
         if let projectPath {
             stats.projectTokens[projectPath, default: 0] += fresh + output
         }

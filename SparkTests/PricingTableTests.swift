@@ -24,10 +24,20 @@ final class PricingTableTests: XCTestCase {
 
     // MARK: - parse
 
-    func testParseKeepsOnlyClaudeEntriesWithInputAndOutputPrice() throws {
+    func testParseKeepsClaudeAndGPTEntriesWithInputAndOutputPrice() throws {
         let table = try PricingTable.parse(sample)
 
-        XCTAssertEqual(Set(table.prices.keys), ["claude-opus-4-5-20251101", "claude-sonnet-5-5"])
+        XCTAssertEqual(Set(table.prices.keys), ["claude-opus-4-5-20251101", "claude-sonnet-5-5", "gpt-4o"])
+    }
+
+    func testACodexModelWithoutItsOwnPriceUsesItsBaseModel() {
+        let base = ModelPrice(input: 5e-6, output: 3e-5, cacheCreation: 0, cacheCreation1h: 0, cacheRead: 5e-7)
+        let mini = ModelPrice(input: 2.5e-7, output: 2e-6, cacheCreation: 0, cacheCreation1h: 0, cacheRead: 2.5e-8)
+        let table = PricingTable(prices: ["gpt-5.5": base, "gpt-5.1-codex-mini": mini])
+
+        XCTAssertEqual(table.price(forRawModelId: "gpt-5.5-codex"), base)
+        XCTAssertEqual(table.price(forRawModelId: "gpt-5.1-codex-mini"), mini)
+        XCTAssertNil(table.price(forRawModelId: "gpt-5.2-codex-mini"), "a mini model is priced on its own, never as its base")
     }
 
     func testParseReadsAllTokenPrices() throws {
