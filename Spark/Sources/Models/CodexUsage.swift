@@ -160,9 +160,15 @@ struct CodexUsage: Sendable {
         additionalLimits.map(\.bucket.utilization).reduce(usageData.maxUtilization, max)
     }
 
-    /// "plus" → "Plus", "self_serve_business_prolite" → "Self Serve Business Prolite".
+    /// "plus" → "Plus", "free_workspace" → "Free Workspace". The two Pro
+    /// tiers ($100 `prolite`, $200 `pro`) take OpenAI's 5x and 20x of Plus.
     var planDisplayName: String? {
         guard let planType, !planType.isEmpty else { return nil }
+        switch planType {
+        case "prolite": return "Pro 5x"
+        case "pro": return "Pro 20x"
+        default: break
+        }
         return planType
             .split(separator: "_")
             .map { $0.prefix(1).uppercased() + $0.dropFirst() }
