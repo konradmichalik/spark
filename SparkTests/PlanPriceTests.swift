@@ -215,11 +215,10 @@ final class CodexPlanPriceTests: XCTestCase {
         XCTAssertEqual(PlanPrice.codexDays(for: .all, dayTokens: ["2026-10-22": 5], now: now, calendar: calendar), 10)
     }
 
-    func testTooltipNamesTheCodexCLI() throws {
+    func testCodexTooltipSaysCreditsAreNotCounted() throws {
         let value = try XCTUnwrap(PlanValue(apiCost: 40, monthlyPrice: 20, days: 7))
-        XCTAssertTrue(
-            StatisticsText.planValueTooltip(value, tool: "the Codex CLI")
-                .contains("Only the Codex CLI on this Mac counts, so the real value is higher.")
-        )
+        let tooltip = StatisticsText.planValueTooltip(value, coverage: StatisticsText.codexPlanValueCoverage)
+        XCTAssertTrue(tooltip.hasSuffix("Only the Codex CLI on this Mac counts. ChatGPT credits bought on top of the plan are not."))
+        XCTAssertFalse(tooltip.contains("real value is higher"))
     }
 }

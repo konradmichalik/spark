@@ -23,6 +23,8 @@ final class CodexState: ObservableObject {
     /// The period `stats` and `cost` were scanned for. `statsPeriod` switches at once, while the
     /// new scan still runs, so anything that counts days must use this one.
     @Published private(set) var scannedPeriod: StatsPeriod?
+    /// When that scan ran. All time is not rescanned on polls, so its days must not grow past it.
+    @Published private(set) var scannedAt: Date?
     @Published private(set) var burnRate: BurnRate?
     @Published private(set) var volumeTokensByDay: [String: Int]?
     @Published private(set) var isLoadingVolumeHistory = false
@@ -235,6 +237,7 @@ final class CodexState: ObservableObject {
         let wantsCost = showApiCost
         statsTask?.cancel()
         statsTask = Task.detached {
+            let scanDate = Date()
             let stats = CodexSessionStats.parse(directories: directories, since: period.startDate)
             guard !Task.isCancelled else { return }
             var cost: CostSummary?
@@ -248,6 +251,7 @@ final class CodexState: ObservableObject {
                 self.stats = stats
                 self.cost = cost
                 self.scannedPeriod = period
+                self.scannedAt = scanDate
             }
         }
     }
