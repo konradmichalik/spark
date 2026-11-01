@@ -195,3 +195,30 @@ final class ExtraUsageSpendTests: XCTestCase {
         )
     }
 }
+
+final class CodexPlanPriceTests: XCTestCase {
+    private let calendar = TestCalendar.berlin()
+
+    func testListPricesFollowThePlanType() {
+        XCTAssertEqual(PlanPrice.listPrice(codexPlanType: "plus"), 20)
+        XCTAssertEqual(PlanPrice.listPrice(codexPlanType: "prolite"), 100)
+        XCTAssertEqual(PlanPrice.listPrice(codexPlanType: "pro"), 200)
+        XCTAssertNil(PlanPrice.listPrice(codexPlanType: "business"))
+        XCTAssertNil(PlanPrice.listPrice(codexPlanType: nil))
+    }
+
+    func testCodexPeriodsAreExactWindows() {
+        let now = TestCalendar.date("2026-10-31")
+        XCTAssertEqual(PlanPrice.codexDays(for: .today, dayTokens: [:], now: now, calendar: calendar), 1)
+        XCTAssertEqual(PlanPrice.codexDays(for: .week, dayTokens: [:], now: now, calendar: calendar), 7)
+        XCTAssertEqual(PlanPrice.codexDays(for: .month, dayTokens: [:], now: now, calendar: calendar), 30)
+        XCTAssertEqual(PlanPrice.codexDays(for: .all, dayTokens: ["2026-10-22": 5], now: now, calendar: calendar), 10)
+    }
+
+    func testCodexTooltipSaysCreditsAreNotCounted() throws {
+        let value = try XCTUnwrap(PlanValue(apiCost: 40, monthlyPrice: 20, days: 7))
+        let tooltip = StatisticsText.planValueTooltip(value, coverage: StatisticsText.codexPlanValueCoverage)
+        XCTAssertTrue(tooltip.hasSuffix("Only the Codex CLI on this Mac counts. ChatGPT credits bought on top of the plan are not."))
+        XCTAssertFalse(tooltip.contains("real value is higher"))
+    }
+}

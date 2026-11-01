@@ -115,10 +115,15 @@ enum StatisticsText {
         return costTooltip(cost) + "\n\(multiple.number)\(multiple.unit) the \(planShare(planValue))."
     }
 
-    static func planValueTooltip(_ value: PlanValue) -> String {
+    /// Credits bought on top of a ChatGPT plan are not seen, so the real multiple can be lower too.
+    static let codexPlanValueCoverage = "Only the Codex CLI on this Mac counts. ChatGPT credits bought on top of the plan are not."
+
+    static func planValueTooltip(
+        _ value: PlanValue, coverage: String = "Only Claude Code on this Mac counts, so the real value is higher."
+    ) -> String {
         let unknownExtra = value.extraSpend == nil ? "\nExtra usage is not counted, the history does not reach back that far." : ""
         return "API cost against the \(planShare(value)), at \(formatCost(value.monthlyPrice)) a month.\n"
-            + "Only Claude Code on this Mac counts, so the real value is higher." + unknownExtra
+            + coverage + unknownExtra
     }
 
     private static func planShare(_ value: PlanValue) -> String {

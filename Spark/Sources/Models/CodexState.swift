@@ -20,6 +20,11 @@ final class CodexState: ObservableObject {
     @Published private(set) var stats: CodexSessionStats?
     /// The API cost estimate for `stats`. `nil` while the setting is off or no prices loaded.
     @Published private(set) var cost: CostSummary?
+    /// The period `stats` and `cost` were scanned for. `statsPeriod` switches at once, while the
+    /// new scan still runs, so anything that counts days must use this one.
+    @Published private(set) var scannedPeriod: StatsPeriod?
+    /// When that scan ran. All time is not rescanned on polls, so its days must not grow past it.
+    @Published private(set) var scannedAt: Date?
     @Published private(set) var burnRate: BurnRate?
     @Published private(set) var volumeTokensByDay: [String: Int]?
     @Published private(set) var isLoadingVolumeHistory = false
@@ -30,6 +35,10 @@ final class CodexState: ObservableObject {
     @AppStorage("codexStatsPeriod") private(set) var statsPeriod: StatsPeriod = .today
     /// Shared with Claude: one setting turns the estimate on for both providers.
     @AppStorage("showApiCost") private(set) var showApiCost: Bool = false
+    /// The monthly ChatGPT plan price entered in Settings, 0 while the plan's list price applies.
+    @AppStorage("codexPlanPrice") var planPrice: Double = 0
+
+    var monthlyPlanPrice: Double? { planPrice > 0 ? planPrice : PlanPrice.listPrice(codexPlanType: usage?.planType) }
 
     /// Shown in tabs, the menu bar and notifications only when this is true.
     var isActive: Bool { isEnabled && isAvailable }
@@ -228,6 +237,7 @@ final class CodexState: ObservableObject {
         let wantsCost = showApiCost
         statsTask?.cancel()
         statsTask = Task.detached {
+            let scanDate = Date()
             let stats = CodexSessionStats.parse(directories: directories, since: period.startDate)
             guard !Task.isCancelled else { return }
             var cost: CostSummary?
@@ -240,6 +250,8 @@ final class CodexState: ObservableObject {
                 guard period == self.statsPeriod else { return }
                 self.stats = stats
                 self.cost = cost
+                self.scannedPeriod = period
+                self.scannedAt = scanDate
             }
         }
     }

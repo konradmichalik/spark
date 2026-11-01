@@ -129,8 +129,21 @@ struct CodexStatisticsScreen: View {
                 label: "API cost", parts: UsageFormat.cost(cost.total), prefix: "\u{2248}", tooltip: StatisticsText.costTooltip(cost),
                 spokenValue: "about \(formatCost(cost.total))"
             ))
+            if let planValue = planValueFact(cost: cost, stats: stats) { facts.append(planValue) }
         }
         return facts
+    }
+
+    private func planValueFact(cost: CostSummary, stats: CodexSessionStats) -> StatFact? {
+        // With no model priced, the cost is unknown rather than zero, so there is no multiple to show.
+        guard !cost.byModel.isEmpty, let period = codex.scannedPeriod, let scannedAt = codex.scannedAt else { return nil }
+        let days = PlanPrice.codexDays(for: period, dayTokens: stats.dayTokens, now: scannedAt, calendar: .current)
+        guard let value = PlanValue(apiCost: cost.total, monthlyPrice: codex.monthlyPlanPrice, days: days) else { return nil }
+        return StatFact(
+            label: "Plan value", parts: UsageFormat.multiple(value.multiple),
+            tooltip: StatisticsText.planValueTooltip(value, coverage: StatisticsText.codexPlanValueCoverage),
+            spokenValue: "\(value.multiple.formatted(.number.precision(.fractionLength(0...1)))) times what you paid"
+        )
     }
 
     private func tokenBreakdown(_ stats: CodexSessionStats, average: String?) -> String {
