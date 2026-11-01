@@ -52,7 +52,12 @@ final class CodexUsageTests: XCTestCase {
         XCTAssertNil(usage.usageData.session)
         XCTAssertNil(usage.sessionWindow)
         XCTAssertEqual(usage.usageData.weekly?.utilization, 12)
-        XCTAssertEqual(usage.planDisplayName, "Pro")
+        XCTAssertEqual(usage.planDisplayName, "Pro 20x")
+    }
+
+    func testProliteReadsAsPro5x() throws {
+        let usage = CodexUsage(response: try decode(#"{ "plan_type": "prolite" }"#))
+        XCTAssertEqual(usage.planDisplayName, "Pro 5x")
     }
 
     func testUnusualWindowLengthBecomesAdditionalLimit() throws {
