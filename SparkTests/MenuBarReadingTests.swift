@@ -64,6 +64,19 @@ final class MenuBarReadingTests: XCTestCase {
         XCTAssertEqual(MenuBarReading.resolve(claude: claude, codex: codex, value: "max", provider: .codex, locale: enUS).value, 80)
     }
 
+    func testClaudeWithoutASessionLimitShowsTheWeekInSessionMode() {
+        let ultra = UsageData(session: nil, weekly: UsageBucket(utilization: 37, resetsAt: nil))
+        let reading = MenuBarReading.resolve(claude: ultra, codex: nil, value: "session", provider: .claude, locale: enUS)
+        XCTAssertEqual(reading.value, 37)
+        XCTAssertEqual(reading.text, "37%")
+    }
+
+    func testClaudeWithoutAWeekShowsTheHighestWindowInWeeklyMode() {
+        let sessionOnly = UsageData(session: UsageBucket(utilization: 60, resetsAt: nil), weekly: nil)
+        let reading = MenuBarReading.resolve(claude: sessionOnly, codex: nil, value: "weekly", provider: .claude, locale: enUS)
+        XCTAssertEqual(reading.value, 60)
+    }
+
     /// The provider tabs show each provider's session value, with the same fallback as the
     /// menu bar when a Codex plan has no session window.
     func testSessionValuePerProvider() throws {

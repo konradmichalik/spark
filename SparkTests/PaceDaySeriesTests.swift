@@ -29,6 +29,17 @@ final class PaceDaySeriesTests: XCTestCase {
         XCTAssertNil(days.first?.weeklyUtilization)
     }
 
+    func testAMissingSessionWindowLeavesTheSessionPeakEmpty() {
+        let ultra = UsageSnapshot(
+            timestamp: date("2026-08-18"), sessionUtilization: 0, weeklyUtilization: 30, sessionMissing: true, weeklyMissing: false
+        )
+
+        let days = build([ultra], start: "2026-08-18", end: "2026-08-18")
+
+        XCTAssertNil(days.first?.sessionUtilization)
+        XCTAssertEqual(days.first?.weeklyUtilization, 30)
+    }
+
     func testUsesThePeakUtilizationOfTheDayNotTheLastSample() {
         let snapshots = [
             snapshot("2026-08-18", time: "08:00", session: 20, weekly: 10),

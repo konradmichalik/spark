@@ -39,7 +39,7 @@ With a Codex ChatGPT sign-in present, the popover gets a **Claude | Codex** swit
 
 Each tab also shows that provider's session usage, colored from the warning threshold up, so both can be read without switching. Turn it off under **Settings → Display → Session usage in the tabs**. **Provider colour in the tabs** switches off the faint tint of the selected Claude tab.
 
-If a Codex plan lacks the window picked under **Displayed value** (Pro has no 5-hour window, Free only a 30-day one), Spark uses that plan's highest window instead of showing 0%.
+If a plan lacks the window picked under **Displayed value** (a verified Claude Ultra account and Codex Pro have no 5-hour window, Codex Free only a 30-day one), Spark uses that plan's highest window instead of showing 0%. Without a 5-hour window the overview shows the week on its own, the history and the export leave the session out instead of recording 0%, and no session reset notice is sent.
 
 With **Forecast** enabled, Codex shows where the current session is expected to land at reset. Its burn rate is the average fresh input and output tokens from local Codex CLI rollout files over the last 15 minutes; cached input is excluded. Codex Cloud, web and desktop activity is not included in this local rate. The forecast still works when no local rollout activity is available.
 

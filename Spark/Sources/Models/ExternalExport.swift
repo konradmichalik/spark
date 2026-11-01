@@ -111,16 +111,19 @@ enum ExternalExportBuilder {
         let liveStats = input.liveStats
         let activeSessions = input.activeSessions
 
-        return [
+        // A plan without a session limit (verified Ultra) exports no session instead of 0%.
+        let session = usageData.session.map { session in
             ExternalExportView(
                 id: "session",
                 label: "Session",
-                value: "\(Int(usageData.sessionUtilization))%",
-                detail: usageData.session?.timeUntilReset.map { "resets \($0)" },
-                progress: usageData.sessionUtilization / 100,
-                state: state(for: usageData.sessionUtilization, input: input),
+                value: "\(Int(session.utilization))%",
+                detail: session.timeUntilReset.map { "resets \($0)" },
+                progress: session.utilization / 100,
+                state: state(for: session.utilization, input: input),
                 trend: input.sessionTrend.isEmpty ? nil : input.sessionTrend
-            ),
+            )
+        }
+        return [session].compactMap { $0 } + [
             ExternalExportView(
                 id: "week",
                 label: "Woche",

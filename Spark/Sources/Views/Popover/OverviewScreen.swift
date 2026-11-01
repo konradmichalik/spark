@@ -75,7 +75,7 @@ struct ClaudeOverview: View {
         if let error = state.lastError {
             WarningBanner(message: error)
         }
-        if state.usageData.session == nil {
+        if state.usageData.session == nil, state.usageData.weekly == nil {
             if state.lastError == nil, !state.isLoading { noDataText() }
         } else {
             UsageSection(

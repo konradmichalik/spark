@@ -57,10 +57,11 @@ struct MenuBarReading: Equatable {
         MenuBarReading(value: value, text: UsageFormat.percent(value, locale: locale), provider: provider)
     }
 
+    /// A verified Ultra account has no 5h window, so a missing window falls back like Codex below.
     private static func claudeValue(_ data: UsageData, mode: String) -> Double {
         switch mode {
-        case "session": data.sessionUtilization
-        case "weekly": data.weeklyUtilization
+        case "session": data.session?.utilization ?? data.maxUtilization
+        case "weekly": data.weekly?.utilization ?? data.maxUtilization
         default: data.maxUtilization
         }
     }
