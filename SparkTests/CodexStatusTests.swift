@@ -82,8 +82,12 @@ final class CodexStatusTests: XCTestCase {
         XCTAssertEqual(result.overall, .degradedPerformance)
     }
 
-    func testUnexpectedAffectedShapeDoesNotFailTheDecode() throws {
-        let result = try snapshot(affected: #""none""#)
+    func testAffectedOfTheWrongTypeFailsTheDecode() {
+        XCTAssertThrowsError(try snapshot(affected: #""none""#))
+    }
+
+    func testMissingAffectedKeyIsOperational() throws {
+        let result = try decode(#"{"summary": {"components": [{"id": "c2", "name": "Codex Web"}]}}"#)
 
         XCTAssertEqual(result.overall, .operational)
     }

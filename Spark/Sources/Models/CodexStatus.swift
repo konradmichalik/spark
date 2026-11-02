@@ -39,9 +39,9 @@ private extension ClaudeServiceStatus {
 // MARK: - Response
 
 /// The page's own endpoint (`/proxy/status.openai.com`). Undocumented and unlike Statuspage's
-/// `summary.json`, which has no incidents and a stale timestamp. Every field except the
-/// component list is optional, so a changed shape degrades to "operational" for the components
-/// instead of failing the whole decode.
+/// `summary.json`, which has no incidents and a stale timestamp. A missing `affected_components`
+/// or `structure` is tolerated, but an `affected_components` of the wrong type fails the decode:
+/// "Status unavailable" is more honest than a false "operational" while an incident may run.
 struct CodexStatusResponse: Decodable {
     private let summary: StatusPageSummary
 
@@ -82,7 +82,7 @@ private struct StatusPageSummary: Decodable {
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         components = try container.decode([StatusPageComponent].self, forKey: .components)
-        affectedComponents = (try? container.decodeIfPresent([StatusPageAffected].self, forKey: .affectedComponents)) ?? []
+        affectedComponents = try container.decodeIfPresent([StatusPageAffected].self, forKey: .affectedComponents) ?? []
         let structure = try? container.decodeIfPresent(StatusPageStructure.self, forKey: .structure)
         codexGroupIDs = structure?.codexComponentIDs ?? []
     }
