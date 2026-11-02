@@ -19,6 +19,15 @@ final class StatisticsTextTests: XCTestCase {
         )
     }
 
+    func testPlanPriceHintAppearsOnlyWithoutAPrice() {
+        let tooltip = "Estimated."
+        XCTAssertEqual(
+            StatisticsText.planPriceHint(tooltip, planPrice: nil),
+            "Estimated.\nSet your plan price in Settings to see the plan value."
+        )
+        XCTAssertEqual(StatisticsText.planPriceHint(tooltip, planPrice: 100), tooltip)
+    }
+
     func testShareIsRelativeToTheLargestEntry() {
         XCTAssertEqual(StatisticsText.share(250, of: 1000), 25)
         XCTAssertEqual(StatisticsText.share(5, of: 0), 0)
