@@ -55,12 +55,10 @@ struct ReportDaySeries: Equatable, Sendable {
                 note: isFinishedUse ? average.flatMap { AverageComparison.dayNote(tokens: day.total, average: $0, locale: locale) } : nil
             )
         }
-        let figures = ActivityFigures(cells: days.map {
-            ActivityCell(date: $0.date, tokens: $0.total, isToday: $0.isToday, isFuture: $0.isFuture)
-        })
+        let figures = ActivityFigures(days: days)
         return ReportDaySeries(
             days: days, activeDays: figures.activeDays, daysUpToToday: figures.totalDays, longestStreak: figures.longestStreak,
-            busiest: figures.busiest.flatMap { busiest in days.first { $0.date == busiest.date } }, dailyAverage: average
+            busiest: figures.busiest, dailyAverage: average
         )
     }
 
@@ -82,21 +80,5 @@ struct ReportDaySeries: Equatable, Sendable {
         let codex: Int
 
         var total: Int { claude + codex }
-    }
-}
-
-extension Calendar {
-    /// Every midnight from `first` through `last`. Each day is re-normalized to midnight:
-    /// `date(byAdding:)` keeps the wall-clock time, which drifts across a DST change (see
-    /// `PeriodReport.sum`).
-    func dayStarts(from first: Date, through last: Date) -> [Date] {
-        var days: [Date] = []
-        var day = first
-        while day <= last {
-            days.append(day)
-            guard let next = date(byAdding: .day, value: 1, to: day) else { break }
-            day = startOfDay(for: next)
-        }
-        return days
     }
 }

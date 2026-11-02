@@ -34,22 +34,13 @@ enum PaceDaySeries {
             byDay[TranscriptCache.dayKey(for: snapshot.timestamp, calendar: calendar), default: []].append(snapshot)
         }
 
-        var days: [PaceDay] = []
-        var day = calendar.startOfDay(for: start)
-        let endDay = calendar.startOfDay(for: end)
-        while day <= endDay {
+        return calendar.dayStarts(from: calendar.startOfDay(for: start), through: calendar.startOfDay(for: end)).map { day in
             let samples = byDay[TranscriptCache.dayKey(for: day, calendar: calendar)]
-            days.append(PaceDay(
+            return PaceDay(
                 day: day,
                 sessionUtilization: samples?.compactMap(\.sessionHistoryValue).max(),
                 weeklyUtilization: samples?.compactMap(\.weeklyHistoryValue).max()
-            ))
-            // Re-normalized via `startOfDay`, not used as-is — `date(byAdding:)` preserves
-            // wall-clock time, so accumulating the raw result across a DST transition drifts the
-            // cursor off midnight and the `day <= endDay` guard then terminates one day early.
-            guard let next = calendar.date(byAdding: .day, value: 1, to: day) else { break }
-            day = calendar.startOfDay(for: next)
+            )
         }
-        return days
     }
 }

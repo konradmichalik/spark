@@ -283,22 +283,13 @@ struct PeriodReport {
     }
 
     private static func sum(rollups: [String: DailyRollup], start: Date, end: Date, calendar: Calendar) -> PeriodTotals {
-        guard start <= end else { return PeriodTotals() }
         var totals = PeriodTotals()
-        var day = calendar.startOfDay(for: start)
-        let endDay = calendar.startOfDay(for: end)
-        while day <= endDay {
+        for day in calendar.dayStarts(from: calendar.startOfDay(for: start), through: calendar.startOfDay(for: end)) {
             if let rollup = rollups[TranscriptCache.dayKey(for: day, calendar: calendar)] {
                 totals.real += rollup.real
                 totals.cacheRead += rollup.cacheRead
                 totals.cacheCreation += rollup.cacheCreation
             }
-            // Re-normalized via `startOfDay`, not used as-is: `date(byAdding:)` preserves
-            // wall-clock time, so accumulating the raw result across a DST transition drifts
-            // off midnight and the `day <= endDay` guard then terminates one day early,
-            // silently dropping the period's last day.
-            guard let next = calendar.date(byAdding: .day, value: 1, to: day) else { break }
-            day = calendar.startOfDay(for: next)
         }
         return totals
     }

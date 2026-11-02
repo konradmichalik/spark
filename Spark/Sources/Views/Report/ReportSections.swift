@@ -19,7 +19,7 @@ struct ReportCard<Content: View>: View {
 struct ReportFigure<Content: View>: View {
     let label: String
     var tooltip: String?
-    var spoken: String?
+    let spoken: String
     @ViewBuilder let content: () -> Content
 
     var body: some View {
@@ -32,7 +32,7 @@ struct ReportFigure<Content: View>: View {
         .tooltip(tooltip, title: label, delay: .quick)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(label.capitalized)
-        .accessibilityValue(spoken ?? "")
+        .accessibilityValue(spoken)
         .accessibilityHint(tooltip ?? "")
     }
 }
@@ -40,40 +40,32 @@ struct ReportFigure<Content: View>: View {
 /// Each weekday's average tokens as a dot bar against the busiest weekday.
 struct WeekdaySection: View {
     let profile: WeekdayProfile
-    /// `nil` where the surrounding card already names the view.
-    var title: String? = "BY WEEKDAY \u{00B7} AVERAGE"
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            if let title {
-                MicroLabel(text: title)
-                    .accessibilityAddTraits(.isHeader)
-            }
-            VStack(spacing: 6) {
-                ForEach(profile.entries, id: \.name) { entry in
-                    HStack(spacing: 10) {
-                        Text(entry.name)
-                            .font(.system(size: 11, design: .monospaced))
-                            .foregroundStyle(Theme.inkSecondary)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.8)
-                            .frame(width: 34, alignment: .leading)
-                        DotBar(value: entry.share, pitch: 4, dotSize: 2.6)
-                            .frame(height: 6)
-                            .accessibilityHidden(true)
-                        Text(formatTokenCount(entry.average))
-                            .font(.system(size: 12))
-                            .monospacedDigit()
-                            .foregroundStyle(Theme.inkSecondary)
-                            .frame(width: 52, alignment: .trailing)
-                    }
-                    .frame(minHeight: 20)
-                    .contentShape(Rectangle())
-                    .tooltip(entry.tooltip, title: entry.fullName, delay: .quick)
-                    .accessibilityElement(children: .ignore)
-                    .accessibilityLabel(entry.fullName)
-                    .accessibilityValue(entry.tooltip)
+        VStack(spacing: 6) {
+            ForEach(profile.entries, id: \.name) { entry in
+                HStack(spacing: 10) {
+                    Text(entry.name)
+                        .font(.system(size: 11, design: .monospaced))
+                        .foregroundStyle(Theme.inkSecondary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                        .frame(width: 34, alignment: .leading)
+                    DotBar(value: entry.share, pitch: 4, dotSize: 2.6)
+                        .frame(height: 6)
+                        .accessibilityHidden(true)
+                    Text(formatTokenCount(entry.average))
+                        .font(.system(size: 12))
+                        .monospacedDigit()
+                        .foregroundStyle(Theme.inkSecondary)
+                        .frame(width: 52, alignment: .trailing)
                 }
+                .frame(minHeight: 20)
+                .contentShape(Rectangle())
+                .tooltip(entry.tooltip, title: entry.fullName, delay: .quick)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(entry.fullName)
+                .accessibilityValue(entry.tooltip)
             }
         }
     }

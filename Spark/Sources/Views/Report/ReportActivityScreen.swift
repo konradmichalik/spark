@@ -36,7 +36,7 @@ struct ReportActivityScreen: View {
                         }
                     }
                     if let shownProfile {
-                        WeekdaySection(profile: shownProfile, title: nil)
+                        WeekdaySection(profile: shownProfile)
                     } else {
                         ReportDayColumns(
                             series: series, scope: scope, period: period, height: ReportColumnLayout.detailHeight, interactive: true

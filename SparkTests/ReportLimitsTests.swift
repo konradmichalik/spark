@@ -9,10 +9,10 @@ final class ReportLimitsTests: XCTestCase {
         UsageSnapshot(timestamp: TestCalendar.date(day, time: time, calendar: calendar), sessionUtilization: session, weeklyUtilization: weekly)
     }
 
-    private func limits(_ snapshots: [UsageSnapshot], provider: ReportProvider = .claude) -> ReportLimits {
+    private func limits(_ snapshots: [UsageSnapshot], provider: ReportProvider = .claude, isCurrentPeriod: Bool = false) -> ReportLimits {
         ReportLimits.make(
-            provider: provider, snapshots: snapshots,
-            start: TestCalendar.date("2026-08-10"), end: TestCalendar.date("2026-08-13"), calendar: calendar, locale: locale
+            provider: provider, snapshots: snapshots, start: TestCalendar.date("2026-08-10"), end: TestCalendar.date("2026-08-13"),
+            isCurrentPeriod: isCurrentPeriod, calendar: calendar, locale: locale
         )
     }
 
@@ -70,6 +70,14 @@ final class ReportLimitsTests: XCTestCase {
         XCTAssertEqual(result.daysAtLimit, 0)
         XCTAssertEqual(result.summary, "No limit history for that period.")
         XCTAssertEqual(result.longSummary, "No limit history for that period.")
+    }
+
+    func testTheCurrentPeriodWithoutSnapshotsWaitsForData() {
+        let result = limits([], isCurrentPeriod: true)
+
+        XCTAssertFalse(result.hasHistory)
+        XCTAssertEqual(result.summary, "Not enough data yet.")
+        XCTAssertEqual(result.longSummary, "Not enough data yet.")
     }
 
     func testWithoutAWeeklyWindowOnlyTheSessionPartIsSaid() {

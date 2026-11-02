@@ -47,10 +47,11 @@ struct ReportBreakdownRowView: View {
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(row.name)
         .accessibilityValue(spokenValue)
+        .accessibilityHint(row.tooltip)
     }
 
     private var spokenValue: String {
-        let providers = isCompact ? [] : row.providers.map(\.usageProvider.segmentLabel)
+        let providers = isCompact ? [] : row.providers.map(\.name)
         let parts: [String?] = [
             providers.isEmpty ? nil : providers.joined(separator: " and "),
             isCompact || row.detail.isEmpty ? nil : row.detail,

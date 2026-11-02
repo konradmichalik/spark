@@ -15,6 +15,7 @@ struct ReportScopeBar: View {
     @AppStorage(PopoverHeader.providerTintKey) private var showProviderTint = true
     @Namespace private var selectionSpace
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @AccessibilityFocusState private var isTitleFocused: Bool
 
     var body: some View {
         if screen != .overview {
@@ -96,6 +97,9 @@ struct ReportScopeBar: View {
                 .font(.system(size: 12, weight: .semibold))
                 .foregroundStyle(Theme.ink)
                 .accessibilityAddTraits(.isHeader)
+                .accessibilityFocused($isTitleFocused)
+                // The breadcrumb appears with every push, so VoiceOver lands on the new screen's name.
+                .onAppear { isTitleFocused = true }
             Spacer()
         }
         .frame(height: 34)

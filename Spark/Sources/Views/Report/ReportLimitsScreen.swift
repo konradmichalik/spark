@@ -4,20 +4,16 @@ import SwiftUI
 /// dot columns under the solid `accent` weekly line, all on one day axis with one legend
 /// (docs/design/rules.md, "Windows", Limits).
 struct ReportLimitsScreen: View {
-    /// One per provider in the scope.
+    /// One per provider in the scope, Claude first.
     let limits: [ReportLimits]
     let period: ReportPeriod
-
-    private var ordered: [ReportLimits] {
-        limits.sorted { order($0.provider) < order($1.provider) }
-    }
 
     var body: some View {
         ReportCard {
             VStack(alignment: .leading, spacing: 16) {
                 legend
-                ForEach(ordered, id: \.provider) { ReportLimitRow(limits: $0) }
-                if let shared = ordered.first(where: \.hasHistory) {
+                ForEach(limits, id: \.provider) { ReportLimitRow(limits: $0) }
+                if let shared = limits.first(where: \.hasHistory) {
                     let dates = shared.days.map(\.day)
                     ReportDayAxisLabels(
                         labels: ReportDayAxis.labels(dates: dates, period: period, calendar: .current, locale: .current),
@@ -28,16 +24,9 @@ struct ReportLimitsScreen: View {
         }
     }
 
-    private func order(_ provider: ReportProvider) -> Int {
-        ReportProvider.allCases.firstIndex(of: provider) ?? 0
-    }
-
     private var legend: some View {
         HStack(spacing: 12) {
-            HStack(spacing: 5) {
-                Circle().fill(Theme.ink.opacity(0.45)).frame(width: 6, height: 6)
-                Text("Session, daily peak")
-            }
+            ReportLegendItem(colour: sessionPeakColour, text: "Session, daily peak")
             HStack(spacing: 5) {
                 Capsule().fill(Theme.accent).frame(width: 12, height: 2)
                 Text("Week")
@@ -49,11 +38,14 @@ struct ReportLimitsScreen: View {
     }
 }
 
+/// The grey of the session peak columns, the same for every provider, so it is not a provider's dot colour.
+private let sessionPeakColour = Theme.ink.opacity(0.45)
+
 /// One provider: logo, name and the long summary, then its graph or why there is none.
 private struct ReportLimitRow: View {
     let limits: ReportLimits
 
-    private var name: String { limits.provider.usageProvider.segmentLabel }
+    private var name: String { limits.provider.name }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -76,7 +68,7 @@ private struct ReportLimitRow: View {
             if limits.hasHistory {
                 graph
             } else {
-                DetailNote(text: ReportLimits.noHistoryText)
+                DetailNote(text: limits.longSummary)
             }
         }
     }
@@ -94,7 +86,7 @@ private struct ReportLimitRow: View {
                         let dot = DotColumnDot.path(
                             x: x, row: row, bottom: bottom, pitch: ReportColumnLayout.rowPitch, size: ReportColumnLayout.dotSize
                         )
-                        context.fill(dot, with: .color(Theme.ink.opacity(0.45)))
+                        context.fill(dot, with: .color(sessionPeakColour))
                     }
                 }
             }

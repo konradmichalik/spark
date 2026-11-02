@@ -128,7 +128,10 @@ final class ReportOverviewDaysTests: XCTestCase {
     }
 
     func testTheActivityCardSaysWhatItOpensAndItsFigure() {
-        XCTAssertEqual(ReportCardText.activity(series(["2026-08-10": 100, "2026-08-12": 50])), "Open Activity, 2 of 7 days active")
+        XCTAssertEqual(
+            ReportCardText.activity(series(["2026-08-10": 100, "2026-08-12": 50]), calendar: calendar, locale: locale),
+            "Open Activity, 2 of 7 days active \u{00B7} busiest Mon, Aug 10, 100 tokens"
+        )
     }
 }
 
@@ -139,7 +142,7 @@ final class ReportCardTextTests: XCTestCase {
     private func limits(_ provider: ReportProvider, _ snapshots: [UsageSnapshot]) -> ReportLimits {
         ReportLimits.make(
             provider: provider, snapshots: snapshots, start: TestCalendar.date("2026-08-10"), end: TestCalendar.date("2026-08-13"),
-            calendar: calendar, locale: locale
+            isCurrentPeriod: false, calendar: calendar, locale: locale
         )
     }
 

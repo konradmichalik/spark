@@ -19,8 +19,8 @@ enum ReportScreen: Hashable {
 /// What VoiceOver reads for the report's level 1 cards: the screen the card opens and its key
 /// figure, since the whole card is one button (docs/design/rules.md, "Accessibility").
 enum ReportCardText {
-    static func activity(_ series: ReportDaySeries) -> String {
-        "Open Activity, \(ReportDayText.activeDaysText(series))"
+    static func activity(_ series: ReportDaySeries, calendar: Calendar = .current, locale: Locale = .current) -> String {
+        "Open Activity, \(ReportDayText.overviewLine(series, calendar: calendar, locale: locale))"
     }
 
     static func limits(_ limits: [ReportLimits]) -> String {

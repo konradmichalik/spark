@@ -150,4 +150,10 @@ final class ReportDayTextTests: XCTestCase {
         XCTAssertEqual(ReportDayText.summary(idle, calendar: calendar, locale: locale), "No use in this period")
         XCTAssertEqual(ReportDayText.activeDaysUnit(series), "of 31 days")
     }
+
+    func testOneDaySoFarIsSingular() {
+        let series = ReportDaySeries(days: [], activeDays: 1, daysUpToToday: 1, longestStreak: 1, busiest: nil, dailyAverage: nil)
+
+        XCTAssertEqual(ReportDayText.activeDaysText(series), "1 of 1 day active")
+    }
 }

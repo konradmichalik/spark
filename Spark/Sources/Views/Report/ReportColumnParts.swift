@@ -103,7 +103,6 @@ private struct ReportWeekLineShape: Shape {
 struct ReportWeekLineView: View {
     /// One per day, percent, `nil` for a day without a weekly value.
     let values: [Double?]
-    var lineWidth: CGFloat = 2
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var drawn: CGFloat = 0
@@ -111,7 +110,7 @@ struct ReportWeekLineView: View {
     var body: some View {
         ReportWeekLineShape(segments: ReportWeekLine.segments(values), count: values.count)
             .trim(from: 0, to: reduceMotion ? 1 : drawn)
-            .stroke(Theme.accent, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round, lineJoin: .round))
+            .stroke(Theme.accent, style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
             .onAppear {
                 guard !reduceMotion else { return }
                 withAnimation(.easeOut(duration: ReportColumnMotion.lineDuration).delay(ReportColumnMotion.lineDelay)) {

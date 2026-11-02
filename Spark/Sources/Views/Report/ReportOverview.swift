@@ -28,6 +28,7 @@ struct ReportOverview: View {
                         .foregroundStyle(Theme.inkSecondary)
                         .lineLimit(1)
                         .truncationMode(.tail)
+                    if scope == .all { ReportProviderLegend() }
                 }
             }
             ReportCardButton(title: "Limits", label: ReportCardText.limits(limits)) { open(.limits) } content: {
@@ -49,7 +50,7 @@ struct ReportOverview: View {
         return ReportCardButton(title: tab.segmentLabel, label: ReportCardText.breakdown(tab, rows: rows)) {
             openBreakdown(tab)
         } content: {
-            ReportTopList(tab: tab, scope: scope, report: report, codex: codex)
+            ReportTopList(rows: rows, emptyText: ReportBreakdown.emptyText(tab, isCurrentPeriod: report.periodOffset == 0))
         }
     }
 }
@@ -65,7 +66,7 @@ struct ReportCardButton<Content: View>: View {
 
     var body: some View {
         Button(action: action) {
-            PaperCard {
+            ReportCard {
                 VStack(alignment: .leading, spacing: 10) {
                     HStack(spacing: 8) {
                         Text(title)
@@ -76,10 +77,10 @@ struct ReportCardButton<Content: View>: View {
                     }
                     content()
                 }
-                .padding(14)
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                .contentShape(Rectangle())
+                // Side by side, the shorter card stretches to the taller one.
+                .frame(maxHeight: .infinity, alignment: .top)
             }
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .accessibilityLabel(label)

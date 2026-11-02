@@ -210,7 +210,8 @@ private struct ReportData {
         series = ReportDaySeries.make(claude: claude, codex: codex?.dayTokens ?? [:], scope: scope, start: range.start, end: range.end)
         limits = ReportScoping.providers(scope).map { provider in
             ReportLimits.make(
-                provider: provider, snapshots: provider == .claude ? state.history : codexState.history, start: range.start, end: range.end
+                provider: provider, snapshots: provider == .claude ? state.history : codexState.history, start: range.start, end: range.end,
+                isCurrentPeriod: report.periodOffset == 0
             )
         }
     }

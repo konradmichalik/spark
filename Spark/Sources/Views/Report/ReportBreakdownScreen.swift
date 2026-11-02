@@ -29,6 +29,8 @@ struct ReportBreakdownScreen: View {
         }
         .onChange(of: tab) { isExpanded = false }
         .onChange(of: scope) { isExpanded = false }
+        // A new period brings new rows under the same tab and scope.
+        .onChange(of: rows.map(\.id)) { isExpanded = false }
     }
 
     private func list(_ rows: [ReportBreakdownRow]) -> some View {

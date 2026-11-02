@@ -155,7 +155,7 @@ struct ReportTotalsCard: View {
     }
 }
 
-/// All's tokens split into Claude (ink) and Codex (ink at 45 %) as one dot bar that fills from the
+/// All's tokens split into Claude (ink) and Codex (ink at 50 %) as one dot bar that fills from the
 /// left on appear, with name, tokens and share of each under it.
 struct ReportProviderSplit: View {
     let shares: [ReportProviderShare]
@@ -176,8 +176,7 @@ struct ReportProviderSplit: View {
 
     private func item(_ share: ReportProviderShare) -> some View {
         HStack(spacing: 5) {
-            Circle().fill(ReportSplitBar.colour(share.provider)).frame(width: 6, height: 6)
-            Text(share.provider.name)
+            ReportLegendItem(colour: share.provider.dotColour, text: share.provider.name)
                 .foregroundStyle(Theme.ink)
             Text("\(formatTokenCount(share.tokens)) \u{00B7} \(UsageFormat.percent(share.percent))")
                 .monospacedDigit()
@@ -197,10 +196,6 @@ private struct ReportSplitBar: View {
     private static let pitch: CGFloat = 4
     private static let dotSize: CGFloat = 2.6
 
-    static func colour(_ provider: ReportProvider) -> Color {
-        provider == .claude ? Theme.ink : Theme.ink.opacity(0.45)
-    }
-
     var body: some View {
         let value: Double = hasUse ? 100 : 0
         DotMotion(value: value, animates: true) { frame in
@@ -208,7 +203,7 @@ private struct ReportSplitBar: View {
                 let layout = DotBarLayout(count: DotBarLayout.count(width: size.width, pitch: Self.pitch), value: value)
                 let claudeDots = Int((Double(layout.dots.count) * claudePercent / 100).rounded())
                 for (position, dot) in frame.dots(of: layout).enumerated() {
-                    let colour = dot != .filled ? Theme.dotTrack : Self.colour(position < claudeDots ? .claude : .codex)
+                    let colour = dot != .filled ? Theme.dotTrack : (position < claudeDots ? ReportProvider.claude : .codex).dotColour
                     let centerX = Self.pitch * CGFloat(position) + Self.pitch / 2
                     let rect = CGRect(x: centerX - Self.dotSize / 2, y: size.height / 2 - Self.dotSize / 2, width: Self.dotSize, height: Self.dotSize)
                     context.fill(Path(ellipseIn: rect), with: .color(colour))

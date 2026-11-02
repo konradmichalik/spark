@@ -249,13 +249,13 @@ struct CodexSessionTotals: Equatable, Sendable {
 
 extension CodexReportData {
     /// `dayTokens` reaches back to the previous period; everything else comes from the shown period's scan.
-    init(dayTokens: [String: Int], shown stats: CodexSessionStats, sessionLimit: Int = 10) {
+    init(dayTokens: [String: Int], shown stats: CodexSessionStats) {
         self.init(
             dayTokens: dayTokens,
             modelTokens: stats.modelTokens,
             projectTokens: stats.projectTokens,
             sessionCount: stats.sessionCount,
-            topSessions: stats.topSessions(limit: sessionLimit)
+            topSessions: stats.topSessions(limit: ReportBreakdown.sessionLimit)
         )
     }
 }

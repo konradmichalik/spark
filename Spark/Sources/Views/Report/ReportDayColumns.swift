@@ -2,7 +2,7 @@ import SwiftUI
 
 /// The report's days as dot columns, one per day, scaled to the busiest day of the range, with
 /// the day labels under them (docs/design/rules.md, "Dot language", Day columns). In All,
-/// Claude's dots are ink and Codex's ink at 45 % on top; an idle day is one `dotTrack` dot and a
+/// Claude's dots are ink and Codex's ink at 50 % on top; an idle day is one `dotTrack` dot and a
 /// day still to come is not drawn.
 struct ReportDayColumns: View {
     let series: ReportDaySeries
@@ -26,9 +26,16 @@ struct ReportDayColumns: View {
             }
             .frame(height: height)
             .overlay { if interactive { hoverTargets(days) } }
-            .accessibilityElement(children: .ignore)
+            .accessibilityElement(children: interactive ? .contain : .ignore)
             .accessibilityLabel("Tokens per day")
             .accessibilityValue(ReportDayText.summary(series, calendar: calendar))
+            // The tooltips need a pointer, so on level 2 each drawn day is also its own element.
+            .accessibilityChildren {
+                ForEach(interactive ? days.filter { !$0.isFuture } : []) { day in
+                    Text(ReportDayText.title(day, calendar: calendar))
+                        .accessibilityValue(ReportDayText.body(day, scope: scope))
+                }
+            }
             ReportDayAxisLabels(
                 labels: ReportDayAxis.labels(dates: days.map(\.date), period: period, calendar: calendar, locale: .current),
                 count: days.count
@@ -46,7 +53,7 @@ struct ReportDayColumns: View {
         _ days: [ReportDay], stacks: [ReportColumnStack], frame: ReportColumnFrame, in context: inout GraphicsContext, size: CGSize
     ) {
         let bottom = size.height - ReportColumnLayout.dotSize / 2
-        let codexColour = scope == .all ? Theme.ink.opacity(0.45) : Theme.ink
+        let codexColour = scope == .all ? ReportProvider.codex.dotColour : Theme.ink
         for (index, day) in days.enumerated() where !day.isFuture {
             let x = ReportColumnLayout.centerX(index: index, count: days.count, width: size.width)
             let stack = stacks[index]
@@ -80,22 +87,35 @@ struct ReportDayColumns: View {
     }
 }
 
+extension ReportProvider {
+    /// A provider's dots where both share a graph: Claude ink, Codex ink at 50 %, which keeps 3:1
+    /// on `card` (docs/design/rules.md, "Dot language").
+    var dotColour: Color {
+        self == .claude ? Theme.ink : Theme.ink.opacity(0.5)
+    }
+}
+
 /// Which dots stand for which provider, under the columns in All.
 struct ReportProviderLegend: View {
     var body: some View {
         HStack(spacing: 12) {
-            item(Theme.ink, "Claude")
-            item(Theme.ink.opacity(0.45), "Codex")
+            ForEach(ReportProvider.allCases, id: \.self) { ReportLegendItem(colour: $0.dotColour, text: $0.name) }
         }
         .font(.system(size: 11))
         .foregroundStyle(Theme.inkSecondary)
         .accessibilityHidden(true)
     }
+}
 
-    private func item(_ colour: Color, _ name: String) -> some View {
+/// A 6 pt dot and the words it stands for, in a graph's legend.
+struct ReportLegendItem: View {
+    let colour: Color
+    let text: String
+
+    var body: some View {
         HStack(spacing: 5) {
             Circle().fill(colour).frame(width: 6, height: 6)
-            Text(name)
+            Text(text)
         }
     }
 }

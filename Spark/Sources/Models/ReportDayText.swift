@@ -34,6 +34,6 @@ enum ReportDayText {
 
     /// The words after the active days' number: "of 31 days".
     static func activeDaysUnit(_ series: ReportDaySeries) -> String {
-        "of \(series.daysUpToToday) days"
+        "of \(series.daysUpToToday) \(ActivityFigures.streakUnit(series.daysUpToToday))"
     }
 }

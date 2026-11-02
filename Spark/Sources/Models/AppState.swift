@@ -965,7 +965,7 @@ final class AppState: ObservableObject {
             let stats = await LiveStatsParser.parseStats(period: statsPeriodLabel, cutoffOverride: cutoff, upperCutoff: upperCutoff)
             // Every project of the period, so the All scope's merge with Codex sees each Claude share.
             let topProjects = stats.map { $0.topProjects(limit: $0.projectTotals.count) } ?? []
-            let topSessions = stats?.topSessions(limit: 10) ?? []
+            let topSessions = stats?.topSessions(limit: ReportBreakdown.sessionLimit) ?? []
             let sessionCount = stats?.sessionCount ?? 0
             let modelTotals = stats?.modelTotals ?? [:]
             let dayTokens = stats?.dayTokens ?? [:]
