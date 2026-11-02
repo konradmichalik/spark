@@ -965,6 +965,7 @@ final class AppState: ObservableObject {
             let stats = await LiveStatsParser.parseStats(period: statsPeriodLabel, cutoffOverride: cutoff, upperCutoff: upperCutoff)
             let topProjects = stats?.topProjects(limit: 20) ?? []
             let topSessions = stats?.topSessions(limit: 10) ?? []
+            let sessionCount = stats?.sessionCount ?? 0
             let modelTotals = stats?.modelTotals ?? [:]
             let dayTokens = stats?.dayTokens ?? [:]
             var costSummary: CostSummary?
@@ -985,6 +986,7 @@ final class AppState: ObservableObject {
                     modelTotals: modelTotals,
                     topProjects: topProjects,
                     topSessions: topSessions,
+                    sessionCount: sessionCount,
                     dayTokens: dayTokens,
                     costSummary: costSummary,
                     period: shownPeriod,

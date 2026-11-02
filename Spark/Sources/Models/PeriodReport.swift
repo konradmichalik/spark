@@ -35,6 +35,8 @@ struct PeriodReport {
     let modelTotals: [String: Int]
     let topProjects: [ProjectUsage]
     let topSessions: [SessionUsage]
+    /// Sessions with activity in the live scan's window, the same scan as `topSessions`.
+    let sessionCount: Int
     /// Claude's fresh tokens per day key over the calendar range, from the same live scan as the
     /// model split, so today is included before its rollup exists.
     let dayTokens: [String: Int]
@@ -94,6 +96,7 @@ struct PeriodReport {
         modelTotals: [String: Int] = [:],
         topProjects: [ProjectUsage] = [],
         topSessions: [SessionUsage] = [],
+        sessionCount: Int = 0,
         dayTokens: [String: Int] = [:],
         costSummary: CostSummary? = nil,
         period: ReportPeriod = .week,
@@ -125,6 +128,7 @@ struct PeriodReport {
             modelTotals: modelTotals,
             topProjects: topProjects,
             topSessions: topSessions,
+            sessionCount: sessionCount,
             dayTokens: dayTokens,
             costSummary: costSummary,
             period: period,
