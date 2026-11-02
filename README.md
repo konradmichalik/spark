@@ -34,7 +34,7 @@ Learn more at <a href="https://konradmichalik.github.io/spark/">konradmichalik.g
 - **Menu bar ring**: twelve dots that fill with usage, as a ring alone or with the provider logo in front
 - **Auto-connect** via Claude Code CLI credentials from macOS Keychain
 - **Data export** _(opt-in)_: write live usage state to a local JSON file for external consumers such as a Stream Deck plugin, enabled in **Settings → General**
-- **URL scheme**: `open spark://show` opens the popover, for tools that cannot click the menu bar
+- **URL scheme**: `open spark://show` opens the popover, for tools that cannot click the menu bar, and `?view=<id>` picks the view
 
 ## 🔥 Installation
 
