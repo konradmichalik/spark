@@ -32,4 +32,11 @@ final class SparkURLTests: XCTestCase {
         XCTAssertFalse(isShow("https://show"))
         XCTAssertFalse(isShow("sparkle://show"))
     }
+
+    func testInfoPlistRegistersTheScheme() throws {
+        let types = try XCTUnwrap(Bundle(for: AppDelegate.self).infoDictionary?["CFBundleURLTypes"] as? [[String: Any]])
+        let schemes = types.flatMap { $0["CFBundleURLSchemes"] as? [String] ?? [] }
+
+        XCTAssertTrue(schemes.contains(SparkURL.scheme))
+    }
 }
