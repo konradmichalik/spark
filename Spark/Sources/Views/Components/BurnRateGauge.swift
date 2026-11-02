@@ -61,16 +61,17 @@ struct BurnRateScale: View {
     }
 
     private var labels: some View {
-        let medianX = layout.medianPosition * Self.width
-        let p90X = layout.p90Position * Self.width
+        let width = Self.width
+        let medianX = layout.medianPosition * width
+        let p90X = layout.p90Position * width
         return ZStack(alignment: .topLeading) {
             label("Median \(formatTokenCount(layout.median))")
                 .alignmentGuide(.leading) { -max(0, medianX - $0.width) }
             label("P90 \(formatTokenCount(layout.p90))")
-                .alignmentGuide(.leading) { -min(p90X, Self.width - $0.width) }
+                .alignmentGuide(.leading) { -min(p90X, width - $0.width) }
                 .offset(y: layout.stacksLabels ? 12 : 0)
         }
-        .frame(width: Self.width, height: layout.stacksLabels ? 24 : 12, alignment: .topLeading)
+        .frame(width: width, height: layout.stacksLabels ? 24 : 12, alignment: .topLeading)
     }
 
     private func label(_ text: String) -> some View {
