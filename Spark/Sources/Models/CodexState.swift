@@ -26,6 +26,7 @@ final class CodexState: ObservableObject {
     /// When that scan ran. All time is not rescanned on polls, so its days must not grow past it.
     @Published private(set) var scannedAt: Date?
     @Published private(set) var burnRate: BurnRate?
+    @Published private(set) var burnRateBaseline = BurnRateBaseline.fallback
     @Published private(set) var volumeTokensByDay: [String: Int]?
     @Published private(set) var isLoadingVolumeHistory = false
     /// Written by `fetchStatus()` in `CodexState+Status.swift`, so the setter cannot be private.
@@ -60,6 +61,9 @@ final class CodexState: ObservableObject {
     private var burnRateTask: Task<Void, Never>?
     private var lastBurnRateRefresh: Date?
     private var burnRateRefreshID = UUID()
+    private var baselineTask: Task<Void, Never>?
+    private var lastBaselineRefresh: Date?
+    private var baselineRefreshID = UUID()
     private var volumeTask: Task<Void, Never>?
     private var lastVolumeRefresh: Date?
     private var volumeRefreshID = UUID()
@@ -93,8 +97,11 @@ final class CodexState: ObservableObject {
             stopPolling()
             statsTask?.cancel()
             burnRateTask?.cancel()
+            baselineTask?.cancel()
             volumeTask?.cancel()
             burnRateRefreshID = UUID()
+            baselineRefreshID = UUID()
+            lastBaselineRefresh = nil
             volumeRefreshID = UUID()
             lastBurnRateRefresh = nil
             lastVolumeRefresh = nil
@@ -103,6 +110,7 @@ final class CodexState: ObservableObject {
             lastStatusNotification = .operational
             stats = nil
             burnRate = nil
+            burnRateBaseline = .fallback
             volumeTokensByDay = nil
             isLoadingVolumeHistory = false
             lastError = nil
@@ -283,6 +291,32 @@ final class CodexState: ObservableObject {
                     scanID: refreshID, currentScanID: self.burnRateRefreshID, isActive: self.isActive
                 ) else { return }
                 self.burnRate = rate
+            }
+        }
+    }
+
+    /// The user's own median and 90th percentile over 14 days of rollout files, rebuilt every six
+    /// hours while the overview is visible.
+    func refreshBurnRateBaseline() {
+        guard isActive else { return }
+        let now = Date()
+        let interval = CodexBurnRateRefresh.baselineInterval
+        guard CodexBurnRateRefresh.shouldRefresh(lastRefresh: lastBaselineRefresh, now: now, interval: interval) else { return }
+        lastBaselineRefresh = now
+        let refreshID = UUID()
+        baselineRefreshID = refreshID
+        let cutoff = now.addingTimeInterval(-BurnRateBaseline.span)
+        let directories = rolloutDirectories
+        baselineTask?.cancel()
+        baselineTask = Task.detached {
+            let samples = CodexTurnSamples.parse(directories: directories, cutoff: cutoff, now: now)
+            guard !Task.isCancelled else { return }
+            let baseline = BurnRateBaseline.calculate(windowTokens: BurnRateBaseline.windowTokens(of: samples), now: now)
+            await MainActor.run {
+                guard CodexBurnRateRefresh.canPublish(
+                    scanID: refreshID, currentScanID: self.baselineRefreshID, isActive: self.isActive
+                ) else { return }
+                self.burnRateBaseline = baseline
             }
         }
     }
