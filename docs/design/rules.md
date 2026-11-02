@@ -99,6 +99,7 @@ HStack(alignment: .firstTextBaseline, spacing: 3) {
 | Hollow dots | Outline only, from current value to projected value | Session projection |
 | Time marker | 2pt vertical stroke, or a short radial tick outside a ring | Share of the window already elapsed, on the session and the week |
 | Day columns | One dot column per day, 6pt pitch, scaled to the busiest day of the period. In All, Claude's dots are ink and Codex's ink at 50 % stacked on top; a day without use is one 4pt `dotTrack` dot | Usage report, Activity |
+| Burn rate gauge | Ten 3.8pt dots at 6pt pitch under the burn rate value. The fill is the rate on a scale that ends a third past the 90th percentile, at least one dot. Two 2pt strokes, ink at 45 % and 10pt tall, mark the median and the 90th percentile of the active 15-minute windows of the last 14 days. Fill is `ink`, `warning` only in the high tier. The tier name and the share of windows below the rate live in the tooltip and the VoiceOver value, never as text on screen | Burn rate beside the session number, bars style |
 | Dot columns | Vertical stacks of dots | Session history in graphs. Three or more empty columns in a row collapse into one `dotTrack` band at most 6pt wide, and the week line breaks there. A week point alone between two gaps is drawn as a dot |
 
 - Filled dots are `ink`, or `warning` or `accent` by threshold. Unfilled dots are `dotTrack`.

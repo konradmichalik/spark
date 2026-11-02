@@ -25,7 +25,9 @@ final class CodexState: ObservableObject {
     @Published private(set) var scannedPeriod: StatsPeriod?
     /// When that scan ran. All time is not rescanned on polls, so its days must not grow past it.
     @Published private(set) var scannedAt: Date?
-    @Published private(set) var burnRate: BurnRate?
+    /// Written by the refreshes in `CodexState+BurnRate.swift`, so the setters cannot be private.
+    @Published var burnRate: BurnRate?
+    @Published var burnRateBaseline = BurnRateBaseline.fallback
     @Published private(set) var volumeTokensByDay: [String: Int]?
     @Published private(set) var isLoadingVolumeHistory = false
     /// Written by `fetchStatus()` in `CodexState+Status.swift`, so the setter cannot be private.
@@ -57,9 +59,12 @@ final class CodexState: ObservableObject {
     private var levelTracker = UsageLevelTracker()
     private var statsTask: Task<Void, Never>?
     private var lastStatsRefresh: Date?
-    private var burnRateTask: Task<Void, Never>?
-    private var lastBurnRateRefresh: Date?
-    private var burnRateRefreshID = UUID()
+    var burnRateTask: Task<Void, Never>?
+    var lastBurnRateRefresh: Date?
+    var burnRateRefreshID = UUID()
+    var baselineTask: Task<Void, Never>?
+    var lastBaselineRefresh: Date?
+    var baselineRefreshID = UUID()
     private var volumeTask: Task<Void, Never>?
     private var lastVolumeRefresh: Date?
     private var volumeRefreshID = UUID()
@@ -93,8 +98,11 @@ final class CodexState: ObservableObject {
             stopPolling()
             statsTask?.cancel()
             burnRateTask?.cancel()
+            baselineTask?.cancel()
             volumeTask?.cancel()
             burnRateRefreshID = UUID()
+            baselineRefreshID = UUID()
+            lastBaselineRefresh = nil
             volumeRefreshID = UUID()
             lastBurnRateRefresh = nil
             lastVolumeRefresh = nil
@@ -103,6 +111,7 @@ final class CodexState: ObservableObject {
             lastStatusNotification = .operational
             stats = nil
             burnRate = nil
+            burnRateBaseline = .fallback
             volumeTokensByDay = nil
             isLoadingVolumeHistory = false
             lastError = nil
@@ -262,32 +271,7 @@ final class CodexState: ObservableObject {
         }
     }
 
-    /// Recent local token activity is deliberately scanned independently from the statistics
-    /// period, and only while the overview that shows it is visible.
-    func refreshBurnRate() {
-        guard isActive else { return }
-        let now = Date()
-        guard CodexBurnRateRefresh.shouldRefresh(lastRefresh: lastBurnRateRefresh, now: now) else { return }
-        lastBurnRateRefresh = now
-        let refreshID = UUID()
-        burnRateRefreshID = refreshID
-        let cutoff = now.addingTimeInterval(-BurnRate.window)
-        let directories = rolloutDirectories
-        burnRateTask?.cancel()
-        burnRateTask = Task.detached {
-            let samples = CodexTurnSamples.parse(directories: directories, cutoff: cutoff, now: now)
-            guard !Task.isCancelled else { return }
-            let rate = BurnRate.calculate(turns: samples, now: now)
-            await MainActor.run {
-                guard CodexBurnRateRefresh.canPublish(
-                    scanID: refreshID, currentScanID: self.burnRateRefreshID, isActive: self.isActive
-                ) else { return }
-                self.burnRate = rate
-            }
-        }
-    }
-
-    private var rolloutDirectories: [URL] {
+    var rolloutDirectories: [URL] {
         [CodexHome.sessionsDirectory, CodexHome.current.appendingPathComponent("archived_sessions")]
     }
 

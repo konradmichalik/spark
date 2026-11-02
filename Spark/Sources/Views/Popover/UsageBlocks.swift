@@ -43,10 +43,14 @@ struct SessionReading {
     let tone: UsageTone
     var fact: ForecastFact?
     var tokensPerMinute: Int?
+    var burnRateBaseline = BurnRateBaseline.fallback
     var burnRateExplanation = BurnRateFact.explanation
 
+    var burnRate: BurnRate? { tokensPerMinute.map { BurnRate(tokensPerMinute: $0) } }
+
     var accessibilityValue: String {
-        let facts = [fact?.text, tokensPerMinute.map { "\(BurnRateFact.text($0)) tokens" }].compactMap { $0 }
+        let burn = burnRate.map { BurnRateFact.accessibilityValue($0, baseline: burnRateBaseline) }
+        let facts = [fact?.text, burn].compactMap { $0 }
         return HeadlineLimit.accessibilityValue(value, detail: facts.isEmpty ? nil : facts.joined(separator: ". "))
     }
 
@@ -97,10 +101,12 @@ struct SessionBlock: View {
                             icon: .trendingUp, label: "FORECAST", value: fact.text, tone: fact.tone, explanation: fact.explanation
                         )
                     }
-                    if let tokensPerMinute = reading.tokensPerMinute {
+                    if let burnRate = reading.burnRate {
                         SessionFact(
-                            icon: .flame, label: "BURN RATE", value: BurnRateFact.text(tokensPerMinute), tone: .normal,
-                            explanation: reading.burnRateExplanation
+                            icon: .flame, label: "BURN RATE", value: BurnRateFact.text(burnRate.tokensPerMinute), tone: .normal,
+                            explanation: BurnRateFact.tooltip(burnRate, baseline: reading.burnRateBaseline, explanation: reading.burnRateExplanation),
+                            gauge: (BurnRateGaugeLayout(tokensPerMinute: burnRate.tokensPerMinute, baseline: reading.burnRateBaseline),
+                                    burnRate.tier(in: reading.burnRateBaseline))
                         )
                     }
                 }
@@ -131,6 +137,7 @@ private struct SessionFact: View {
     let value: String
     let tone: UsageTone
     let explanation: String
+    var gauge: (layout: BurnRateGaugeLayout, tier: BurnRate.Tier)?
 
     var body: some View {
         VStack(alignment: alignment, spacing: 1) {
@@ -146,6 +153,10 @@ private struct SessionFact: View {
                 .foregroundStyle(tone.color)
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)
+            if let gauge {
+                BurnRateGauge(layout: gauge.layout, tier: gauge.tier)
+                    .padding(.top, 3)
+            }
         }
         .contentShape(Rectangle())
         .tooltip(explanation, title: label.capitalized, delay: .quick)
@@ -282,8 +293,8 @@ struct RingsBlock: View {
 
     private var ringTooltip: String {
         let tooltip = reading.barTooltip(reset: reading.resetIn.map { "in \($0)" })
-        guard let tokensPerMinute = reading.tokensPerMinute else { return tooltip }
-        return tooltip + "\nBurn rate: \(BurnRateFact.text(tokensPerMinute))"
+        guard let burnRate = reading.burnRate else { return tooltip }
+        return tooltip + "\nBurn rate: \(BurnRateFact.text(burnRate.tokensPerMinute)), \(burnRate.tier(in: reading.burnRateBaseline).label)"
     }
 }
 

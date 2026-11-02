@@ -31,6 +31,9 @@ actor LiveTranscriptCache {
     static let shared = LiveTranscriptCache()
 
     private var store: TranscriptCacheStore?
+    /// The baseline changes only when `aggregate` parsed something or the 15-minute window
+    /// turned over, so the active-sessions ticker does not merge and sort every file again.
+    private var cachedBaseline: (window: Int, baseline: BurnRateBaseline)?
 
     /// Whether the next `aggregate` has to parse every transcript: nothing cached yet, or the
     /// cache was dropped for a schema change. Keeps what it loaded, so `aggregate` doesn't load
@@ -70,6 +73,7 @@ actor LiveTranscriptCache {
         }
 
         store = current
+        cachedBaseline = nil
         TranscriptCachePersistence.save(current)
         return combined
     }
@@ -92,6 +96,16 @@ actor LiveTranscriptCache {
     func burnRate(now: Date = Date()) -> BurnRate? {
         let current = store ?? TranscriptCachePersistence.load()
         return BurnRate.calculate(files: Array(current.files.values), now: now)
+    }
+
+    func burnRateBaseline(now: Date = Date()) -> BurnRateBaseline {
+        let window = BurnRateBaseline.windowIndex(of: now)
+        if let cachedBaseline, cachedBaseline.window == window { return cachedBaseline.baseline }
+        let current = store ?? TranscriptCachePersistence.load()
+        let merged = current.files.values.reduce(into: [Int: Int]()) { $0.merge($1.windowTokens, uniquingKeysWith: +) }
+        let baseline = BurnRateBaseline.calculate(windowTokens: merged, now: now)
+        cachedBaseline = (window, baseline)
+        return baseline
     }
 
     /// Every calendar day strictly before today, merged across every cached file's day buckets —

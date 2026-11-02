@@ -5,9 +5,12 @@ enum CodexBurnRateRefresh {
     /// rate is only shown there, so a background poll would read rollout files for nobody.
     static let minimumInterval: TimeInterval = 60
 
-    static func shouldRefresh(lastRefresh: Date?, now: Date) -> Bool {
+    /// The 14-day baseline reads every recent rollout file in full, so it is rebuilt rarely.
+    static let baselineInterval: TimeInterval = 6 * 60 * 60
+
+    static func shouldRefresh(lastRefresh: Date?, now: Date, interval: TimeInterval = minimumInterval) -> Bool {
         guard let lastRefresh else { return true }
-        return now.timeIntervalSince(lastRefresh) >= minimumInterval
+        return now.timeIntervalSince(lastRefresh) >= interval
     }
 
     static func canPublish(scanID: UUID, currentScanID: UUID, isActive: Bool) -> Bool {
