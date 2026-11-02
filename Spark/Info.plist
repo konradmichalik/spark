@@ -9,9 +9,9 @@
     <key>CFBundleIdentifier</key>
     <string>com.konradmichalik.spark</string>
     <key>CFBundleVersion</key>
-    <string>29</string>
+    <string>$(CURRENT_PROJECT_VERSION)</string>
     <key>CFBundleShortVersionString</key>
-    <string>0.15.0</string>
+    <string>$(MARKETING_VERSION)</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>LSMinimumSystemVersion</key>
