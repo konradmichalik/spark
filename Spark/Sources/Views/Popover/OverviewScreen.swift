@@ -67,7 +67,10 @@ struct ClaudeOverview: View {
 
     var body: some View {
         if state.status.isIncident || state.claudeCodeStatus.isIncident {
-            StatusRow(state: state)
+            StatusRow(
+                status: worstStatus, headline: statusHeadline, detail: statusDetail, title: "Claude status",
+                url: "https://status.claude.com"
+            )
         }
         if state.needsReconnect {
             ReconnectPrompt(onReconnect: state.reconnect)
@@ -107,6 +110,19 @@ struct ClaudeOverview: View {
         )
     }
 
+    private var worstStatus: ClaudeServiceStatus {
+        state.status.isIncident ? state.status : state.claudeCodeStatus
+    }
+
+    private var statusHeadline: String {
+        let description = state.statusDescription.trimmingCharacters(in: .whitespaces)
+        return state.status.isIncident && !description.isEmpty ? description : "Claude Code: \(worstStatus.displayName)"
+    }
+
+    private var statusDetail: String {
+        "Claude Code: \(state.claudeCodeStatus.displayName)\nAPI: \(state.apiStatus.displayName)\nOpens status.claude.com"
+    }
+
     private var rows: [OverviewRow] {
         var rows: [OverviewRow] = []
         if state.showActiveSessions {
@@ -142,6 +158,12 @@ struct CodexOverview: View {
     let open: (PopoverScreen) -> Void
 
     var body: some View {
+        if codex.status.overall.isIncident {
+            StatusRow(
+                status: codex.status.overall, headline: codex.status.description, detail: codexStatusDetail,
+                title: "Codex status", url: "https://status.openai.com"
+            )
+        }
         if codex.needsSignIn {
             CodexSignInPrompt()
         }
@@ -203,6 +225,10 @@ struct CodexOverview: View {
             projection: projection, utilization: session.utilization, secondsToReset: secondsToReset,
             elapsedInWindow: secondsToReset.map { sessionWindow - $0 }
         )
+    }
+
+    private var codexStatusDetail: String {
+        (codex.status.components.map { "\($0.name): \($0.status.displayName)" } + ["Opens status.openai.com"]).joined(separator: "\n")
     }
 
     private var rows: [OverviewRow] {

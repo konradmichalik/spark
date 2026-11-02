@@ -3,15 +3,19 @@ import SwiftUI
 
 // MARK: - Status Row
 
-/// A Claude incident: the status in ink beside an ochre status icon, and a link to the status
-/// page when Claude Code itself is affected.
+/// A provider incident: the status in ink beside an ochre status icon, and a link to the
+/// provider's status page.
 struct StatusRow: View {
-    @ObservedObject var state: AppState
+    let status: ClaudeServiceStatus
+    let headline: String
+    let detail: String
+    let title: String
+    let url: StaticString
 
     var body: some View {
-        Link(destination: URL(staticString: "https://status.claude.com")) {
+        Link(destination: URL(staticString: url)) {
             HStack(spacing: 8) {
-                StatusDotView(dot: worst.dot, size: 14)
+                StatusDotView(dot: status.dot, size: 14)
                 Text(headline)
                     .font(.system(size: 12))
                     .foregroundStyle(Theme.ink)
@@ -27,22 +31,9 @@ struct StatusRow: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .tooltip(detail, title: "Claude status")
+        .tooltip(detail, title: title)
         .accessibilityLabel(headline)
-        .accessibilityHint("Opens status.claude.com")
-    }
-
-    private var worst: ClaudeServiceStatus {
-        state.status.isIncident ? state.status : state.claudeCodeStatus
-    }
-
-    private var headline: String {
-        let description = state.statusDescription.trimmingCharacters(in: .whitespaces)
-        return state.status.isIncident && !description.isEmpty ? description : "Claude Code: \(worst.displayName)"
-    }
-
-    private var detail: String {
-        "Claude Code: \(state.claudeCodeStatus.displayName)\nAPI: \(state.apiStatus.displayName)\nOpens status.claude.com"
+        .accessibilityHint("Opens \(URL(staticString: url).host ?? "the status page")")
     }
 }
 

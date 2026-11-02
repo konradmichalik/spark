@@ -28,6 +28,8 @@ final class CodexState: ObservableObject {
     @Published private(set) var burnRate: BurnRate?
     @Published private(set) var volumeTokensByDay: [String: Int]?
     @Published private(set) var isLoadingVolumeHistory = false
+    /// Written by `fetchStatus()` in `CodexState+Status.swift`, so the setter cannot be private.
+    @Published var status: CodexStatusSnapshot = .unavailable
 
     @AppStorage("codexEnabled") var isEnabled: Bool = true
     /// Separate from Claude's `statsPeriod`: switching one tab's period must not leave the
@@ -49,6 +51,7 @@ final class CodexState: ObservableObject {
     private static let volumeRefreshInterval: TimeInterval = 300
 
     private var pollCancellable: AnyCancellable?
+    var lastStatusNotification: ClaudeServiceStatus = .operational
     private var lastFetchTime: Date = .distantPast
     private var consecutiveRateLimits = 0
     private var levelTracker = UsageLevelTracker()
@@ -96,6 +99,8 @@ final class CodexState: ObservableObject {
             lastBurnRateRefresh = nil
             lastVolumeRefresh = nil
             usage = nil
+            status = .unavailable
+            lastStatusNotification = .operational
             stats = nil
             burnRate = nil
             volumeTokensByDay = nil
@@ -124,6 +129,7 @@ final class CodexState: ObservableObject {
         lastFetchTime = Date()
         isLoading = true
         defer { isLoading = false }
+        Task { await fetchStatus() }
 
         do {
             try await fetchAndApply(credentials)

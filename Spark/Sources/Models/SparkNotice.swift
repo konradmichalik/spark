@@ -96,6 +96,13 @@ enum NoticeWording {
         )
     }
 
+    static func codexStatus(_ statusName: String) -> SparkNotice {
+        SparkNotice(
+            title: "Codex · \(statusName)", body: "Codex is having problems right now. Details on status.openai.com.",
+            thread: UsageProvider.codex.rawValue, provider: .codex
+        )
+    }
+
     static func disconnected() -> SparkNotice {
         SparkNotice(
             title: "Claude · Disconnected", body: "Spark lost Keychain access. Open Spark and click Reconnect.",
