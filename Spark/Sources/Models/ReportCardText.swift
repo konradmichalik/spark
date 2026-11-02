@@ -1,5 +1,21 @@
 import Foundation
 
+/// The report's two levels: the overview, and the screens its cards open (docs/design/rules.md,
+/// "Navigation").
+enum ReportScreen: Hashable {
+    case overview, activity, limits, breakdown
+
+    /// The breadcrumb's last part on level 2.
+    var title: String {
+        switch self {
+        case .overview: ""
+        case .activity: "Activity"
+        case .limits: "Limits"
+        case .breakdown: "Breakdown"
+        }
+    }
+}
+
 /// What VoiceOver reads for the report's level 1 cards: the screen the card opens and its key
 /// figure, since the whole card is one button (docs/design/rules.md, "Accessibility").
 enum ReportCardText {

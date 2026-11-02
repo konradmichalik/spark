@@ -53,6 +53,8 @@ enum TokenWording {
         + "on every turn, so it is far larger and says little about what you used."
     static let codex = "Fresh tokens: input and output. Cached input is not counted: that is context Codex re-sends "
         + "on every turn, so it is far larger and says little about what you used."
+    static let both = "Fresh tokens: input and output, plus Claude's cache writes. Cache reads and cached input, the context "
+        + "re-sent on every turn, are not counted."
     static let volume = "Fresh tokens of the days in this range that have ended: input, output and cache writes. "
         + "Cache reads, the context re-read on every turn, are not counted."
 
