@@ -25,8 +25,9 @@ final class CodexState: ObservableObject {
     @Published private(set) var scannedPeriod: StatsPeriod?
     /// When that scan ran. All time is not rescanned on polls, so its days must not grow past it.
     @Published private(set) var scannedAt: Date?
-    @Published private(set) var burnRate: BurnRate?
-    @Published private(set) var burnRateBaseline = BurnRateBaseline.fallback
+    /// Written by the refreshes in `CodexState+BurnRate.swift`, so the setters cannot be private.
+    @Published var burnRate: BurnRate?
+    @Published var burnRateBaseline = BurnRateBaseline.fallback
     @Published private(set) var volumeTokensByDay: [String: Int]?
     @Published private(set) var isLoadingVolumeHistory = false
     /// Written by `fetchStatus()` in `CodexState+Status.swift`, so the setter cannot be private.
