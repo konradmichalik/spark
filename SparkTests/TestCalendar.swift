@@ -21,8 +21,3 @@ enum TestCalendar {
         return formatter.date(from: "\(day) \(time)") ?? Date(timeIntervalSince1970: 0)
     }
 }
-
-extension ActivityCell {
-    /// The cell's day key in the shared calendar, for assertions on which day a cell is.
-    var dayKey: String { TranscriptCache.dayKey(for: date, calendar: TestCalendar.berlin()) }
-}

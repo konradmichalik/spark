@@ -14,10 +14,12 @@ struct ReportVisibleHeightKey: PreferenceKey {
 
 /// Resizes the report window so the whole report shows without scrolling, keeping its top edge
 /// in place and never growing past the screen (`ReportLayout.windowHeight`). Runs when the
-/// content height changes, so a manual resize stands until the report changes.
+/// content height or the screen changes, so a manual resize stands until the report changes.
 struct ReportWindowFitter: NSViewRepresentable {
     let content: CGFloat
     let visible: CGFloat
+    /// Not read: a new screen only has to make SwiftUI call `updateNSView`.
+    let screen: ReportScreen
 
     private static let minimumHeight: CGFloat = 420
 

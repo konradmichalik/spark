@@ -1,5 +1,14 @@
 import SwiftUI
 
+/// One dot of a dot column, shared by the history graphs and the usage report's columns.
+enum DotColumnDot {
+    /// The dot in `row`, counted up from the dot centred on `bottom`.
+    static func path(x: CGFloat, row: Int, bottom: CGFloat, pitch: CGFloat, size: CGFloat) -> Path {
+        let centerY = bottom - CGFloat(row) * pitch
+        return Path(ellipseIn: CGRect(x: x - size / 2, y: centerY - size / 2, width: size, height: size))
+    }
+}
+
 /// History as dot columns: the session (or a day's volume) as grey columns, the week as a solid
 /// red line on the same scale. Runs without data collapse into one narrow band and the line
 /// breaks there (docs/design/rules.md, "Dot language"). Hovering marks the item under the
@@ -88,8 +97,8 @@ struct DotColumnsChart: View {
         let rows = Int((min(max(value, 0), 100) / 100 * Double(size.height / Self.rowPitch)).rounded())
         let colour = isHighlighted ? Theme.ink : Theme.ink.opacity(0.3)
         for row in 0..<max(rows, 1) {
-            let centerY = size.height - 3 - CGFloat(row) * Self.rowPitch
-            context.fill(Path(ellipseIn: CGRect(x: x - dot / 2, y: centerY - dot / 2, width: dot, height: dot)), with: .color(colour))
+            let path = DotColumnDot.path(x: x, row: row, bottom: size.height - 3, pitch: Self.rowPitch, size: dot)
+            context.fill(path, with: .color(colour))
         }
     }
 

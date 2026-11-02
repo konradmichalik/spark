@@ -14,6 +14,8 @@
   --hairline: #E4E4DF;
   --accent: #D71921;
   --warning: #B07800;
+  --dot-track: color-mix(in srgb, var(--ink) 15%, transparent);
+  --ink-codex: color-mix(in srgb, var(--ink) 50%, transparent);
   --stage: #DEDED9;
   --band: #111111;
   --band-ink: #F2F2EF;
@@ -36,6 +38,7 @@
     --hairline: #333331;
     --accent: #FF5A5F;
     --warning: #F0B429;
+    --dot-track: color-mix(in srgb, var(--ink) 16%, transparent);
     --stage: #242423;
     --band: #121211;
     --band-ink: #EDEDE8;
@@ -221,9 +224,17 @@ h1 { font-size: clamp(44px, 11vw, 76px); line-height: 1; letter-spacing: -0.04em
 .fcard p { margin: 0; }
 .fcard .micro { color: var(--ink-2); }
 .fcard p:not(.micro) { color: var(--ink-2); font-size: 15px; }
-.glyphs, .calwrap { margin-top: auto; padding-top: 18px; display: flex; gap: 16px; align-items: center; }
+.glyphs { margin-top: auto; padding-top: 18px; display: flex; gap: 16px; align-items: center; }
 .glyph { width: 40px; height: 40px; }
-.cal { width: 154px; height: auto; }
+.days { margin-top: auto; padding-top: 18px; }
+/* Fixed width keeps the 6px pitch of the app instead of stretching with the card. */
+.days svg { display: block; width: 186px; height: auto; fill: var(--ink); }
+.days .x { fill: var(--ink-codex); }
+.days .t { fill: var(--dot-track); }
+.days-key { display: flex; gap: 14px; margin-top: 10px; font-size: 12px; color: var(--ink-2); }
+.days-key span { display: inline-flex; align-items: center; gap: 6px; }
+.days-key i { width: 6px; height: 6px; border-radius: 50%; background: var(--ink); }
+.days-key i.x { background: var(--ink-codex); }
 .privacy { margin: 40px 0 0; max-width: 44em; color: var(--ink-2); border-top: 1px solid var(--hairline); padding-top: 24px; }
 .privacy b { color: var(--ink); }
 
@@ -252,4 +263,6 @@ h1 { font-size: clamp(44px, 11vw, 76px); line-height: 1; letter-spacing: -0.04em
 
 @media (forced-colors: active) {
   .tab.on, .card, .fcard, .stage, .cmd { border: 1px solid CanvasText; }
+  /* Forced colours drop backgrounds, which would leave the legend's swatches empty. */
+  .days-key i { forced-color-adjust: none; }
 }

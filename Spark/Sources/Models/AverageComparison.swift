@@ -44,6 +44,13 @@ enum AverageComparison {
             + "\(typicalDayWindow) days. Today is not over yet."
     }
 
+    /// The mean of a range's active days, what `dayNote` compares with. The caller decides which
+    /// days count as active. `nil` below `minimumActiveDays`.
+    static func dailyAverage(activeDayTokens tokens: [Int]) -> Int? {
+        guard tokens.count >= minimumActiveDays else { return nil }
+        return tokens.reduce(0, +) / tokens.count
+    }
+
     /// A finished day set against the daily average of its range: "1.4× the daily average" or
     /// "60% of the daily average". `nil` for a day close to the average.
     static func dayNote(tokens: Int, average: Int, locale: Locale = .current) -> String? {

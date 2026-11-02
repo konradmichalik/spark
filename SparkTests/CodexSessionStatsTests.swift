@@ -175,6 +175,81 @@ final class CodexSessionStatsTests: XCTestCase {
         XCTAssertEqual(stats.totalTokens, 0)
     }
 
+    func testEachRolloutFileIsOneSessionRankedByFreshTokens() throws {
+        _ = try writeRollout("rollout-2026-10-07T08-00-00-small.jsonl", lines: [
+            #"{"timestamp":"2026-10-07T08:00:00.000Z","type":"session_meta","payload":{"id":"small-id","cwd":"/work/alpha"}}"#,
+            turnContext("2026-10-07T08:00:01.000Z", model: "gpt-5.5", cwd: "/work/alpha"),
+            userMessage("2026-10-07T08:00:02.000Z"),
+            tokenCount("2026-10-07T08:10:00.000Z", input: 100, cached: 0, output: 10)
+        ])
+        _ = try writeRollout("rollout-2026-10-07T09-00-00-big.jsonl", lines: [
+            turnContext("2026-10-07T09:00:00.000Z", model: "gpt-5.5", cwd: "/work/beta"),
+            userMessage("2026-10-07T09:00:00.000Z"),
+            tokenCount("2026-10-07T09:30:00.000Z", input: 5000, cached: 4000, output: 500)
+        ])
+
+        let sessions = CodexSessionStats.parse(directories: [tempDir], since: nil).topSessions(limit: 10)
+
+        XCTAssertEqual(sessions.map(\.id), ["rollout-2026-10-07T09-00-00-big", "small-id"])
+        XCTAssertEqual(sessions.map(\.tokens), [1500, 110], "fresh input and output, never cached input")
+        XCTAssertEqual(sessions.map(\.displayName), ["beta", "alpha"])
+        XCTAssertEqual(sessions.first?.start, try date("2026-10-07T09:00:00Z"))
+        XCTAssertEqual(sessions.first?.duration, 1800)
+        XCTAssertEqual(sessions.last?.duration, 598)
+    }
+
+    func testSessionCoversOnlyItsActivityInsideTheWindow() throws {
+        _ = try writeRollout("rollout-resumed.jsonl", in: "2026/10/05", lines: [
+            turnContext("2026-10-05T10:00:00.000Z", model: "gpt-5.5", cwd: "/work/alpha"),
+            userMessage("2026-10-05T10:00:01.000Z"),
+            tokenCount("2026-10-05T10:00:10.000Z", input: 1000, cached: 0, output: 100),
+            userMessage("2026-10-07T09:00:00.000Z"),
+            tokenCount("2026-10-07T09:05:00.000Z", input: 1500, cached: 0, output: 300),
+            userMessage("2026-10-08T09:00:00.000Z"),
+            tokenCount("2026-10-08T09:05:00.000Z", input: 2500, cached: 0, output: 400)
+        ])
+
+        let stats = CodexSessionStats.parse(
+            directories: [tempDir], since: try date("2026-10-07T00:00:00Z"), until: try date("2026-10-08T00:00:00Z")
+        )
+        let session = try XCTUnwrap(stats.topSessions(limit: 10).first)
+
+        XCTAssertEqual(stats.sessionCount, 1)
+        XCTAssertEqual(session.tokens, 700)
+        XCTAssertEqual(session.start, try date("2026-10-07T09:00:00Z"))
+        XCTAssertEqual(session.duration, 300)
+    }
+
+    func testTopSessionsLeaveOutSessionsWithoutFreshTokensAndRespectTheLimit() throws {
+        _ = try writeRollout("rollout-chat.jsonl", lines: [userMessage("2026-10-07T08:00:00.000Z")])
+        for index in 1...3 {
+            _ = try writeRollout("rollout-\(index).jsonl", lines: [
+                tokenCount("2026-10-07T08:00:0\(index).000Z", input: index * 100, cached: 0, output: 0)
+            ])
+        }
+
+        let stats = CodexSessionStats.parse(directories: [tempDir], since: nil)
+
+        XCTAssertEqual(stats.sessionCount, 4, "a message alone is activity, so the session counts")
+        XCTAssertEqual(stats.topSessions(limit: 2).map(\.id), ["rollout-3", "rollout-2"])
+    }
+
+    func testReportDataTakesSessionsFromTheShownPeriod() throws {
+        _ = try writeRollout("rollout-r1.jsonl", lines: [
+            turnContext("2026-10-07T08:00:00.000Z", model: "gpt-5.5", cwd: "/work/alpha"),
+            tokenCount("2026-10-07T08:00:10.000Z", input: 100, cached: 0, output: 10)
+        ])
+        let shown = CodexSessionStats.parse(directories: [tempDir], since: nil)
+
+        let data = CodexReportData(dayTokens: ["2026-10-06": 50], shown: shown)
+
+        XCTAssertEqual(data.dayTokens, ["2026-10-06": 50])
+        XCTAssertEqual(data.modelTokens, ["gpt-5.5": 110])
+        XCTAssertEqual(data.projectTokens, ["/work/alpha": 110])
+        XCTAssertEqual(data.sessionCount, 1)
+        XCTAssertEqual(data.topSessions.map(\.id), ["rollout-r1"])
+    }
+
     func testMissingDirectoryYieldsEmptyStats() {
         let stats = CodexSessionStats.parse(directories: [tempDir.appendingPathComponent("missing")], since: nil)
 

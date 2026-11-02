@@ -9,10 +9,27 @@ final class ActivityFiguresTests: XCTestCase {
     }
 
     private func figures(_ start: String, _ end: String, today: String, _ tokens: [String: Int]) -> ActivityFigures {
-        let cells = ActivityCalendar.rows(
-            start: date(start), end: date(end), today: date(today), dayTokens: tokens, calendar: calendar
-        ).flatMap { $0 }
-        return ActivityFigures(cells: cells)
+        let todayStart = calendar.startOfDay(for: date(today))
+        let days = calendar.dayStarts(from: calendar.startOfDay(for: date(start)), through: calendar.startOfDay(for: date(end))).map { day in
+            let key = TranscriptCache.dayKey(for: day, calendar: calendar)
+            return ReportDay(
+                date: day, key: key, claude: tokens[key] ?? 0, codex: 0, isToday: day == todayStart, isFuture: day > todayStart, note: nil
+            )
+        }
+        return ActivityFigures(days: days)
+    }
+
+    func testDayStartsSurviveTheDSTChange() {
+        // Europe/Berlin leaves summer time on 2026-10-25 (a 25-hour day).
+        let days = calendar.dayStarts(from: calendar.startOfDay(for: date("2026-10-19")), through: calendar.startOfDay(for: date("2026-11-01")))
+        XCTAssertEqual(days.count, 14)
+        XCTAssertEqual(days.first.map { TranscriptCache.dayKey(for: $0, calendar: calendar) }, "2026-10-19")
+        XCTAssertEqual(days.last.map { TranscriptCache.dayKey(for: $0, calendar: calendar) }, "2026-11-01")
+        XCTAssertEqual(Set(days.map { TranscriptCache.dayKey(for: $0, calendar: calendar) }).count, 14)
+    }
+
+    func testStartAfterEndGivesNoDays() {
+        XCTAssertTrue(calendar.dayStarts(from: date("2026-10-02"), through: date("2026-10-01")).isEmpty)
     }
 
     func testEmptyData() {
@@ -37,18 +54,18 @@ final class ActivityFiguresTests: XCTestCase {
         XCTAssertEqual(result.totalDays, 2)
         XCTAssertEqual(result.activeDays, 2)
         XCTAssertEqual(result.longestStreak, 2)
-        XCTAssertEqual(result.busiest?.tokens, 1)
+        XCTAssertEqual(result.busiest?.total, 1)
     }
 
     func testTieGoesToTheMostRecentDay() {
         let result = figures("2026-10-05", "2026-10-11", today: "2026-10-11", ["2026-10-06": 50, "2026-10-09": 50, "2026-10-07": 10])
-        XCTAssertEqual(result.busiest?.dayKey, "2026-10-09")
+        XCTAssertEqual(result.busiest?.key, "2026-10-09")
     }
 
     func testSingleDay() {
         let result = figures("2026-10-05", "2026-10-05", today: "2026-10-05", ["2026-10-05": 7])
         XCTAssertEqual([result.activeDays, result.totalDays, result.longestStreak], [1, 1, 1])
-        XCTAssertEqual(result.busiest?.tokens, 7)
+        XCTAssertEqual(result.busiest?.total, 7)
     }
 
     func testScopeSumsFeedTheFigures() {
@@ -56,10 +73,10 @@ final class ActivityFiguresTests: XCTestCase {
         let codex = ["2026-10-06": 5, "2026-10-07": 40]
         let all = figures("2026-10-05", "2026-10-11", today: "2026-10-11", ReportScoping.dayTokens(.all, claude: claude, codex: codex))
         XCTAssertEqual(all.longestStreak, 3)
-        XCTAssertEqual(all.busiest?.dayKey, "2026-10-07")
+        XCTAssertEqual(all.busiest?.key, "2026-10-07")
         let claudeOnly = figures("2026-10-05", "2026-10-11", today: "2026-10-11", ReportScoping.dayTokens(.claude, claude: claude, codex: codex))
         XCTAssertEqual(claudeOnly.activeDays, 2)
-        XCTAssertEqual(claudeOnly.busiest?.dayKey, "2026-10-06")
+        XCTAssertEqual(claudeOnly.busiest?.key, "2026-10-06")
     }
 
     func testWording() {

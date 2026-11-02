@@ -125,9 +125,7 @@ enum VolumeHover {
     /// How the day stands against the range's daily average, once the range has enough days of
     /// use for an average to mean anything.
     private static func comparison(of day: VolumeDay, in days: [VolumeDay], locale: Locale) -> String? {
-        let active = days.filter { !$0.isEmpty }
-        guard active.count >= AverageComparison.minimumActiveDays else { return nil }
-        let average = active.reduce(0) { $0 + $1.tokens } / active.count
+        guard let average = AverageComparison.dailyAverage(activeDayTokens: days.filter { !$0.isEmpty }.map(\.tokens)) else { return nil }
         return AverageComparison.dayNote(tokens: day.tokens, average: average, locale: locale)
     }
 }

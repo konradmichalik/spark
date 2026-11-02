@@ -140,7 +140,7 @@ extension View {
 }
 
 /// Hands an animated value to its content frame by frame, so a `Canvas` can draw it.
-private struct AnimatedValue<Content: View>: View, Animatable {
+struct AnimatedValue<Content: View>: View, Animatable {
     var value: Double
     let content: (Double) -> Content
 

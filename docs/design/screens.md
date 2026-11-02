@@ -2,7 +2,7 @@
 
 The reference designs for every Spark screen. They live on a design canvas: https://claude.ai/artifact/8MahAu9PcXKj4cbymZ6YZh. The canvas is private to its owner until it is shared from its Share menu.
 
-Use the rows labelled **A3**. The rows A, B, C and A2 above them are earlier explorations and are not the target.
+Use the rows labelled **A3**, and **A4** for the usage report. The rows A, B, C and A2 above them are earlier explorations and are not the target. Board 11 in A3 shows the earlier report and is replaced by the A4 boards.
 
 The mockups use German copy. The app is English, so translate labels instead of copying them. Values in the mockups are examples.
 
@@ -30,11 +30,24 @@ The rules behind these screens are in [rules.md](rules.md). The previews are exp
 | --- | --- | --- | --- |
 | 10 | Settings, Display | Bars or rings as preview cards, popover content toggles | <a href="screens/10-settings-display.png"><img src="screens/10-settings-display.png" width="200" alt="Board 10"></a> |
 | 10b | Settings, Connections | One card per provider, long-lived token disclosure, signed-out Codex | <a href="screens/10b-settings-connections.png"><img src="screens/10b-settings-connections.png" width="200" alt="Board 10b"></a> |
-| 11 | Usage report | Doto totals, pace graph, by model, top projects | <a href="screens/11-usage-report.png"><img src="screens/11-usage-report.png" width="200" alt="Board 11"></a> |
+| 11 | Usage report (earlier version, replaced by 16) | Doto totals, pace graph, by model, top projects | <a href="screens/11-usage-report.png"><img src="screens/11-usage-report.png" width="200" alt="Board 11"></a> |
 | 12 | Menu bar and tooltip | Glyph in a light and a dark menu bar, all glyph variants and states, tooltip style | <a href="screens/12-menu-bar.png"><img src="screens/12-menu-bar.png" width="200" alt="Board 12"></a> |
 | 13 | Motion | Every animation with its real duration. The preview is a still, the canvas plays them | <a href="screens/13-motion.png"><img src="screens/13-motion.png" width="200" alt="Board 13"></a> |
 | 14 | Notifications | Title and body wording, ring attachment per state, threads | <a href="screens/14-notifications.png"><img src="screens/14-notifications.png" width="200" alt="Board 14"></a> |
 | 15 | Landing page | `site/` layout, fluid down to phone width | <a href="screens/15-landing-page.png"><img src="screens/15-landing-page.png" width="200" alt="Board 15"></a> |
+
+## Usage report
+
+The A4 boards are interactive: in Play, the provider filter, Week and Month, the cards and the Breakdown segments work, and the motion runs. In the mockups "Verlauf" is Activity and "Aufteilung" is Breakdown.
+
+| Board | Screen | What it settles |
+| --- | --- | --- |
+| 16 | Level 1, month, All | Totals with provider split, Activity, Limits, Models and Projects as cards that open level 2 |
+| 16b, 16c | Level 1, Claude and Codex | Same cards in the same places; API cost without a value for Codex |
+| 16d | Level 1, week | Seven wide day columns, comparison with the week before |
+| 16e | Activity | Day columns with tooltip, By weekday, three tiles |
+| 16f | Limits | Session peaks and weekly line per provider on one day axis |
+| 16g | Breakdown | Models, Projects, Top sessions, provider logos in All, "Show N more" |
 
 ## Building blocks
 

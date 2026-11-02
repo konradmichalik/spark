@@ -21,12 +21,17 @@ struct PaperSegments<T: SegmentLabeled>: View {
     /// What VoiceOver reads for a segment whose label is an abbreviation, such as "7D".
     var spokenLabel: (T) -> String = { $0.segmentLabel }
 
+    @Namespace private var selectionSpace
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     var body: some View {
         HStack(spacing: style == .trough ? 2 : 3) {
             ForEach(options, id: \.self) { option in
                 segment(option)
             }
         }
+        // The selected background slides to the new segment (docs/design/rules.md, "Motion": Tabs).
+        .animation(reduceMotion ? nil : .easeOut(duration: 0.2), value: selection)
         .padding(style == .trough ? 2 : 0)
         .background {
             if style == .trough {
@@ -50,7 +55,7 @@ struct PaperSegments<T: SegmentLabeled>: View {
                 .padding(.horizontal, style == .chips ? 6 : 10)
                 .frame(maxWidth: fillsWidth ? .infinity : nil, minHeight: style == .chips ? 24 : 26)
                 .background {
-                    if isSelected { selectedBackground }
+                    if isSelected { selectedBackground.matchedGeometryEffect(id: "selection", in: selectionSpace) }
                 }
                 .contentShape(Rectangle())
         }

@@ -1,10 +1,7 @@
 import Foundation
 
-/// The words and numbers of the usage report window (board 11).
+/// The words and numbers of the usage report window.
 enum ReportText {
-    /// Entries a report list shows before "Show N more".
-    static let listLimit = 3
-
     /// "October 2026", or "5 Oct – 11 Oct" for a week.
     static func periodTitle(
         _ period: ReportPeriod, start: Date, end: Date, locale: Locale = .current, timeZone: TimeZone = .current
@@ -18,25 +15,38 @@ enum ReportText {
         }
     }
 
-    /// The micro label over the change tile: the previous week, the previous month by name, or
-    /// the days of it a half-finished month is compared with (`previousEnd`).
-    static func comparisonLabel(
-        _ period: ReportPeriod, previousStart: Date, previousEnd: Date? = nil, locale: Locale = .current, timeZone: TimeZone = .current
-    ) -> String {
-        guard period == .month else { return "VS LAST WEEK" }
-        let text = { (template: String, date: Date) in format(date, template: template, locale: locale, timeZone: timeZone) }
-        guard let previousEnd else { return "VS \(text("MMMM", previousStart).uppercased(with: locale))" }
-        let first = text("d", previousStart)
-        let last = text("d", previousEnd)
-        let days = first == last ? first : "\(first)\u{2013}\(last)"
-        return "VS \(days) \(text("MMM", previousStart).uppercased(with: locale))"
-    }
-
-    /// The change against the previous period, signed and rounded, the unit apart for Doto.
-    static func trend(_ percent: Double?) -> NumberParts? {
+    /// The line under Tokens: "+9% vs. September", "+4% vs. 1–14 Oct" for a month still running,
+    /// "-6% vs. last week". Neutral, the words carry it (docs/design/rules.md, "Averages"). `nil`
+    /// without earlier use to compare with.
+    static func comparison(
+        _ percent: Double?, period: ReportPeriod, previousStart: Date, previousEnd: Date?,
+        locale: Locale = .current, timeZone: TimeZone = .current
+    ) -> String? {
         guard let percent, percent.isFinite else { return nil }
         let rounded = Int(percent.rounded())
-        return NumberParts(number: rounded > 0 ? "+\(rounded)" : "\(rounded)", unit: "%")
+        let change = (rounded > 0 ? "+" : rounded < 0 ? "-" : "") + UsageFormat.percent(Double(abs(rounded)), locale: locale)
+        return "\(change) vs. \(comparisonTarget(period, previousStart: previousStart, previousEnd: previousEnd, locale: locale, timeZone: timeZone))"
+    }
+
+    private static func comparisonTarget(
+        _ period: ReportPeriod, previousStart: Date, previousEnd: Date?, locale: Locale, timeZone: TimeZone
+    ) -> String {
+        guard period == .month else { return "last week" }
+        let text = { (template: String, date: Date) in format(date, template: template, locale: locale, timeZone: timeZone) }
+        guard let previousEnd else { return text("MMMM", previousStart) }
+        let first = text("d", previousStart)
+        let last = text("d", previousEnd)
+        return "\(first == last ? first : "\(first)\u{2013}\(last)") \(text("MMM", previousStart))"
+    }
+
+    /// The comparison's tooltip. `partialDays` is set while a running month is compared with the
+    /// first days of the month before.
+    static func previousTokens(_ tokens: Int, period: ReportPeriod, partialDays: Int?) -> String {
+        let amount = "\(formatTokenCount(tokens)) tokens"
+        if let partialDays {
+            return "\(amount) in the first \(partialDays) \(partialDays == 1 ? "day" : "days") of the month before"
+        }
+        return "\(amount) the \(period == .month ? "month" : "week") before"
     }
 
     /// The line under the totals. With a single active day it would repeat the total, so it waits
@@ -48,31 +58,5 @@ enum ReportText {
 
     static func format(_ date: Date, template: String, locale: Locale, timeZone: TimeZone) -> String {
         HistoryAxis.formatter(locale: locale, timeZone: timeZone, template: template).string(from: date)
-    }
-}
-
-/// The pace graph of the report as dot columns: one column per day with the day's peak session,
-/// the week's peak as the line (docs/design/rules.md, "Dot language").
-enum PaceColumns {
-    static func make(_ days: [PaceDay]) -> [HistoryColumn] {
-        days.map { HistoryColumn(session: $0.sessionUtilization, weekly: $0.weeklyUtilization, slotStart: $0.day) }
-    }
-
-    static func hover(
-        _ item: HistoryItem, in days: [PaceDay], locale: Locale = .current, timeZone: TimeZone = .current
-    ) -> (title: String, body: String)? {
-        let dayName = { ReportText.format($0, template: "EEEdMMM", locale: locale, timeZone: timeZone) }
-        switch item {
-        case .column(let index):
-            guard let day = days[safe: index], day.hasData else { return nil }
-            let lines = [
-                day.sessionUtilization.map { "Session peak \(UsageFormat.percent($0, locale: locale))" },
-                day.weeklyUtilization.map { "Week \(UsageFormat.percent($0, locale: locale))" }
-            ]
-            return (dayName(day.day), lines.compactMap { $0 }.joined(separator: "\n"))
-        case .gap(let range):
-            guard let first = days[safe: range.lowerBound], let last = days[safe: range.upperBound - 1] else { return nil }
-            return ("\(dayName(first.day)) \u{2013} \(dayName(last.day))", HistoryLayout.noDataText)
-        }
     }
 }

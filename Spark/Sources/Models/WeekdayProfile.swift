@@ -29,7 +29,7 @@ struct WeekdayProfile: Equatable {
     ) -> WeekdayProfile? {
         var sums = [Int: Int]()
         var counts = [Int: Int]()
-        for day in ActivityCalendar.daysBetween(calendar.startOfDay(for: start), calendar.startOfDay(for: end), calendar: calendar) {
+        for day in calendar.dayStarts(from: calendar.startOfDay(for: start), through: calendar.startOfDay(for: end)) {
             let weekday = calendar.component(.weekday, from: day)
             sums[weekday, default: 0] += dayTokens[TranscriptCache.dayKey(for: day, calendar: calendar)] ?? 0
             counts[weekday, default: 0] += 1

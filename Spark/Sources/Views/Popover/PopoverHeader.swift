@@ -160,16 +160,16 @@ struct PopoverHeader: View {
         }
     }
 
-    static func logo(for provider: UsageProvider) -> some View {
+    static func logo(for provider: UsageProvider, size: CGFloat = 13) -> some View {
         Group {
             switch provider {
             case .claude:
                 ClaudeLogoShape().fill(Theme.claudeLogo)
             case .codex:
-                TablerIconView(.brandOpenai, size: 13, color: Theme.ink)
+                TablerIconView(.brandOpenai, size: size, color: Theme.ink)
             }
         }
-        .frame(width: 13, height: 13)
+        .frame(width: size, height: size)
         .accessibilityHidden(true)
     }
 }

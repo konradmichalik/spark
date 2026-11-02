@@ -164,7 +164,7 @@ struct LiveStats: Sendable {
     }
 }
 
-struct SessionUsage: Identifiable, Sendable {
+struct SessionUsage: Identifiable, Equatable, Sendable {
     /// The session ID, also the key into `CostSummary.bySession`.
     let id: String
     let displayName: String
