@@ -48,7 +48,13 @@ struct MenuBarView: View {
         .fixedSize(horizontal: false, vertical: true)
         .background(Theme.paper)
         .background(WindowResizer())
-        .onAppear { state.startActiveSessionTicker() }
+        .onAppear {
+            state.startActiveSessionTicker()
+            applyRequestedView()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: SparkURL.viewRequested)) { note in
+            if let id = note.object as? String { show(view: id) }
+        }
         .onDisappear {
             state.stopActiveSessionTicker()
             // Reopening the popover always starts on the overview.
@@ -84,6 +90,19 @@ struct MenuBarView: View {
                 showProjection: state.showProjection
             ) { screen = $0 }
         }
+    }
+
+    /// A `spark://show?view=<id>` request waiting from before the popover opened is consumed once.
+    private func applyRequestedView() {
+        let defaults = UserDefaults.standard
+        guard let id = defaults.string(forKey: SparkURL.pendingViewKey) else { return }
+        defaults.removeObject(forKey: SparkURL.pendingViewKey)
+        show(view: id)
+    }
+
+    /// The Codex tab has no such views, so there the request is dropped and the screen stays as it is.
+    private func show(view id: String) {
+        if provider == .claude { screen = SparkURL.screen(forView: id) }
     }
 
     /// Switching providers returns to the overview, so a detail screen never shows one
