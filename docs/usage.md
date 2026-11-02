@@ -78,4 +78,4 @@ With Codex signed in, a **Provider** filter (All, Claude, Codex) under the heade
 
 ## URL scheme
 
-`open spark://show` opens the popover, for tools that cannot click the menu bar, such as a Stream Deck button. A popover that is already open stays open. `open "spark://show?view=<id>"` also picks the view, using the ids of `views[]` in the data export: `active` opens the active sessions, `session`, `week` and `today` open the overview. A missing or unknown id opens the overview, and the Codex tab ignores it. Any other `spark://` URL is ignored.
+`open spark://show` opens the popover, for tools that cannot click the menu bar, such as a Stream Deck button. A popover that is already open stays open. `open "spark://show?view=<id>"` also picks the view, using the ids of `views[]` in the data export: `active` opens the active sessions, `session`, `week` and `today` open the overview. A missing or unknown id opens the overview when the popover was closed, while an open popover stays on its current screen. The Codex tab ignores the id. Any other `spark://` URL is ignored.
