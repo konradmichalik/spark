@@ -40,6 +40,11 @@ class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDele
         completionHandler()
     }
 
+    /// `spark://show` opens the popover, for tools that cannot click the menu bar, such as a Stream Deck.
+    func application(_ application: NSApplication, open urls: [URL]) {
+        if urls.contains(where: SparkURL.isShowRequest) { Self.openPopover() }
+    }
+
     /// The menu bar extra has no API to open its window, so this clicks its status item button.
     /// A click toggles, so an already open popover (button highlighted) is left alone.
     private static func openPopover() {
