@@ -26,6 +26,8 @@ struct CodexSessionStats: Equatable, Sendable {
     var dayTokens: [String: Int] = [:]
     /// Rollout files found at all, regardless of period. Zero means Codex never ran locally.
     var fileCount = 0
+    /// Per session id, only sessions with activity in the period.
+    var sessions: [String: CodexSessionTotals] = [:]
 
     var totalTokens: Int { inputTokens + cachedInputTokens + outputTokens }
 
@@ -35,6 +37,23 @@ struct CodexSessionStats: Equatable, Sendable {
 
     /// Days with fresh tokens, the divisor of "per active day" averages.
     var activeDayCount: Int { dayTokens.values.filter { $0 > 0 }.count }
+
+    /// Top sessions by fresh tokens, shaped like Claude's so the report lists both the same way.
+    func topSessions(limit: Int) -> [SessionUsage] {
+        sessions
+            .filter { $0.value.tokens > 0 }
+            .sorted { $0.value.tokens != $1.value.tokens ? $0.value.tokens > $1.value.tokens : $0.key < $1.key }
+            .prefix(limit)
+            .map { id, session in
+                SessionUsage(
+                    id: id,
+                    displayName: ProjectFamily.displayName(forKey: id, cwd: session.cwd),
+                    tokens: session.tokens,
+                    start: session.first,
+                    duration: session.duration
+                )
+            }
+    }
 
     /// `until` bounds a past period, so it does not also pick up what came after it.
     static func parse(directories: [URL], since: Date?, until: Date? = nil) -> CodexSessionStats {
@@ -46,15 +65,17 @@ struct CodexSessionStats: Equatable, Sendable {
             // A file untouched since the cutoff cannot hold activity inside the period.
             if let since, let modified = modificationDate(of: file), modified < since { continue }
             guard let content = try? String(contentsOf: file, encoding: .utf8) else { continue }
-            result.add(parseFile(content: content, since: since, until: until))
+            let fileStem = file.deletingPathExtension().lastPathComponent
+            result.add(parseFile(content: content, since: since, until: until, fileStem: fileStem))
         }
         return result
     }
 
-    static func parseFile(content: String, since: Date?, until: Date? = nil) -> CodexSessionStats {
+    /// `fileStem` names the session when the file carries no `session_meta` id.
+    static func parseFile(content: String, since: Date?, until: Date? = nil, fileStem: String = "") -> CodexSessionStats {
         var accumulator = RolloutAccumulator(since: since, until: until)
         content.enumerateLines { line, _ in accumulator.consume(line) }
-        return accumulator.stats
+        return accumulator.finish(fileStem: fileStem)
     }
 
     private mutating func add(_ other: CodexSessionStats) {
@@ -69,6 +90,7 @@ struct CodexSessionStats: Equatable, Sendable {
         }
         projectTokens.merge(other.projectTokens, uniquingKeysWith: +)
         dayTokens.merge(other.dayTokens, uniquingKeysWith: +)
+        sessions.merge(other.sessions) { $0.merged(with: $1) }
     }
 
     static func rolloutFiles(in directory: URL) -> [URL] {
@@ -108,6 +130,8 @@ private struct RolloutAccumulator {
     private var model: String?
     private var projectPath: String?
     private var hasActivity = false
+    private var sessionId: String?
+    private var session = CodexSessionTotals()
 
     init(since: Date?, until: Date?) {
         self.since = since
@@ -117,26 +141,39 @@ private struct RolloutAccumulator {
     mutating func consume(_ line: String) {
         // Most lines are model output or tool calls. Skip them before paying for JSON decoding.
         guard line.contains("\"token_count\"") || line.contains("\"user_message\"") || line.contains("\"turn_context\"")
+            || line.contains("\"session_meta\"")
         else { return }
         guard let entry = try? decoder.decode(RolloutLine.self, from: Data(line.utf8)) else { return }
 
         switch (entry.type, entry.payload?.type) {
+        case ("session_meta", _):
+            // Should a file carry more than one meta, the first is the file's own.
+            sessionId = sessionId ?? entry.payload?.id
         case ("turn_context", _):
             model = entry.payload?.model ?? model
             projectPath = entry.payload?.cwd ?? projectPath
         case ("event_msg", "user_message"):
-            guard isInPeriod(entry.timestamp) else { return }
+            let date = entry.timestamp.flatMap(CodexSessionStats.parseDate)
+            guard isInPeriod(date) else { return }
             stats.messageCount += 1
-            markActive()
+            markActive(at: date)
         case ("event_msg", "token_count"):
             guard let total = entry.payload?.info?.totalTokenUsage else { return }
-            countDelta(to: total, at: entry.timestamp, inPeriod: isInPeriod(entry.timestamp))
+            let date = entry.timestamp.flatMap(CodexSessionStats.parseDate)
+            countDelta(to: total, at: date, inPeriod: isInPeriod(date))
         default:
             return
         }
     }
 
-    private mutating func countDelta(to total: RolloutTokenUsage, at timestamp: String?, inPeriod: Bool) {
+    func finish(fileStem: String) -> CodexSessionStats {
+        guard hasActivity else { return stats }
+        var result = stats
+        result.sessions[sessionId ?? fileStem] = session
+        return result
+    }
+
+    private mutating func countDelta(to total: RolloutTokenUsage, at date: Date?, inPeriod: Bool) {
         // A lower total means a fresh counter (e.g. after a fork): count it from zero.
         if total.input < previous.input || total.output < previous.output {
             previous = RolloutTokenUsage()
@@ -158,25 +195,68 @@ private struct RolloutAccumulator {
         if let projectPath {
             stats.projectTokens[projectPath, default: 0] += fresh + output
         }
-        if let date = timestamp.flatMap(CodexSessionStats.parseDate) {
+        if let date {
             stats.dayTokens[TranscriptCache.dayKey(for: date), default: 0] += fresh + output
         }
-        markActive()
+        session.tokens += fresh + output
+        markActive(at: date)
     }
 
-    private mutating func markActive() {
+    private mutating func markActive(at date: Date?) {
+        session.cwd = projectPath ?? session.cwd
+        if let date {
+            session.first = min(session.first ?? date, date)
+            session.last = max(session.last ?? date, date)
+        }
         guard !hasActivity else { return }
         hasActivity = true
         stats.sessionCount = 1
     }
 
     /// Lines without a parsable timestamp only count when there is no cutoff.
-    private func isInPeriod(_ timestamp: String?) -> Bool {
+    private func isInPeriod(_ date: Date?) -> Bool {
         guard since != nil || until != nil else { return true }
-        guard let date = timestamp.flatMap(CodexSessionStats.parseDate) else { return false }
+        guard let date else { return false }
         if let since, date < since { return false }
         if let until, date >= until { return false }
         return true
+    }
+}
+
+/// One Codex session's activity inside the parsed period.
+struct CodexSessionTotals: Equatable, Sendable {
+    /// The working directory of the session's last activity.
+    var cwd: String?
+    var first: Date?
+    var last: Date?
+    /// Fresh input and output, like `CodexSessionStats.realTokens`.
+    var tokens = 0
+
+    var duration: TimeInterval? {
+        guard let first, let last else { return nil }
+        return last.timeIntervalSince(first)
+    }
+
+    func merged(with other: CodexSessionTotals) -> CodexSessionTotals {
+        CodexSessionTotals(
+            cwd: other.cwd ?? cwd,
+            first: [first, other.first].compactMap { $0 }.min(),
+            last: [last, other.last].compactMap { $0 }.max(),
+            tokens: tokens + other.tokens
+        )
+    }
+}
+
+extension CodexReportData {
+    /// `dayTokens` reaches back to the previous period; everything else comes from the shown period's scan.
+    init(dayTokens: [String: Int], shown stats: CodexSessionStats, sessionLimit: Int = 10) {
+        self.init(
+            dayTokens: dayTokens,
+            modelTokens: stats.modelTokens,
+            projectTokens: stats.projectTokens,
+            sessionCount: stats.sessionCount,
+            topSessions: stats.topSessions(limit: sessionLimit)
+        )
     }
 }
 
@@ -188,6 +268,7 @@ struct RolloutLine: Decodable {
 
 struct RolloutPayload: Decodable {
     let type: String?
+    let id: String?
     let model: String?
     let cwd: String?
     let info: RolloutTokenInfo?

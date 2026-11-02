@@ -17,6 +17,10 @@ struct CodexReportData: Equatable, Sendable {
     var modelTokens: [String: Int]
     /// Fresh tokens per Codex working directory, for the shown period.
     var projectTokens: [String: Int] = [:]
+    /// Sessions with activity in the shown period.
+    var sessionCount = 0
+    /// The shown period's sessions with the most fresh tokens.
+    var topSessions: [SessionUsage] = []
 
     var hasUse: Bool { dayTokens.values.contains { $0 > 0 } }
 
