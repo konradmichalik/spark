@@ -11,6 +11,7 @@ private struct UsageSection: View {
     let forecast: SessionForecast
     var fact: ForecastFact?
     var tokensPerMinute: Int?
+    var burnRateBaseline = BurnRateBaseline.fallback
     var burnRateExplanation = BurnRateFact.explanation
     var sessionWindow: TimeInterval = fiveHours
     let warning: Double
@@ -25,7 +26,8 @@ private struct UsageSection: View {
                 value: session.utilization, resetIn: session.timeUntilReset, resetDate: session.resetsAtDate,
                 forecast: forecast, sessionWindow: sessionWindow, elapsed: elapsed,
                 tone: UsageTone(value: session.utilization, warning: warning, critical: critical),
-                fact: fact, tokensPerMinute: tokensPerMinute, burnRateExplanation: burnRateExplanation
+                fact: fact, tokensPerMinute: tokensPerMinute, burnRateBaseline: burnRateBaseline,
+                burnRateExplanation: burnRateExplanation
             )
             if style == "bars" {
                 VStack(alignment: .leading, spacing: 16) {
@@ -84,6 +86,7 @@ struct ClaudeOverview: View {
             UsageSection(
                 session: state.usageData.session, week: state.usageData.weekly, forecast: SessionForecast(projection),
                 fact: forecastFact, tokensPerMinute: state.showProjection ? state.burnRate?.tokensPerMinute : nil,
+                burnRateBaseline: state.burnRateBaseline,
                 warning: state.warningThreshold, critical: state.criticalThreshold, style: state.usageDisplayStyle
             )
         }
@@ -174,6 +177,7 @@ struct CodexOverview: View {
             UsageSection(
                 session: usage.usageData.session, week: usage.usageData.weekly, forecast: SessionForecast(projection),
                 fact: forecastFact, tokensPerMinute: showProjection ? codex.burnRate?.tokensPerMinute : nil,
+                burnRateBaseline: codex.burnRateBaseline,
                 burnRateExplanation: BurnRateFact.codexExplanation, sessionWindow: usage.sessionWindow ?? fiveHours,
                 warning: warning, critical: critical, style: style
             )
@@ -201,9 +205,11 @@ struct CodexOverview: View {
             .task(id: showProjection) {
                 guard showProjection else { return }
                 codex.refreshBurnRate()
+                codex.refreshBurnRateBaseline()
                 while !Task.isCancelled {
                     do { try await Task.sleep(for: .seconds(CodexBurnRateRefresh.minimumInterval)) } catch { return }
                     codex.refreshBurnRate()
+                    codex.refreshBurnRateBaseline()
                 }
             }
     }
