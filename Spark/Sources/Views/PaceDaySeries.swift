@@ -3,7 +3,7 @@ import Foundation
 /// One day's session/weekly pace, aggregated from the raw polled snapshots recorded that day.
 /// `nil` on either field means no snapshot at all landed that day (app not running, Mac asleep) —
 /// distinct from a real 0%, mirroring `VolumeDay`'s `hasRollup` vs. zero-tokens distinction.
-struct PaceDay: Identifiable {
+struct PaceDay: Identifiable, Equatable, Sendable {
     let day: Date
     let sessionUtilization: Double?
     let weeklyUtilization: Double?
