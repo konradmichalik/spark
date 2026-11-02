@@ -12,13 +12,13 @@ struct StatusTab: View {
             ) {
                 overallCard(
                     dot: state.status.dot, description: state.statusDescription, provider: "Claude",
-                    page: "status.claude.com", refresh: { await state.fetchStatus() }
+                    url: "https://status.claude.com", refresh: { await state.fetchStatus() }
                 )
             }
 
             if !state.components.isEmpty {
                 SettingsSection(title: "Components") {
-                    componentCard(state.components.map { CodexStatusComponent(name: $0.name, status: $0.status) })
+                    componentCard(state.components.map { ServiceComponent(name: $0.name, status: $0.status) })
                 }
             }
 
@@ -29,7 +29,7 @@ struct StatusTab: View {
                 ) {
                     overallCard(
                         dot: codex.status.overall.dot, description: codex.status.description, provider: "Codex",
-                        page: "status.openai.com", refresh: { await codex.fetchStatus() }
+                        url: "https://status.openai.com", refresh: { await codex.fetchStatus() }
                     )
                 }
 
@@ -43,7 +43,7 @@ struct StatusTab: View {
     }
 
     private func overallCard(
-        dot: StatusDot, description: String, provider: String, page: StaticString, refresh: @escaping () async -> Void
+        dot: StatusDot, description: String, provider: String, url: StaticString, refresh: @escaping () async -> Void
     ) -> some View {
         SettingsCard {
             HStack(spacing: 10) {
@@ -62,13 +62,13 @@ struct StatusTab: View {
                 .buttonStyle(.plain)
                 .tooltip("Refresh")
                 .accessibilityLabel("Refresh \(provider) service status")
-                Link(destination: URL(staticString: page)) {
+                Link(destination: URL(staticString: url)) {
                     TablerIconView(.externalLink, size: 13, color: Theme.inkSecondary, isDecorative: false)
                         .frame(width: 26, height: 26)
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
-                .tooltip("Open \(page)")
+                .tooltip("Open \(URL(staticString: url).host ?? "status page")")
                 .accessibilityLabel("Open \(provider) status page")
             }
             .padding(.horizontal, 14)
@@ -76,7 +76,7 @@ struct StatusTab: View {
         }
     }
 
-    private func componentCard(_ components: [CodexStatusComponent]) -> some View {
+    private func componentCard(_ components: [ServiceComponent]) -> some View {
         SettingsCard {
             ForEach(Array(components.enumerated()), id: \.offset) { index, component in
                 if index > 0 { SettingsDivider() }
@@ -86,7 +86,7 @@ struct StatusTab: View {
     }
 
     /// A component in trouble gets an ochre icon; its status is spelled out in ink beside it.
-    private func componentRow(_ component: CodexStatusComponent) -> some View {
+    private func componentRow(_ component: ServiceComponent) -> some View {
         HStack(spacing: 8) {
             StatusDotView(dot: component.status.dot, size: 13, healthyColor: Theme.inkTertiary)
             Text(component.name)

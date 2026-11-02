@@ -334,19 +334,19 @@ final class CodexState: ObservableObject {
 
     // MARK: - Status
 
-    /// The OpenAI status page needs no sign-in, so it is also read while the usage poll is rate
-    /// limited. After a failed read nothing is known, including an earlier incident.
+    /// The OpenAI status page needs no sign-in, so it is also read while the usage poll is rate limited.
     func fetchStatus() async {
         guard isActive else { return }
+        var snapshot: CodexStatusSnapshot?
         do {
-            let snapshot = try await Task.detached { try await CodexStatusClient.fetchStatus() }.value
-            guard isActive else { return }
-            status = snapshot
+            snapshot = try await Task.detached { try await CodexStatusClient.fetchStatus() }.value
         } catch {
             Self.log.error("fetchStatus failed: \(error.localizedDescription, privacy: .public)")
-            status = .unavailable
         }
-        checkStatusNotification()
+        guard isActive else { return }
+        status = snapshot ?? .unavailable
+        // A failed read keeps `lastStatusNotification`, so a flaky connection cannot notify one incident twice.
+        if snapshot != nil { checkStatusNotification() }
     }
 
     private func checkStatusNotification() {

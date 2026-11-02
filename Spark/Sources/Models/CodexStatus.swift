@@ -2,16 +2,16 @@ import Foundation
 
 // MARK: - Codex Status
 
-struct CodexStatusComponent: Equatable {
+struct ServiceComponent: Equatable {
     let name: String
     let status: ClaudeServiceStatus
 }
 
 /// What Spark knows about the Codex parts of the OpenAI status page. The page also lists the
 /// API and ChatGPT, which an incident may hit without touching Codex, so only the components
-/// named Codex count.
+/// of the Codex group and the ones named Codex count.
 struct CodexStatusSnapshot: Equatable {
-    let components: [CodexStatusComponent]
+    let components: [ServiceComponent]
 
     static let unavailable = CodexStatusSnapshot(components: [])
 
@@ -48,9 +48,10 @@ struct CodexStatusResponse: Decodable {
     private struct Summary: Decodable {
         let components: [Component]
         let affectedComponents: [Affected]
+        let codexGroupIDs: Set<String>
 
         enum CodingKeys: String, CodingKey {
-            case components
+            case components, structure
             case affectedComponents = "affected_components"
         }
 
@@ -58,6 +59,34 @@ struct CodexStatusResponse: Decodable {
             let container = try decoder.container(keyedBy: CodingKeys.self)
             components = try container.decode([Component].self, forKey: .components)
             affectedComponents = (try? container.decodeIfPresent([Affected].self, forKey: .affectedComponents)) ?? []
+            let structure = try? container.decodeIfPresent(Structure.self, forKey: .structure)
+            codexGroupIDs = structure?.codexComponentIDs ?? []
+        }
+    }
+
+    /// The page's groups. The Codex group holds the CLI and the VS Code extension, whose names
+    /// do not mention Codex.
+    private struct Structure: Decodable {
+        let items: [Item]
+
+        struct Item: Decodable {
+            let group: Group?
+        }
+
+        struct Group: Decodable {
+            let name: String
+            let components: [Member]
+        }
+
+        struct Member: Decodable {
+            let componentId: String
+
+            enum CodingKeys: String, CodingKey { case componentId = "component_id" }
+        }
+
+        var codexComponentIDs: Set<String> {
+            let groups = items.compactMap(\.group).filter { $0.name.caseInsensitiveCompare("Codex") == .orderedSame }
+            return Set(groups.flatMap { $0.components.map(\.componentId) })
         }
     }
 
@@ -87,10 +116,12 @@ struct CodexStatusResponse: Decodable {
     }
 
     func snapshot() -> CodexStatusSnapshot {
-        let codex = summary.components.filter { $0.name.localizedCaseInsensitiveContains("codex") }
+        let codex = summary.components.filter {
+            summary.codexGroupIDs.contains($0.id) || $0.name.range(of: "codex", options: .caseInsensitive) != nil
+        }
         let components = codex.map { component in
             let affected = summary.affectedComponents.first { $0.id == component.id }
-            return CodexStatusComponent(name: component.name, status: Self.status(of: affected))
+            return ServiceComponent(name: component.name, status: Self.status(of: affected))
         }
         return CodexStatusSnapshot(components: components)
     }
@@ -101,6 +132,7 @@ struct CodexStatusResponse: Decodable {
         case "full_outage": return .majorOutage
         case .some(let raw):
             let parsed = ClaudeServiceStatus.parse(raw)
+            if parsed.isHealthy { return .operational }
             return parsed.isIncident ? parsed : .degradedPerformance
         case .none: return .degradedPerformance
         }

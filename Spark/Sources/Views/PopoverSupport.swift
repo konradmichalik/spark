@@ -10,10 +10,10 @@ struct StatusRow: View {
     let headline: String
     let detail: String
     let title: String
-    let page: StaticString
+    let url: StaticString
 
     var body: some View {
-        Link(destination: URL(staticString: page)) {
+        Link(destination: URL(staticString: url)) {
             HStack(spacing: 8) {
                 StatusDotView(dot: status.dot, size: 14)
                 Text(headline)
@@ -33,7 +33,7 @@ struct StatusRow: View {
         .buttonStyle(.plain)
         .tooltip(detail, title: title)
         .accessibilityLabel(headline)
-        .accessibilityHint("Opens \(page)")
+        .accessibilityHint("Opens \(URL(staticString: url).host ?? "the status page")")
     }
 }
 

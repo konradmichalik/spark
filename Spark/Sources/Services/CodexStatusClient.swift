@@ -2,7 +2,7 @@ import Foundation
 
 /// Reads the Codex components from the OpenAI status page. Errors reuse `UsageClient.ClientError`.
 enum CodexStatusClient {
-    static let statusURL = URL(staticString: "https://status.openai.com/proxy/status.openai.com")
+    private static let statusURL = URL(staticString: "https://status.openai.com/proxy/status.openai.com")
 
     static func fetchStatus() async throws -> CodexStatusSnapshot {
         var request = URLRequest(url: statusURL)

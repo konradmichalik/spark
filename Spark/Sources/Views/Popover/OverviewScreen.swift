@@ -69,7 +69,7 @@ struct ClaudeOverview: View {
         if state.status.isIncident || state.claudeCodeStatus.isIncident {
             StatusRow(
                 status: worstStatus, headline: statusHeadline, detail: statusDetail, title: "Claude status",
-                page: "status.claude.com"
+                url: "https://status.claude.com"
             )
         }
         if state.needsReconnect {
@@ -161,7 +161,7 @@ struct CodexOverview: View {
         if codex.status.overall.isIncident {
             StatusRow(
                 status: codex.status.overall, headline: codex.status.description, detail: codexStatusDetail,
-                title: "Codex status", page: "status.openai.com"
+                title: "Codex status", url: "https://status.openai.com"
             )
         }
         if codex.needsSignIn {
