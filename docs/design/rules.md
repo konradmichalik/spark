@@ -98,7 +98,7 @@ HStack(alignment: .firstTextBaseline, spacing: 3) {
 | Menu bar ring | 12 dots, the last partial dot at proportional opacity | Menu bar glyph |
 | Hollow dots | Outline only, from current value to projected value | Session projection |
 | Time marker | 2pt vertical stroke, or a short radial tick outside a ring | Share of the window already elapsed, on the session and the week |
-| Activity calendar | One dot per day, weeks in rows and weekdays in columns (first weekday of the system calendar). Levels by fresh tokens against the provider's busiest day of the period: no use is a 4pt `dotTrack` dot, then 8pt ink at 35 %, 60 % and 100 %. Today gets a 1pt ink ring, days after today are not drawn | Usage report, one calendar per provider |
+| Day columns | One dot column per day, 6pt pitch, scaled to the busiest day of the period. In All, Claude's dots are ink and Codex's ink at 45 % stacked on top; a day without use is one 4pt `dotTrack` dot | Usage report, Activity |
 | Dot columns | Vertical stacks of dots | Session history in graphs. Three or more empty columns in a row collapse into one `dotTrack` band at most 6pt wide, and the week line breaks there. A week point alone between two gaps is drawn as a dot |
 
 - Filled dots are `ink`, or `warning` or `accent` by threshold. Unfilled dots are `dotTrack`.
@@ -124,6 +124,7 @@ HStack(alignment: .firstTextBaseline, spacing: 3) {
 
 - **Two levels, never three.** Level 1 is the overview of the selected provider. Level 2 screens are pushed inside the popover: History, Active Sessions, Statistics, More Limits.
 - On level 2 the tab row becomes a breadcrumb at the same height: `‹ [logo] Claude / History`. Plain text, hairline below, no pill.
+- The usage report follows the same two levels: its overview is level 1, Activity, Limits and Breakdown are level 2, pushed inside the window. The provider filter becomes the breadcrumb (`‹ [logo] All / Activity`); the period controls in the window header keep working on both levels.
 - Anything clickable on level 1 that leads deeper is a card or a row with a chevron. The whole card is the hit target.
 - Each row leads with a 13pt icon in the dot language: a pulsing `accent` dot for active sessions (still when none is active or under Reduce Motion), three dot bars for statistics, a partly filled dot octagon for more limits. The statistics row shows the token count, never the API cost; the cost lives on the statistics screen.
 - Settings tabs keep the system symbols; dot icons at tab size read poorly.
@@ -158,8 +159,8 @@ A figure is set against the usual one in the same words everywhere (`AverageComp
 - **Enough data.** An average needs five days of use (`minimumActiveDays`). With fewer, nothing is compared.
 - **Typical day is the median**, of the closed days with use in the last 28 days, so one huge day does not make every other day look small. Idle days are not typical days.
 - **Today is a share, not above or below.** Today is not over, so Statistics shows it under the Tokens value as "38% of a typical day", with the typical day in the tooltip. Early in the day a plain "below average" would always be true.
-- **A finished day is a multiple or a share of the range's daily average,** only when it is a fifth or more away from it (`1.4× the daily average`, `60% of the daily average`), in the Volume graph's hover. Closer days carry no note, or every day would.
-- **The average per active day** sits as a note under the report totals once there are two active days. The weekday profile (`BY WEEKDAY · AVERAGE`, a card after the activity calendar, months only, from 14 days on) counts idle days as zero.
+- **A finished day is a multiple or a share of the range's daily average,** only when it is a fifth or more away from it (`1.4× the daily average`, `60% of the daily average`), in the hover of the Volume graph and of the report's Activity graph. Closer days carry no note, or every day would.
+- **The average per active day** sits as a note under the report totals once there are two active days. The weekday profile (the "By weekday" view of the report's Activity screen, months only, from 14 days on) counts idle days as zero.
 
 ## States
 
@@ -197,11 +198,15 @@ Other providers stay usable when one is disconnected.
 - A connection card leads with the provider's logo, its name and a status line (state, plan, sign-in path). The status dot is ink when connected, `accent` when the sign-in expired, `warning` when none was found and `dotTrack` when switched off; the words always say the same, so the dot is never the only signal. There is no green.
 - Claude has no show switch on its card: Claude cannot be hidden.
 - Everything that belongs to one provider lives on its card: installed CLI version, data folder and provider-only switches (Claude's model weeks, behind a disclosure). The one exception are the plan prices: they sit together under API cost estimate in Display, next to the setting they depend on, named "Claude plan price" and "Codex plan price" while Codex is active. Appearance and About hold nothing provider-specific.
-- The report window takes the height of its content, so the whole report shows without scrolling, keeping its top edge and never growing past the visible screen; only then does it scroll. It refits when the period or provider changes. The three totals share one Doto size, set by the longest value (40, 36, 32 or 28 pt), so they read as one line.
-- Every report section sits on its own card (`ReportCard`: `card` with a hairline outline, 14 pt inside, 12 pt between cards): the totals, the pace graph, the activity calendar with its figures, By weekday (months only), By model, Top projects and Top sessions. By model and Top projects share a row and are as tall as the taller one. The lists inside a card still space their rows instead of ruling them, and show three entries and "Show N more".
-- A provider filter (`PaperSegments`, "Provider": All, Claude, Codex, full width) sits directly under the report header, only while both providers count: Codex is active, or signed out with local data in the period. With one provider there is no filter and the report is Claude's. It defaults to All and is not remembered.
-- The filter scopes the whole report. All adds Claude and Codex fresh tokens, for the total, the change against the previous period and the activity calendar. Claude shows Claude only. Codex shows its tokens, change, activity calendar and models, and hides the pace graph, API cost, top projects, top sessions and the cache and price notes, which only exist for Claude. In All, those Claude-only sections keep their place and carry "CLAUDE" in their title, and the API cost tooltip says it covers Claude only. By model lists both providers' models, largest first.
-- The activity calendar sits after the pace graph: one calendar for the selected scope, no provider logos and no provider colour. A day's tooltip (150 ms) gives the date and its fresh tokens, or "No use". A legend line ("Less" to "More") sits under it. Beside it, in a second column like By model and Top projects (under it when the window is too narrow), three figures for the scope: active days ("3 of 9 days", days up to today), the longest streak of days in a row, and the busiest day with its tokens (the latest on a tie), each a micro label over a Doto number with its words in SF Pro, each with a tooltip and one VoiceOver element. The calendar is one VoiceOver element that names the active days and the busiest day, and nothing in it moves.
+- The report window takes the height of its content, so the whole report shows without scrolling, keeping its top edge and never growing past the visible screen; only then does it scroll. It refits when the period, the provider or the screen changes.
+- Every report section sits on its own card (`ReportCard`: `card` with a hairline outline, 14 pt inside, 12 pt between cards). The lists inside a card space their rows instead of ruling them.
+- **Level 1 answers how much and where it went,** in this order: the totals card, Activity, Limits, then Models and Projects side by side and as tall as the taller one. Every card but the totals is a button with a chevron that opens its level 2 screen; Models and Projects open Breakdown on their tab. Level 1 fits a 13-inch screen without scrolling.
+- A provider filter sits directly under the report header, only while both providers count: Codex is active, or signed out with local data in the period. With one provider there is no filter and the report is Claude's. Like the popover's provider tabs, each segment shows logo, name and the period's fresh tokens, with the same faint Claude tint when selected. It defaults to All and is not remembered.
+- **Every scope keeps the same cards in the same places.** All adds both providers, Claude and Codex show their own. A figure a provider cannot supply keeps its slot and shows a short reason in SF Pro instead of a value ("Not calculated for Codex" under API cost); sections never disappear or move when the scope changes. No title carries "CLAUDE"; a figure that covers only Claude in All says so in its note ("Claude only") and its tooltip.
+- **Totals card.** Tokens is the one large number (Doto, 52 pt, smaller only when the value is too long). Under it in SF Pro: the change against the comparison period ("+9% vs. September", "+4% vs. 1–14 Oct", tooltip with the earlier tokens) and the average per active day. Beside it, behind a hairline, Sessions and API cost in 28 pt Doto; with the API cost estimate off, Sessions stands alone. In All a dot bar under a hairline splits the tokens into Claude (ink) and Codex (ink at 45 %), with name, tokens and share under it. The cache hit rate warning and the price note stay in this card.
+- **Activity.** Level 1: day columns 60 pt high, then one line with the active days and the busiest day with its tokens. Level 2: day columns 156 pt high with a tooltip per day (date, fresh tokens or "No use", the Claude and Codex split in All, the comparison from "Averages"), chips "By day" and "By weekday" (months only, from 14 days on), and three tiles under the card: active days ("21 of 31 days", days up to today), longest streak, busiest day (the latest on a tie). The graph is one VoiceOver element that names the active days and the busiest day.
+- **Limits.** One row per provider in the scope, Claude first. Level 1: logo and name, the weekly line as a 24 pt `accent` sparkline, and a summary ("up to 100% · 4× at limit": the highest week value and the days whose session peak reached 100 %). Level 2: per provider the session peak of each day as grey dot columns (96 pt for 100 %) under the solid `accent` weekly line, the providers on one shared day axis with one legend, and the long summary ("Week up to 100% · 4 days at the session limit"). Limit history reaches back about 30 days; an older period says "No limit history for that period." in the provider's row.
+- **Breakdown.** Segments Models, Projects and Top sessions. A row holds the name, its share (start and duration for a session), its tokens and a 4 pt dot bar scaled to the top row; five rows, then "Show N more" as on the detail screens. In All each row leads with the 11 pt logo of every provider it contains, and a project both providers worked in is one row. Level 1 shows the top three of Models and of Projects, without logos and shares.
 
 ## Motion
 
@@ -212,10 +217,14 @@ Motion is added only when `accessibilityReduceMotion` is off. Start from no moti
 | Dot bar and ring | Filled dots appear in sequence, 25 ms apart and closer when more must fit, on appear and when the value rises; a falling value shows at once. Session bar, ring, week bar, More Limits bars | 300 ms total |
 | Hero value | `.contentTransition(.numericText())` on the session number (bars and ring) and the week value, when the whole percent changes | 250 ms |
 | Projection | Hollow dots breathe between full and 35 % opacity, only when the forecast reaches the limit before the reset, bar and ring. The hollow dots sit on their own layer, so only that layer's opacity changes and the filled dots are not redrawn | 2 s loop |
-| Level 2 | Push from the right, header fixed | 220 ms |
+| Level 2 | Push from the right, header fixed; back pushes from the left. Popover and usage report alike | 220 ms |
+| Report columns | Day and limit columns grow from the bottom, left to right with the dot bar's spacing, on appear and when a value rises; a falling value shows at once | 300 ms total |
+| Report total | `.contentTransition(.numericText())` on Tokens when the provider or period changes | 250 ms |
+| Report week line | The weekly line in Limits draws from left to right when the screen appears | 450 ms, after 150 ms |
+| Report share bars | Provider split and Breakdown rows fill from the left on appear, rows 25 ms apart | 300 ms |
 | Live dot | Soft halo grows from 40 % to 95 % of the icon and fades, then restarts, only while the session is active. Overview row and Active Sessions rows alike, never in the menu bar | 2.4 s loop |
 | Tooltip | Fades in with a 4 pt rise after the 400 ms delay, 150 ms on usage blocks (the whole block is the hover target); hides at once | 120 ms |
-| Tabs | Selected background slides | 200 ms |
+| Tabs | Selected background slides, the report's provider filter and Breakdown segments included | 200 ms |
 | Spark mark | While the app loads, the ring dots light up in turn, one step every 110 ms; it stands still when loading ends and under Reduce Motion | 110 ms per step, loop |
 | Menu bar | When the value rises, the new dots fade in over two in-between images and the final one, started by the value change only. No loop, no `TimelineView` in the label | 3 × 84 ms |
 
@@ -233,7 +242,7 @@ Nothing else moves. No looping animation without a reason the user cares about.
 ## Copy
 
 - The app is English. Sentence case for labels and buttons.
-- Name things the same way everywhere: Session, Week, History, Active Sessions, Statistics, More Limits, API cost.
+- Name things the same way everywhere: Session, Week, History, Active Sessions, Statistics, More Limits, API cost. In the usage report: Activity, Limits, Breakdown.
 - Provider and window in that order, separated by ` · `.
 
 ## Brand
@@ -247,7 +256,7 @@ Nothing else moves. No looping animation without a reason the user cares about.
 
 - `site/` is plain HTML, CSS and one small script, no build step, no framework. Tokens are the colour table above as CSS custom properties, light and dark through `prefers-color-scheme`.
 - Doto is self-hosted from `site/` (`Doto-Variable.ttf` with `Doto-OFL.txt`, linked in the footer). No Google Fonts, CDN, analytics or other third-party request: the only outbound links are the ones a visitor clicks. Body text uses the system stack.
-- The product shots are inline SVG and CSS built from the same tokens and dots as the app (popover, menu bar ring, activity calendar), never screenshots. They use example values and stay marked as an image for assistive technology.
+- The product shots are inline SVG and CSS built from the same tokens and dots as the app (popover, menu bar ring, report day columns), never screenshots. They use example values and stay marked as an image for assistive technology.
 - Numbers on the page are facts a reader can check in the repository (providers, minimum macOS, poll interval, dependencies), not usage figures. The install band stays dark in both schemes.
 - Layout is fluid down to 320 px with a 16 px gutter and no horizontal scroll. Motion only inside `prefers-reduced-motion: no-preference`.
 
