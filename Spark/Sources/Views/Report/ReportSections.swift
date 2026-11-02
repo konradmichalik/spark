@@ -156,11 +156,15 @@ struct ModelShareSection: View {
 /// Each weekday's average tokens as a dot bar against the busiest weekday.
 struct WeekdaySection: View {
     let profile: WeekdayProfile
+    /// `nil` where the surrounding card already names the view.
+    var title: String? = "BY WEEKDAY \u{00B7} AVERAGE"
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            MicroLabel(text: "BY WEEKDAY \u{00B7} AVERAGE")
-                .accessibilityAddTraits(.isHeader)
+            if let title {
+                MicroLabel(text: title)
+                    .accessibilityAddTraits(.isHeader)
+            }
             VStack(spacing: 6) {
                 ForEach(profile.entries, id: \.name) { entry in
                     HStack(spacing: 10) {
