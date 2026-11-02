@@ -210,6 +210,7 @@ enum TranscriptCache {
                 discoveredCwd: existing.discoveredCwd ?? appended.discoveredCwd,
                 lastContextTokens: appended.lastContextTokens,
                 recentTurns: BurnRate.pruned(existing.recentTurns + appended.recentTurns),
+                windowTokens: BurnRateBaseline.pruned(existing.windowTokens.merging(appended.windowTokens, uniquingKeysWith: +)),
                 activity: appended.activity?.including(existing.activity) ?? existing.activity
             )
         }
@@ -225,6 +226,7 @@ enum TranscriptCache {
             discoveredCwd: full.discoveredCwd,
             lastContextTokens: full.lastContextTokens,
             recentTurns: BurnRate.pruned(full.recentTurns),
+            windowTokens: BurnRateBaseline.pruned(full.windowTokens),
             activity: full.activity
         )
     }
@@ -237,6 +239,7 @@ enum TranscriptCache {
         var discoveredCwd: String?
         var lastContextTokens: Int?
         var recentTurns: [TurnSample] = []
+        var windowTokens: [Int: Int] = [:]
         var activity: ActivitySpan?
     }
 
@@ -288,6 +291,7 @@ enum TranscriptCache {
             discoveredCwd: state.discoveredCwd,
             lastContextTokens: state.lastContextTokens,
             recentTurns: state.recentTurns,
+            windowTokens: state.windowTokens,
             activity: state.activity
         )
     }
@@ -299,6 +303,7 @@ enum TranscriptCache {
         var discoveredCwd: String?
         var lastContextTokens: Int?
         var recentTurns: [TurnSample] = []
+        var windowTokens: [Int: Int] = [:]
         var activity: ActivitySpan?
     }
 
@@ -354,6 +359,7 @@ enum TranscriptCache {
         bucket.cacheRead += usage.cacheReadTokens ?? 0
         let freshTokens = (usage.inputTokens ?? 0) + (usage.outputTokens ?? 0) + (usage.cacheCreationTokens ?? 0)
         state.recentTurns.append(TurnSample(date: entryDate, tokens: freshTokens))
+        state.windowTokens[BurnRateBaseline.windowIndex(of: entryDate), default: 0] += freshTokens
 
         applyModelAttribution(to: &bucket, entry: entry, usage: usage)
 

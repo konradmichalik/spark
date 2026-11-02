@@ -41,6 +41,44 @@ final class TranscriptCacheTests: XCTestCase {
         try FileManager.default.setAttributes([.modificationDate: date], ofItemAtPath: fileURL.path)
     }
 
+    // MARK: - Window tokens
+
+    func testFreshTokensAreSummedPerFifteenMinuteWindowAndOldOnesDropped() throws {
+        let formatter = ISO8601DateFormatter()
+        let recent = formatter.string(from: Date().addingTimeInterval(-3600))
+        let content = [
+            line(input: 100, output: 50, isoDate: recent, messageId: "a"),
+            line(input: 10, output: 5, isoDate: recent, messageId: "b"),
+            line(input: 1000, output: 1, isoDate: isoString(daysAgo: 20), messageId: "c")
+        ].joined(separator: "\n") + "\n"
+        try writeAndCaptureAttributes(content)
+        var store = TranscriptCacheStore.empty
+
+        _ = TranscriptCache.aggregate(claudeDir: tempDir, cutoff: nil, store: &store)
+
+        let windows = try XCTUnwrap(store.files.values.first).windowTokens
+        let recentWindow = BurnRateBaseline.windowIndex(of: try XCTUnwrap(formatter.date(from: recent)))
+        XCTAssertEqual(windows, [recentWindow: 165])
+    }
+
+    func testAppendedTurnsAddToTheirWindowAcrossIncrementalScans() throws {
+        let formatter = ISO8601DateFormatter()
+        let recent = formatter.string(from: Date().addingTimeInterval(-3600))
+        try writeAndCaptureAttributes(line(input: 100, output: 50, isoDate: recent, messageId: "a") + "\n")
+        var store = TranscriptCacheStore.empty
+        _ = TranscriptCache.aggregate(claudeDir: tempDir, cutoff: nil, store: &store)
+
+        let handle = try FileHandle(forWritingTo: fileURL)
+        try handle.seekToEnd()
+        try handle.write(contentsOf: Data((line(input: 10, output: 5, isoDate: recent, messageId: "b") + "\n").utf8))
+        try handle.close()
+        _ = TranscriptCache.aggregate(claudeDir: tempDir, cutoff: nil, store: &store)
+
+        let windows = try XCTUnwrap(store.files.values.first).windowTokens
+        let recentWindow = BurnRateBaseline.windowIndex(of: try XCTUnwrap(formatter.date(from: recent)))
+        XCTAssertEqual(windows, [recentWindow: 165])
+    }
+
     // MARK: - Unchanged file
 
     func testUnchangedFileIsNeverReopened() throws {
