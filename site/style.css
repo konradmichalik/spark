@@ -15,7 +15,7 @@
   --accent: #D71921;
   --warning: #B07800;
   --dot-track: color-mix(in srgb, var(--ink) 15%, transparent);
-  --ink-codex: color-mix(in srgb, var(--ink) 45%, transparent);
+  --ink-codex: color-mix(in srgb, var(--ink) 50%, transparent);
   --stage: #DEDED9;
   --band: #111111;
   --band-ink: #F2F2EF;
@@ -263,4 +263,6 @@ h1 { font-size: clamp(44px, 11vw, 76px); line-height: 1; letter-spacing: -0.04em
 
 @media (forced-colors: active) {
   .tab.on, .card, .fcard, .stage, .cmd { border: 1px solid CanvasText; }
+  /* Forced colours drop backgrounds, which would leave the legend's swatches empty. */
+  .days-key i { forced-color-adjust: none; }
 }
