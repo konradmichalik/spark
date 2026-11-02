@@ -64,6 +64,17 @@ struct ReportDaySeries: Equatable, Sendable {
         )
     }
 
+    /// The days the columns show: a week's seven days, the current one ending today, or every day
+    /// of the month, so the days still to come keep their place.
+    static func range(for report: PeriodReport, calendar: Calendar = .current) -> (start: Date, end: Date) {
+        guard report.period == .month,
+              let month = calendar.dateInterval(of: .month, for: report.rangeStart),
+              let last = calendar.date(byAdding: .day, value: -1, to: month.end) else {
+            return (report.calendarStart, report.calendarEnd)
+        }
+        return (month.start, calendar.startOfDay(for: last))
+    }
+
     private struct DayTokens {
         let date: Date
         let key: String

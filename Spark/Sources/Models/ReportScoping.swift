@@ -114,6 +114,20 @@ enum ReportScoping {
         return ScopedTotals(current: current, previous: previous, trendPercent: trend)
     }
 
+    /// Sessions with activity in the period, both providers added up in All.
+    static func sessionCount(_ scope: ReportScope, report: PeriodReport, codex: CodexReportData?) -> Int {
+        (scope == .codex ? 0 : report.sessionCount) + (scope == .claude ? 0 : codex?.sessionCount ?? 0)
+    }
+
+    /// The tokens of All split into Claude and Codex, Claude first, each with its share in percent.
+    static func providerSplit(report: PeriodReport, codex: CodexReportData?, calendar: Calendar = .current) -> [ReportProviderShare] {
+        let tokens = ReportProvider.allCases.map { provider in
+            (provider, totals(provider == .claude ? .claude : .codex, report: report, codex: codex, calendar: calendar).current)
+        }
+        let total = tokens.reduce(0) { $0 + $1.1 }
+        return tokens.map { ReportProviderShare(provider: $0.0, tokens: $0.1, percent: StatisticsText.share($0.1, of: total)) }
+    }
+
     static func modelRows(_ scope: ReportScope, claude: [ModelRow], codex: CodexReportData?) -> [ModelRow] {
         let claudeRows = scope == .codex ? [] : claude
         let codexRows = scope == .claude ? [] : (codex?.modelTokens ?? [:]).filter { $0.value > 0 }.map { model, tokens in
@@ -162,6 +176,23 @@ enum ReportScoping {
 enum ReportProvider: String, CaseIterable, Sendable {
     case claude
     case codex
+
+    var usageProvider: UsageProvider {
+        switch self {
+        case .claude: .claude
+        case .codex: .codex
+        }
+    }
+
+    var name: String { usageProvider.segmentLabel }
+}
+
+/// One provider's part of the tokens in All, for the split under the totals.
+struct ReportProviderShare: Equatable {
+    let provider: ReportProvider
+    let tokens: Int
+    /// Percent of both providers' tokens.
+    let percent: Double
 }
 
 /// One project of the report's breakdown, with the providers that worked in it for the logos in All.

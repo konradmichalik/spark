@@ -82,12 +82,3 @@ struct ReportShareBar: View {
             }
     }
 }
-
-extension ReportProvider {
-    var usageProvider: UsageProvider {
-        switch self {
-        case .claude: .claude
-        case .codex: .codex
-        }
-    }
-}

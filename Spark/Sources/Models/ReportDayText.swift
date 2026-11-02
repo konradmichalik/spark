@@ -20,6 +20,18 @@ enum ReportDayText {
         return "Used on \(series.activeDays) \(activeDaysUnit(series)), busiest day \(busiestText)"
     }
 
+    /// The line under the overview's columns: "21 of 31 days active · busiest Tue, Oct 14, 1.2M tokens".
+    static func overviewLine(_ series: ReportDaySeries, calendar: Calendar, locale: Locale = .current) -> String {
+        guard let busiest = series.busiest else { return "No use in this period" }
+        let busiestText = "busiest \(title(busiest, calendar: calendar, locale: locale)), \(formatTokenCount(busiest.total)) tokens"
+        return "\(activeDaysText(series)) \u{00B7} \(busiestText)"
+    }
+
+    /// "21 of 31 days active".
+    static func activeDaysText(_ series: ReportDaySeries) -> String {
+        "\(series.activeDays) \(activeDaysUnit(series)) active"
+    }
+
     /// The words after the active days' number: "of 31 days".
     static func activeDaysUnit(_ series: ReportDaySeries) -> String {
         "of \(series.daysUpToToday) days"
