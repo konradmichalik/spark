@@ -105,8 +105,7 @@ struct SessionBlock: View {
                         SessionFact(
                             icon: .flame, label: "BURN RATE", value: BurnRateFact.text(burnRate.tokensPerMinute), tone: .normal,
                             explanation: BurnRateFact.tooltip(burnRate, baseline: reading.burnRateBaseline, explanation: reading.burnRateExplanation),
-                            gauge: (BurnRateGaugeLayout(tokensPerMinute: burnRate.tokensPerMinute, baseline: reading.burnRateBaseline),
-                                    burnRate.tier(in: reading.burnRateBaseline))
+                            gauge: BurnRateGaugeLayout(tokensPerMinute: burnRate.tokensPerMinute, baseline: reading.burnRateBaseline)
                         )
                     }
                 }
@@ -137,7 +136,7 @@ private struct SessionFact: View {
     let value: String
     let tone: UsageTone
     let explanation: String
-    var gauge: (layout: BurnRateGaugeLayout, tier: BurnRate.Tier)?
+    var gauge: BurnRateGaugeLayout?
 
     var body: some View {
         VStack(alignment: alignment, spacing: 1) {
@@ -147,19 +146,20 @@ private struct SessionFact: View {
                 }
                 MicroLabel(text: label, size: 9)
             }
-            Text(value)
-                .font(.system(size: 11))
-                .monospacedDigit()
-                .foregroundStyle(tone.color)
-                .lineLimit(1)
-                .minimumScaleFactor(0.8)
-            if let gauge {
-                BurnRateGauge(layout: gauge.layout, tier: gauge.tier)
-                    .padding(.top, 3)
+            HStack(spacing: 5) {
+                if let gauge {
+                    BurnRateGauge(layout: gauge)
+                }
+                Text(value)
+                    .font(.system(size: 11))
+                    .monospacedDigit()
+                    .foregroundStyle(tone.color)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
             }
         }
         .contentShape(Rectangle())
-        .tooltip(explanation, title: label.capitalized, delay: .quick)
+        .tooltip(explanation, title: label.capitalized, scale: gauge, delay: .quick)
     }
 }
 
