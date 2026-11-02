@@ -10,6 +10,8 @@ struct ModelRow: Identifiable {
     let cost: Double?
     /// The family's model versions, largest first, with dated snapshots merged into their version.
     let versions: [Version]
+    /// Which providers' models the row holds, for the logos in the report's All scope.
+    let providers: Set<ReportProvider>
 
     struct Version {
         let label: String
@@ -35,7 +37,7 @@ struct ModelRow: Identifiable {
             let tokens = versions.reduce(0) { $0 + $1.tokens }
             guard tokens > 0 else { return nil }
             let cost = costByModel.map { _ in versions.reduce(0) { $0 + ($1.cost ?? 0) } }
-            return ModelRow(id: label, label: label, tokens: tokens, family: family, cost: cost, versions: versions)
+            return ModelRow(id: label, label: label, tokens: tokens, family: family, cost: cost, versions: versions, providers: [.claude])
         }
         return rows.enumerated()
             .sorted { $0.element.tokens != $1.element.tokens ? $0.element.tokens > $1.element.tokens : $0.offset < $1.offset }

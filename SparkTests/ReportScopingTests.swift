@@ -80,9 +80,16 @@ final class ReportScopingTests: XCTestCase {
         XCTAssertFalse(ReportScoping.showsClaudeSections(.codex))
     }
 
-    func testClaudeOnlySectionsAreLabelledInAll() {
-        XCTAssertEqual(ReportScoping.title("TOP PROJECTS", scope: .all), "TOP PROJECTS \u{00B7} CLAUDE")
-        XCTAssertEqual(ReportScoping.title("TOP PROJECTS", scope: .claude), "TOP PROJECTS")
+    func testCostNoteGivesTheReasonOutsideClaude() {
+        XCTAssertNil(ReportScoping.costNote(.claude))
+        XCTAssertEqual(ReportScoping.costNote(.all), "Claude only")
+        XCTAssertEqual(ReportScoping.costNote(.codex), "Not calculated for Codex")
+    }
+
+    func testProvidersOfAScopeClaudeFirst() {
+        XCTAssertEqual(ReportScoping.providers(.all), [.claude, .codex])
+        XCTAssertEqual(ReportScoping.providers(.claude), [.claude])
+        XCTAssertEqual(ReportScoping.providers(.codex), [.codex])
     }
 
     func testCostTooltipNamesClaudeOnlyInAll() {
@@ -97,6 +104,45 @@ final class ReportScopingTests: XCTestCase {
         XCTAssertEqual(all.map(\.label), ["gpt-5.5", "Opus", "gpt-5.5-codex", "Sonnet"])
         XCTAssertEqual(ReportScoping.modelRows(.codex, claude: claudeRows, codex: codex).map(\.label), ["gpt-5.5", "gpt-5.5-codex"])
         XCTAssertEqual(ReportScoping.modelRows(.claude, claude: claudeRows, codex: codex).map(\.label), ["Opus", "Sonnet"])
+    }
+
+    func testModelRowsCarryTheirProvider() {
+        let claudeRows = ModelRow.rows(from: ["claude-opus-4-5": 200, "claude-sonnet-4-5": 50])
+        let all = ReportScoping.modelRows(.all, claude: claudeRows, codex: codex)
+        XCTAssertEqual(all.map(\.providers), [[.codex], [.claude], [.codex], [.claude]])
+    }
+
+    private let claudeProjects = [
+        ProjectUsage(key: "-work-shared", displayName: "shared", tokens: 200, cwd: "/work/shared"),
+        ProjectUsage(key: "-work-claude", displayName: "claude", tokens: 300, cwd: "/work/claude"),
+        ProjectUsage(key: "-old-thing", displayName: "thing", tokens: 50)
+    ]
+
+    private let codexProjects = CodexReportData(
+        dayTokens: [:], modelTokens: [:], projectTokens: ["/work/shared/": 150, "/work/codex": 400, "/work/idle": 0]
+    )
+
+    func testAProjectBothProvidersWorkedInIsOneRowInAll() {
+        let rows = ReportScoping.projectRows(.all, claude: claudeProjects, codex: codexProjects)
+
+        XCTAssertEqual(rows.map(\.id), ["/work/codex", "/work/shared", "/work/claude", "-old-thing"])
+        XCTAssertEqual(rows.map(\.name), ["codex", "shared", "claude", "thing"])
+        XCTAssertEqual(rows.map(\.tokens), [400, 350, 300, 50])
+        XCTAssertEqual(rows.map(\.providers), [[.codex], [.claude, .codex], [.claude], [.claude]])
+        XCTAssertEqual(rows.map(\.path), ["/work/codex", "/work/shared", "/work/claude", nil])
+        XCTAssertEqual(rows.map(\.claudeKeys), [[], ["-work-shared"], ["-work-claude"], ["-old-thing"]])
+    }
+
+    func testProjectRowsOfOneProvider() {
+        let claudeRows = ReportScoping.projectRows(.claude, claude: claudeProjects, codex: codexProjects)
+        XCTAssertEqual(claudeRows.map(\.name), ["claude", "shared", "thing"])
+        XCTAssertEqual(claudeRows.map(\.providers), [[.claude], [.claude], [.claude]])
+
+        let codexRows = ReportScoping.projectRows(.codex, claude: claudeProjects, codex: codexProjects)
+        XCTAssertEqual(codexRows.map(\.name), ["codex", "shared"])
+        XCTAssertEqual(codexRows.map(\.tokens), [400, 150])
+        XCTAssertEqual(codexRows.map(\.path), ["/work/codex", "/work/shared"])
+        XCTAssertEqual(ReportScoping.projectRows(.codex, claude: claudeProjects, codex: nil).count, 0)
     }
 
     func testCodexReportDataKnowsUse() {

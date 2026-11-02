@@ -16,7 +16,7 @@ struct ReportBody: View {
             if ReportScoping.showsClaudeSections(scope) {
                 ReportCard {
                     PaceSection(
-                        title: ReportScoping.title("PACE \u{00B7} PEAK PER DAY", scope: scope),
+                        title: "PACE \u{00B7} PEAK PER DAY",
                         days: PaceDaySeries.build(snapshots: state.history, start: report.rangeStart, end: report.rangeEnd),
                         emptyText: report.periodOffset == 0 ? "Not enough data yet." : "No usage history for that period."
                     )
@@ -41,7 +41,7 @@ struct ReportBody: View {
                 }
                 if ReportScoping.showsClaudeSections(scope) || !projectEntries.isEmpty {
                     ReportCard {
-                        ReportList(title: ReportScoping.title("TOP PROJECTS", scope: scope), entries: projectEntries)
+                        ReportList(title: "TOP PROJECTS", entries: projectEntries)
                     }
                 }
             }
@@ -49,7 +49,7 @@ struct ReportBody: View {
             .fixedSize(horizontal: false, vertical: true)
             if ReportScoping.showsClaudeSections(scope), !report.topSessions.isEmpty {
                 ReportCard {
-                    ReportList(title: ReportScoping.title("TOP SESSIONS", scope: scope), entries: sessions)
+                    ReportList(title: "TOP SESSIONS", entries: sessions)
                 }
             }
         }
