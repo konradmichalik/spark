@@ -36,7 +36,7 @@ struct NotificationsTab: View {
                     SettingsCard {
                         SettingsToggle(title: "Usage reset", isOn: $state.notifyOnReset)
                         SettingsDivider()
-                        SettingsToggle(title: "Claude status incidents", isOn: $state.notifyOnStatusChange)
+                        SettingsToggle(title: "Claude and Codex status incidents", isOn: $state.notifyOnStatusChange)
                         SettingsDivider()
                         SettingsToggle(title: "New Spark version", isOn: $state.notifyOnNewVersion)
                         SettingsDivider()
