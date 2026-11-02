@@ -28,7 +28,8 @@ final class CodexState: ObservableObject {
     @Published private(set) var burnRate: BurnRate?
     @Published private(set) var volumeTokensByDay: [String: Int]?
     @Published private(set) var isLoadingVolumeHistory = false
-    @Published private(set) var status: CodexStatusSnapshot = .unavailable
+    /// Written by `fetchStatus()` in `CodexState+Status.swift`, so the setter cannot be private.
+    @Published var status: CodexStatusSnapshot = .unavailable
 
     @AppStorage("codexEnabled") var isEnabled: Bool = true
     /// Separate from Claude's `statsPeriod`: switching one tab's period must not leave the
@@ -50,7 +51,7 @@ final class CodexState: ObservableObject {
     private static let volumeRefreshInterval: TimeInterval = 300
 
     private var pollCancellable: AnyCancellable?
-    private var lastStatusNotification: ClaudeServiceStatus = .operational
+    var lastStatusNotification: ClaudeServiceStatus = .operational
     private var lastFetchTime: Date = .distantPast
     private var consecutiveRateLimits = 0
     private var levelTracker = UsageLevelTracker()
@@ -330,34 +331,6 @@ final class CodexState: ObservableObject {
         }
         reportDataTask = task
         return await task.value
-    }
-
-    // MARK: - Status
-
-    /// The OpenAI status page needs no sign-in, so it is also read while the usage poll is rate limited.
-    func fetchStatus() async {
-        guard isActive else { return }
-        var snapshot: CodexStatusSnapshot?
-        do {
-            snapshot = try await Task.detached { try await CodexStatusClient.fetchStatus() }.value
-        } catch {
-            Self.log.error("fetchStatus failed: \(error.localizedDescription, privacy: .public)")
-        }
-        guard isActive else { return }
-        status = snapshot ?? .unavailable
-        // A failed read keeps `lastStatusNotification`, so a flaky connection cannot notify one incident twice.
-        if snapshot != nil { checkStatusNotification() }
-    }
-
-    private func checkStatusNotification() {
-        let defaults = UserDefaults.standard
-        let current = status.overall
-        let enabled = defaults.object(forKey: "notificationsEnabled") as? Bool ?? true
-            && defaults.object(forKey: "notifyOnStatusChange") as? Bool ?? true
-        if ClaudeServiceStatus.shouldNotify(enabled: enabled, current: current, last: lastStatusNotification) {
-            NotificationPoster.post(NoticeWording.codexStatus(current.displayName), id: "codex-status-\(current.rawValue)")
-        }
-        lastStatusNotification = current
     }
 
     // MARK: - Notifications
