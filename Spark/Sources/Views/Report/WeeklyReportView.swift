@@ -1,9 +1,8 @@
 import SwiftUI
 
-/// The usage report window (board 11): a week's or a calendar month's local token usage against
-/// the period before it, navigable back one period at a time. Totals, trend and cache hit rate
-/// come from the persisted `DailyRollup` data; the model split and top projects from a live scan
-/// aligned to the same window; the pace from the polled usage history.
+/// The usage report window: a week's or a calendar month's usage against the period before it,
+/// navigable back one period at a time. Level 1 is the overview, Activity, Limits and Breakdown
+/// are pushed inside the window as level 2 (docs/design/rules.md, "Navigation" and "Windows").
 struct WeeklyReportView: View {
     static let windowID = "weeklyReport"
 
@@ -11,48 +10,68 @@ struct WeeklyReportView: View {
     @EnvironmentObject private var codex: CodexState
 
     @State private var selectedScope = ReportScope.all
+    @State private var screen = ReportScreen.overview
+    @State private var breakdownTab = ReportBreakdownTab.models
     @State private var cachedCodexData: CodexReportData?
     @State private var codexLoadedKey: String?
     @State private var contentHeight: CGFloat = 0
     @State private var visibleHeight: CGFloat = 0
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         // The header stays outside the scroll view: the period controls are what someone reaches
-        // for after scrolling down.
+        // for after scrolling down, on both levels.
         VStack(spacing: 0) {
             header
                 .padding(.horizontal, 20)
                 .frame(minHeight: 52)
             Rectangle().fill(Theme.hairline).frame(height: 1)
-            if codexShown {
-                PaperSegments(selection: $selectedScope, options: ReportScope.allCases, fillsWidth: true, label: "Provider")
-                    .padding(.horizontal, 20)
-                    .padding(.top, 12)
+            if let report = state.weeklyReport, screen != .overview || codexShown {
+                ReportScopeBar(
+                    selection: $selectedScope, screen: $screen, scope: scope, showsFilter: codexShown,
+                    tokens: { ReportScoping.totals($0, report: report, codex: codexData).current }
+                )
+                .padding(.horizontal, 20)
+                .padding(.top, 12)
             }
-            ScrollView {
-                content
-                    .padding(20)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(GeometryReader { Color.clear.preference(key: ReportContentHeightKey.self, value: $0.size.height) })
-            }
-            .background(GeometryReader { Color.clear.preference(key: ReportVisibleHeightKey.self, value: $0.size.height) })
-            .onPreferenceChange(ReportContentHeightKey.self) { contentHeight = $0 }
-            .onPreferenceChange(ReportVisibleHeightKey.self) { visibleHeight = $0 }
-            // Dims stale numbers while a reopen or period change re-scans.
-            .opacity(state.isLoadingWeeklyReport || isLoadingCodexData ? 0.5 : 1)
+            scrollArea
         }
+        .animation(reduceMotion ? nil : .easeOut(duration: 0.22), value: screen)
         .frame(minWidth: 460, idealWidth: 560, minHeight: 420, idealHeight: 660)
         .background(Theme.paper)
-        .background(ReportWindowFitter(content: contentHeight, visible: visibleHeight))
+        .background(ReportWindowFitter(content: contentHeight, visible: visibleHeight, screen: screen))
         .task {
-            // Always starts at the current week, so reopening never strands the user on a past
-            // period they left the window on.
+            // Always starts on the overview of the current week, so reopening never strands the
+            // user on a past period or a level 2 screen they left the window on.
+            screen = .overview
+            selectedScope = .all
             state.loadWeeklyReport(period: .week, offset: 0)
         }
         .task(id: codex.isEnabled) {
             state.codexEarliestDay = codex.isEnabled ? await codex.earliestActivityDay() : nil
         }
         .task(id: codexLoadKey) { await loadCodexData() }
+    }
+
+    private var scrollArea: some View {
+        ScrollView {
+            // Old and new screen overlap while one pushes the other out.
+            ZStack(alignment: .topLeading) {
+                content
+                    .id(screen)
+                    .transition(
+                        reduceMotion ? .identity : .move(edge: screen == .overview ? .leading : .trailing).combined(with: .opacity)
+                    )
+            }
+            .padding(20)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(GeometryReader { Color.clear.preference(key: ReportContentHeightKey.self, value: $0.size.height) })
+        }
+        .background(GeometryReader { Color.clear.preference(key: ReportVisibleHeightKey.self, value: $0.size.height) })
+        .onPreferenceChange(ReportContentHeightKey.self) { contentHeight = $0 }
+        .onPreferenceChange(ReportVisibleHeightKey.self) { visibleHeight = $0 }
+        // Dims stale numbers while a reopen or period change re-scans.
+        .opacity(state.isLoadingWeeklyReport || isLoadingCodexData ? 0.5 : 1)
     }
 
     /// Only the scan that belongs to the shown period; empty while a new one is running.
@@ -90,7 +109,7 @@ struct WeeklyReportView: View {
     @ViewBuilder
     private var content: some View {
         if let report = state.weeklyReport, report.hasData || codexData?.hasUse == true {
-            ReportBody(report: report, scope: scope, codex: codexData, showApiCost: state.showApiCost)
+            screenContent(ReportData(report: report, scope: scope, codex: codexData, state: state, codexState: codex))
         } else if state.weeklyReport == nil {
             // Covers the gap before `.task` fires and the load itself.
             ProgressView()
@@ -99,6 +118,30 @@ struct WeeklyReportView: View {
         } else {
             DetailNote(text: "No usage data yet.")
                 .padding(.top, 40)
+        }
+    }
+
+    @ViewBuilder
+    private func screenContent(_ data: ReportData) -> some View {
+        switch screen {
+        case .overview:
+            ReportOverview(
+                report: data.report, scope: scope, codex: codexData, series: data.series, limits: data.limits,
+                dayTokens: data.dayTokens, showApiCost: state.showApiCost, open: { screen = $0 },
+                openBreakdown: { tab in
+                    breakdownTab = tab
+                    screen = .breakdown
+                }
+            )
+        case .activity:
+            ReportActivityScreen(
+                series: data.series, scope: scope, period: data.report.period,
+                weekdayProfile: WeekdayProfile.make(dayTokens: data.dayTokens, start: data.report.rangeStart, end: data.report.rangeEnd)
+            )
+        case .limits:
+            ReportLimitsScreen(limits: data.limits, period: data.report.period)
+        case .breakdown:
+            ReportBreakdownScreen(tab: $breakdownTab, scope: scope, report: data.report, codex: codexData)
         }
     }
 
@@ -147,5 +190,28 @@ struct WeeklyReportView: View {
     private var periodTitle: String {
         guard let report = state.weeklyReport else { return "" }
         return ReportText.periodTitle(report.period, start: report.rangeStart, end: report.rangeEnd)
+    }
+}
+
+/// The figures both levels draw from, for one period and scope.
+@MainActor
+private struct ReportData {
+    let report: PeriodReport
+    /// The scope's fresh tokens per day. Rollups outlive deleted transcripts, so they count too.
+    let dayTokens: [String: Int]
+    let series: ReportDaySeries
+    let limits: [ReportLimits]
+
+    init(report: PeriodReport, scope: ReportScope, codex: CodexReportData?, state: AppState, codexState: CodexState) {
+        let claude = ReportScoping.persistedDayTokens(rollups: state.rollups, live: report.dayTokens)
+        let range = ReportDaySeries.range(for: report)
+        self.report = report
+        dayTokens = ReportScoping.dayTokens(scope, claude: claude, codex: codex?.dayTokens ?? [:])
+        series = ReportDaySeries.make(claude: claude, codex: codex?.dayTokens ?? [:], scope: scope, start: range.start, end: range.end)
+        limits = ReportScoping.providers(scope).map { provider in
+            ReportLimits.make(
+                provider: provider, snapshots: provider == .claude ? state.history : codexState.history, start: range.start, end: range.end
+            )
+        }
     }
 }
