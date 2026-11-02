@@ -14,6 +14,7 @@ The rules behind these screens are in [rules.md](rules.md). The previews are exp
 | --- | --- | --- | --- |
 | 1 | Overview, bars | Level 1 layout: header, provider tabs, session with projection and time marker, week, history card, row group, footer with refresh | <a href="screens/01-overview-bars.png"><img src="screens/01-overview-bars.png" width="140" alt="Board 1"></a> |
 | 1d | Overview, dark mode | Dark token values and the brighter red | <a href="screens/01d-overview-dark.png"><img src="screens/01d-overview-dark.png" width="140" alt="Board 1d"></a> |
+| 1e | Overview, burn rate | The burn rate gauge in context, its three tiers with median and 90th percentile strokes, and the baseline it is read against | Canvas only, no export yet |
 | 2 | Overview, rings | Display style "Rings": session and week as dot rings, the plan tooltip on a tab | <a href="screens/02-overview-rings.png"><img src="screens/02-overview-rings.png" width="140" alt="Board 2"></a> |
 | 3 | Codex | Same structure for a provider with two windows, tab tooltip with plan and sign-in path | <a href="screens/03-codex.png"><img src="screens/03-codex.png" width="140" alt="Board 3"></a> |
 | 4 | History | Limits and Volume switch, range, crosshair tooltip that reads both series | <a href="screens/04-history.png"><img src="screens/04-history.png" width="140" alt="Board 4"></a> |

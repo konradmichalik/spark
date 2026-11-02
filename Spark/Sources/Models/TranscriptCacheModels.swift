@@ -155,6 +155,9 @@ struct FileParseCache: Codable, Equatable, Sendable {
     var lastContextTokens: Int?
     /// Counted turns of the last `BurnRate.window`, the input for `BurnRate.calculate`.
     var recentTurns: [TurnSample] = []
+    /// Fresh tokens per 15-minute window (`BurnRateBaseline.windowIndex`) of the last 14 days,
+    /// the input for `BurnRateBaseline.calculate`.
+    var windowTokens: [Int: Int] = [:]
     /// The earliest and latest timestamp of any line in this file.
     var activity: ActivitySpan?
 }
@@ -229,7 +232,7 @@ struct TranscriptTotals: Equatable, Sendable {
 // MARK: - Store
 
 struct TranscriptCacheStore: Codable, Equatable, Sendable {
-    static let currentSchemaVersion = 5
+    static let currentSchemaVersion = 6
     static let empty = TranscriptCacheStore(schemaVersion: currentSchemaVersion, files: [:])
 
     var schemaVersion: Int

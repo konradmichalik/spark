@@ -57,6 +57,20 @@ enum BurnRateFact {
     static func text(_ tokensPerMinute: Int) -> String {
         "\(formatTokenCount(tokensPerMinute))/min"
     }
+
+    /// The tier first, then how the rate compares with the user's last 14 days (only with a
+    /// measured baseline), then what the number counts.
+    static func tooltip(_ rate: BurnRate, baseline: BurnRateBaseline, explanation: String) -> String {
+        let tier = rate.tier(in: baseline).label
+        guard let percent = baseline.percent(of: rate.tokensPerMinute) else { return "\(tier)\n\(explanation)" }
+        return "\(tier). Higher than \(percent)% of your active periods in the last 14 days.\n\(explanation)"
+    }
+
+    static func accessibilityValue(_ rate: BurnRate, baseline: BurnRateBaseline) -> String {
+        let value = "\(text(rate.tokensPerMinute)) tokens, \(rate.tier(in: baseline).label)"
+        guard let percent = baseline.percent(of: rate.tokensPerMinute) else { return value }
+        return value + ", higher than \(percent)% of your active periods in the last 14 days"
+    }
 }
 
 /// The explaining tooltip of a dot bar: what the fill means, then the hollow dots, the marker

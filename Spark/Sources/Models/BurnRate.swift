@@ -24,16 +24,11 @@ struct BurnRate: Equatable, Sendable {
 
     static let window: TimeInterval = 15 * 60
 
-    /// Roughly the median and the 90th percentile of active 15-minute windows across two weeks
-    /// of real transcripts.
-    private static let moderateThreshold = 20_000
-    private static let highThreshold = 60_000
-
     let tokensPerMinute: Int
 
-    var tier: Tier {
-        if tokensPerMinute >= Self.highThreshold { return .high }
-        if tokensPerMinute >= Self.moderateThreshold { return .moderate }
+    func tier(in baseline: BurnRateBaseline) -> Tier {
+        if tokensPerMinute >= baseline.p90 { return .high }
+        if tokensPerMinute >= baseline.median { return .moderate }
         return .normal
     }
 

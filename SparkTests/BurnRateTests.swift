@@ -34,10 +34,10 @@ final class BurnRateTests: XCTestCase {
     }
 
     func testTierBoundaries() {
-        XCTAssertEqual(BurnRate(tokensPerMinute: 19_999).tier, .normal)
-        XCTAssertEqual(BurnRate(tokensPerMinute: 20_000).tier, .moderate)
-        XCTAssertEqual(BurnRate(tokensPerMinute: 59_999).tier, .moderate)
-        XCTAssertEqual(BurnRate(tokensPerMinute: 60_000).tier, .high)
+        XCTAssertEqual(BurnRate(tokensPerMinute: 19_999).tier(in: .fallback), .normal)
+        XCTAssertEqual(BurnRate(tokensPerMinute: 20_000).tier(in: .fallback), .moderate)
+        XCTAssertEqual(BurnRate(tokensPerMinute: 59_999).tier(in: .fallback), .moderate)
+        XCTAssertEqual(BurnRate(tokensPerMinute: 60_000).tier(in: .fallback), .high)
     }
 
     func testFutureTurnsAreNotCounted() {

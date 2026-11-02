@@ -80,6 +80,7 @@ final class AppState: ObservableObject {
     @Published private(set) var isBuildingTranscriptCache = false
     @Published private(set) var activeSessions: [ActiveSession] = []
     @Published private(set) var burnRate: BurnRate?
+    @Published private(set) var burnRateBaseline = BurnRateBaseline.fallback
     @Published private(set) var weeklyReport: PeriodReport?
     @Published private(set) var isLoadingWeeklyReport: Bool = false
     @Published private(set) var reportPeriod: ReportPeriod = .week
@@ -913,9 +914,11 @@ final class AppState: ObservableObject {
         let roots = ClaudeConfigDirectory.resolveCurrent().roots
         let sessions = await LiveTranscriptCache.shared.activeSessions(claudeDirs: roots)
         let rate = await LiveTranscriptCache.shared.burnRate()
+        let baseline = await LiveTranscriptCache.shared.burnRateBaseline()
         await MainActor.run {
             self.activeSessions = sessions
             self.burnRate = rate
+            self.burnRateBaseline = baseline
         }
     }
 
