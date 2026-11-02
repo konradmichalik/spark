@@ -114,7 +114,12 @@ struct ReportTotalsCard: View {
     private var apiCost: some View {
         let note = ReportScoping.costNote(scope)
         if scope != .codex, let summary = report.costSummary {
-            let tooltip = ReportScoping.costTooltip(StatisticsText.costTooltip(summary, planValue: planValue(summary)), scope: scope)
+            let tooltip = ReportScoping.costTooltip(
+                StatisticsText.planPriceHint(
+                    StatisticsText.costTooltip(summary, planValue: planValue(summary)), planPrice: state.monthlyPlanPrice
+                ),
+                scope: scope
+            )
             ReportFigure(
                 label: "API COST", tooltip: tooltip,
                 spoken: ["about \(formatCost(summary.total))", note].compactMap { $0 }.joined(separator: ", ")
