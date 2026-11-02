@@ -39,15 +39,6 @@ final class ReportScopingTests: XCTestCase {
         XCTAssertEqual(ReportScoping.dayTokens(.codex, claude: claude, codex: other), other)
     }
 
-    func testProjectTokensFollowSelectedProviderScope() {
-        let claude = ["/work/claude": 200]
-
-        XCTAssertEqual(ReportScoping.projectTokens(.claude, claude: claude, codex: codex), claude)
-        XCTAssertEqual(ReportScoping.projectTokens(.codex, claude: claude, codex: codex), ["/work/codex": 400])
-        XCTAssertEqual(ReportScoping.projectTokens(.all, claude: claude, codex: codex), claude)
-        XCTAssertEqual(ReportScoping.projectTokens(.codex, claude: claude, codex: nil), [:])
-    }
-
     func testTotalsPerScope() {
         let report = report(claudeCurrent: 1000, claudePrevious: 500)
         let claudeOnly = ReportScoping.totals(.claude, report: report, codex: codex, calendar: calendar)

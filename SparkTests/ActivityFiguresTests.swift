@@ -9,10 +9,27 @@ final class ActivityFiguresTests: XCTestCase {
     }
 
     private func figures(_ start: String, _ end: String, today: String, _ tokens: [String: Int]) -> ActivityFigures {
-        let cells = ActivityCalendar.rows(
-            start: date(start), end: date(end), today: date(today), dayTokens: tokens, calendar: calendar
-        ).flatMap { $0 }
+        let todayStart = calendar.startOfDay(for: date(today))
+        let cells = calendar.dayStarts(from: calendar.startOfDay(for: date(start)), through: calendar.startOfDay(for: date(end))).map { day in
+            ActivityCell(
+                date: day, tokens: tokens[TranscriptCache.dayKey(for: day, calendar: calendar)] ?? 0,
+                isToday: day == todayStart, isFuture: day > todayStart
+            )
+        }
         return ActivityFigures(cells: cells)
+    }
+
+    func testDayStartsSurviveTheDSTChange() {
+        // Europe/Berlin leaves summer time on 2026-10-25 (a 25-hour day).
+        let days = calendar.dayStarts(from: calendar.startOfDay(for: date("2026-10-19")), through: calendar.startOfDay(for: date("2026-11-01")))
+        XCTAssertEqual(days.count, 14)
+        XCTAssertEqual(days.first.map { TranscriptCache.dayKey(for: $0, calendar: calendar) }, "2026-10-19")
+        XCTAssertEqual(days.last.map { TranscriptCache.dayKey(for: $0, calendar: calendar) }, "2026-11-01")
+        XCTAssertEqual(Set(days.map { TranscriptCache.dayKey(for: $0, calendar: calendar) }).count, 14)
+    }
+
+    func testStartAfterEndGivesNoDays() {
+        XCTAssertTrue(calendar.dayStarts(from: date("2026-10-02"), through: date("2026-10-01")).isEmpty)
     }
 
     func testEmptyData() {

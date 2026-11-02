@@ -94,9 +94,7 @@ final class ReportDayAxisTests: XCTestCase {
     private let locale = Locale(identifier: "en_US")
 
     private func dates(from first: String, to last: String) -> [Date] {
-        ActivityCalendar.daysBetween(
-            calendar.startOfDay(for: TestCalendar.date(first)), calendar.startOfDay(for: TestCalendar.date(last)), calendar: calendar
-        )
+        calendar.dayStarts(from: calendar.startOfDay(for: TestCalendar.date(first)), through: calendar.startOfDay(for: TestCalendar.date(last)))
     }
 
     func testAMonthIsLabelledEveryWeekFromTheFirst() {

@@ -84,11 +84,6 @@ enum ReportScoping {
         }
     }
 
-    /// Project lists stay provider-specific in All, matching the report's existing Claude-only list.
-    static func projectTokens(_ scope: ReportScope, claude: [String: Int], codex: CodexReportData?) -> [String: Int] {
-        scope == .codex ? codex?.projectTokens ?? [:] : claude
-    }
-
     /// Claude's fresh tokens per day from the rollups and the live scan. Rollups outlive deleted
     /// transcripts, so a total summed from them needs their days too, or its average runs high.
     static func persistedDayTokens(rollups: [String: DailyRollup], live: [String: Int]) -> [String: Int] {

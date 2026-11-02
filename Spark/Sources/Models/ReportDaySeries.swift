@@ -38,7 +38,7 @@ struct ReportDaySeries: Equatable, Sendable {
         now: Date = Date(), calendar: Calendar = .current, locale: Locale = .current
     ) -> ReportDaySeries {
         let today = calendar.startOfDay(for: now)
-        let tokens = ActivityCalendar.daysBetween(calendar.startOfDay(for: start), calendar.startOfDay(for: end), calendar: calendar)
+        let tokens = calendar.dayStarts(from: calendar.startOfDay(for: start), through: calendar.startOfDay(for: end))
             .map { date in
                 let key = TranscriptCache.dayKey(for: date, calendar: calendar)
                 return DayTokens(
@@ -56,7 +56,7 @@ struct ReportDaySeries: Equatable, Sendable {
             )
         }
         let figures = ActivityFigures(cells: days.map {
-            ActivityCell(date: $0.date, tokens: $0.total, level: 0, isToday: $0.isToday, isFuture: $0.isFuture, isOutsideRange: false)
+            ActivityCell(date: $0.date, tokens: $0.total, isToday: $0.isToday, isFuture: $0.isFuture)
         })
         return ReportDaySeries(
             days: days, activeDays: figures.activeDays, daysUpToToday: figures.totalDays, longestStreak: figures.longestStreak,
@@ -82,5 +82,21 @@ struct ReportDaySeries: Equatable, Sendable {
         let codex: Int
 
         var total: Int { claude + codex }
+    }
+}
+
+extension Calendar {
+    /// Every midnight from `first` through `last`. Each day is re-normalized to midnight:
+    /// `date(byAdding:)` keeps the wall-clock time, which drifts across a DST change (see
+    /// `PeriodReport.sum`).
+    func dayStarts(from first: Date, through last: Date) -> [Date] {
+        var days: [Date] = []
+        var day = first
+        while day <= last {
+            days.append(day)
+            guard let next = date(byAdding: .day, value: 1, to: day) else { break }
+            day = startOfDay(for: next)
+        }
+        return days
     }
 }

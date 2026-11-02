@@ -1,6 +1,14 @@
 import Foundation
 
-/// The key figures beside the activity calendar. Days after today are not part of any of them.
+/// One calendar day of the report's range with its fresh tokens.
+struct ActivityCell: Equatable {
+    let date: Date
+    let tokens: Int
+    let isToday: Bool
+    let isFuture: Bool
+}
+
+/// The report's activity figures. Days after today are not part of any of them.
 struct ActivityFigures: Equatable {
     let activeDays: Int
     let totalDays: Int
@@ -8,9 +16,9 @@ struct ActivityFigures: Equatable {
     /// The day with the most fresh tokens, the latest one on a tie. `nil` without any use.
     let busiest: ActivityCell?
 
-    /// `cells` in calendar order, as `ActivityCalendar.rows` returns them flattened.
+    /// `cells` in calendar order.
     init(cells: [ActivityCell]) {
-        let days = cells.filter(\.isDrawn)
+        let days = cells.filter { !$0.isFuture }
         activeDays = days.filter { $0.tokens > 0 }.count
         totalDays = days.count
         busiest = days.filter { $0.tokens > 0 }.max { $0.tokens != $1.tokens ? $0.tokens < $1.tokens : $0.date < $1.date }
