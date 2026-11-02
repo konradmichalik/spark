@@ -115,6 +115,11 @@ enum StatisticsText {
         return costTooltip(cost) + "\n\(multiple.number)\(multiple.unit) the \(planShare(planValue))."
     }
 
+    /// Without a price the plan value cannot be worked out, so the tooltip says where to set it.
+    static func planPriceHint(_ tooltip: String, planPrice: Double?) -> String {
+        planPrice == nil ? tooltip + "\nSet your plan price in Settings to see the plan value." : tooltip
+    }
+
     /// Credits bought on top of a ChatGPT plan are not seen, so the real multiple can be lower too.
     static let codexPlanValueCoverage = "Only the Codex CLI on this Mac counts. ChatGPT credits bought on top of the plan are not."
 

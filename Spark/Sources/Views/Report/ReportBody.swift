@@ -192,7 +192,12 @@ private struct ReportTotals: View {
         if ReportScoping.showsClaudeSections(scope), let summary = report.costSummary {
             ReportTotal(
                 label: "API COST", parts: UsageFormat.cost(summary.total), prefix: "\u{2248}",
-                tooltip: ReportScoping.costTooltip(StatisticsText.costTooltip(summary, planValue: planValue(summary)), scope: scope),
+                tooltip: ReportScoping.costTooltip(
+                    StatisticsText.planPriceHint(
+                        StatisticsText.costTooltip(summary, planValue: planValue(summary)), planPrice: state.monthlyPlanPrice
+                    ),
+                    scope: scope
+                ),
                 spokenValue: "about \(formatCost(summary.total))", size: totalsSize
             )
         }

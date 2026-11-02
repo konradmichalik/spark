@@ -59,7 +59,8 @@ struct ClaudeStatisticsScreen: View {
         if state.showApiCost, let cost = state.liveCost {
             let parts = UsageFormat.cost(cost.total)
             facts.append(StatFact(
-                label: "API cost", parts: parts, prefix: "\u{2248}", tooltip: StatisticsText.costTooltip(cost),
+                label: "API cost", parts: parts, prefix: "\u{2248}",
+                tooltip: StatisticsText.planPriceHint(StatisticsText.costTooltip(cost), planPrice: state.monthlyPlanPrice),
                 spokenValue: "about \(formatCost(cost.total))"
             ))
             if let planValue = planValueFact(cost: cost, live: live) { facts.append(planValue) }
@@ -126,7 +127,8 @@ struct CodexStatisticsScreen: View {
         ]
         if codex.showApiCost, let cost = codex.cost {
             facts.append(StatFact(
-                label: "API cost", parts: UsageFormat.cost(cost.total), prefix: "\u{2248}", tooltip: StatisticsText.costTooltip(cost),
+                label: "API cost", parts: UsageFormat.cost(cost.total), prefix: "\u{2248}",
+                tooltip: StatisticsText.planPriceHint(StatisticsText.costTooltip(cost), planPrice: codex.monthlyPlanPrice),
                 spokenValue: "about \(formatCost(cost.total))"
             ))
             if let planValue = planValueFact(cost: cost, stats: stats) { facts.append(planValue) }
