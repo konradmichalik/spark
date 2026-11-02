@@ -6,8 +6,8 @@ final class BurnRateGaugeTests: XCTestCase {
 
     func testFillIsTheRateOnAScaleOneThirdPastTheNinetiethPercentile() {
         // Scale end: 1,800 * 4/3 = 2,400.
-        XCTAssertEqual(BurnRateGaugeLayout(tokensPerMinute: 1_200, baseline: baseline).filled, 5)
-        XCTAssertEqual(BurnRateGaugeLayout(tokensPerMinute: 2_400, baseline: baseline).filled, 10)
+        XCTAssertEqual(BurnRateGaugeLayout(tokensPerMinute: 1_200, baseline: baseline).filled, 10)
+        XCTAssertEqual(BurnRateGaugeLayout(tokensPerMinute: 2_400, baseline: baseline).filled, 20)
     }
 
     func testAnActiveRateAlwaysShowsAtLeastOneDot() {
@@ -15,7 +15,7 @@ final class BurnRateGaugeTests: XCTestCase {
     }
 
     func testARateBeyondTheScaleFillsTheGauge() {
-        XCTAssertEqual(BurnRateGaugeLayout(tokensPerMinute: 99_999, baseline: baseline).filled, 10)
+        XCTAssertEqual(BurnRateGaugeLayout(tokensPerMinute: 99_999, baseline: baseline).filled, 20)
     }
 
     func testStrokesSitAtMedianAndP90() {
@@ -23,6 +23,25 @@ final class BurnRateGaugeTests: XCTestCase {
 
         XCTAssertEqual(layout.medianPosition, 1_000.0 / 2_400.0, accuracy: 0.0001)
         XCTAssertEqual(layout.p90Position, 0.75, accuracy: 0.0001)
+    }
+
+    func testThePopoverColumnLightsOneDotPerTier() {
+        let steps = [500, 1_000, 1_800].map { BurnRateGaugeLayout(tokensPerMinute: $0, baseline: baseline).tierSteps }
+
+        XCTAssertEqual(steps, [1, 2, 3])
+        XCTAssertEqual(steps.max(), BurnRateGaugeLayout.tierStepCount)
+    }
+
+    func testLabelsShareARowWhileTheMedianIsFarFromTheP90() {
+        XCTAssertFalse(BurnRateGaugeLayout(tokensPerMinute: 1_200, baseline: baseline).stacksLabels)
+    }
+
+    func testLabelsStackWhenTheMedianIsCloseToTheP90() {
+        let tight = BurnRateBaseline(median: 1_700, p90: 1_800, rates: baseline.rates)
+        let equal = BurnRateBaseline(median: 1_800, p90: 1_800, rates: baseline.rates)
+
+        XCTAssertTrue(BurnRateGaugeLayout(tokensPerMinute: 1_200, baseline: tight).stacksLabels)
+        XCTAssertTrue(BurnRateGaugeLayout(tokensPerMinute: 1_200, baseline: equal).stacksLabels)
     }
 
     func testTooltipNamesTheTierAndTheShareOfWindowsBelow() {

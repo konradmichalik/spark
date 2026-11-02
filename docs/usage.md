@@ -41,7 +41,7 @@ Each tab also shows that provider's session usage, colored from the warning thre
 
 If a plan lacks the window picked under **Displayed value** (a verified Claude Ultra account and Codex Pro have no 5-hour window, Codex Free only a 30-day one), Spark uses that plan's highest window instead of showing 0%. Without a 5-hour window the overview shows the week on its own, the history and the export leave the session out instead of recording 0%, and no session reset notice is sent.
 
-The burn rate carries a ten-dot gauge. Its two strokes mark your usual rate (median) and your 90th percentile of the last 14 days, so the fill shows whether the current rate is low or high for you. Only a rate above your 90th percentile turns the dots to the warning colour.
+The burn rate carries a small column of three dots: one lit for a normal rate, two for moderate, three for high, measured against your own last 14 days. Hover it for the full scale, where two strokes mark your usual rate (median) and your 90th percentile. Only a rate above your 90th percentile turns the dots to the warning colour.
 
 With **Forecast** enabled, Codex shows where the current session is expected to land at reset. Its burn rate is the average fresh input and output tokens from local Codex CLI rollout files over the last 15 minutes; cached input is excluded. Codex Cloud, web and desktop activity is not included in this local rate. The forecast still works when no local rollout activity is available.
 

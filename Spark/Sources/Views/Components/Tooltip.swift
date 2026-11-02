@@ -34,10 +34,14 @@ enum TooltipLayout {
 
 extension View {
     /// Shows `text` after a short hover, like the system tooltip, with an optional bold `title`
-    /// above it. Nothing is shown when both are `nil` or empty.
-    func tooltip(_ text: String?, title: String? = nil, delay: TooltipDelay = .standard) -> some View {
+    /// above it and an optional burn rate `scale` below it. Nothing is shown when both texts are
+    /// `nil` or empty.
+    func tooltip(
+        _ text: String?, title: String? = nil, scale: BurnRateGaugeLayout? = nil, delay: TooltipDelay = .standard
+    ) -> some View {
         modifier(TooltipModifier(
-            title: title.flatMap { $0.isEmpty ? nil : $0 }, text: text.flatMap { $0.isEmpty ? nil : $0 }, delay: delay.duration
+            title: title.flatMap { $0.isEmpty ? nil : $0 }, text: text.flatMap { $0.isEmpty ? nil : $0 },
+            scale: scale, delay: delay.duration
         ))
     }
 
@@ -90,6 +94,7 @@ private enum TooltipHost {
 private struct TooltipRequest: Equatable {
     let title: String?
     let text: String?
+    let scale: BurnRateGaugeLayout?
     let anchor: CGRect
 }
 
@@ -115,6 +120,7 @@ private struct TooltipSizeKey: PreferenceKey {
 private struct TooltipModifier: ViewModifier {
     let title: String?
     let text: String?
+    let scale: BurnRateGaugeLayout?
     let delay: Duration
 
     @State private var isShown = false
@@ -134,7 +140,9 @@ private struct TooltipModifier: ViewModifier {
                         Color.clear.preference(
                             key: TooltipRequestKey.self,
                             value: isShown
-                                ? TooltipRequest(title: title, text: text, anchor: proxy.frame(in: .named(TooltipHost.space)))
+                                ? TooltipRequest(
+                                    title: title, text: text, scale: scale, anchor: proxy.frame(in: .named(TooltipHost.space))
+                                )
                                 : nil
                         )
                     }
@@ -243,6 +251,10 @@ private struct TooltipBubble: View {
                 Text(text)
                     .font(.system(size: 11))
                     .monospacedDigit()
+            }
+            if let scale = request.scale {
+                BurnRateScale(layout: scale)
+                    .padding(.top, 3)
             }
         }
         .multilineTextAlignment(.leading)

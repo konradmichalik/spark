@@ -99,7 +99,7 @@ HStack(alignment: .firstTextBaseline, spacing: 3) {
 | Hollow dots | Outline only, from current value to projected value | Session projection |
 | Time marker | 2pt vertical stroke, or a short radial tick outside a ring | Share of the window already elapsed, on the session and the week |
 | Day columns | One dot column per day, 6pt pitch, scaled to the busiest day of the period. In All, Claude's dots are ink and Codex's ink at 50 % stacked on top; a day without use is one 4pt `dotTrack` dot | Usage report, Activity |
-| Burn rate gauge | Ten 3.8pt dots at 6pt pitch under the burn rate value. The fill is the rate on a scale that ends a third past the 90th percentile, at least one dot. Two 2pt strokes, ink at 45 % and 10pt tall, mark the median and the 90th percentile of the active 15-minute windows of the last 14 days. Fill is `ink`, `warning` only in the high tier. The tier name and the share of windows below the rate live in the tooltip and the VoiceOver value, never as text on screen | Burn rate beside the session number, bars style |
+| Burn rate gauge | In the popover, a column of three 3.2pt dots at 4pt pitch left of the burn rate value, filled from the bottom: one dot for the normal tier, two for moderate, three for high. Unlit dots are `dotTrack`. The tooltip carries the scale: twenty 4.4pt dots at 9pt pitch, 180pt wide, filled to the rate on a scale that ends a third past the 90th percentile, at least one dot. Two 2pt strokes, paper at 60 % and 14pt tall, mark the median and the 90th percentile of the active 15-minute windows of the last 14 days, named below in 10pt mono ("Median 20.0K", "P90 60.0K"). The median label ends at its stroke and the P90 label starts at its own, both kept inside the scale. When the median lies past 60 % of the scale, the P90 label drops to a second row. Fill is `ink` (`paper` on the tooltip), `warning` only in the high tier, never the forecast colour. The tier name and the share of windows below the rate are tooltip text and the VoiceOver value, never text on screen | Burn rate beside the session number, bars style |
 | Dot columns | Vertical stacks of dots | Session history in graphs. Three or more empty columns in a row collapse into one `dotTrack` band at most 6pt wide, and the week line breaks there. A week point alone between two gaps is drawn as a dot |
 
 - Filled dots are `ink`, or `warning` or `accent` by threshold. Unfilled dots are `dotTrack`.
@@ -150,6 +150,7 @@ HStack(alignment: .firstTextBaseline, spacing: 3) {
 - At most one tooltip visible.
 - Averages and comparisons follow "Averages" below.
 - The Statistics tiles carry their averages in tooltips (per session, and per active day once more than one day had tokens; idle days never count), and the Tokens tooltip explains fresh tokens against cache reads. Top projects and top models are a card of rows like the active sessions, without bars.
+- A tooltip may carry one small dot graphic below its text, the burn rate scale. It is never interactive.
 - Tooltips carry the secondary facts so the screen does not have to: plan and sign-in path on a tab, projection and burn rate on the session bar, reset times on limits, session ID and model on a session row, the meaning of API cost.
 
 ## Averages
