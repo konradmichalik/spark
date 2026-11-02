@@ -98,6 +98,7 @@ HStack(alignment: .firstTextBaseline, spacing: 3) {
 | Menu bar ring | 12 dots, the last partial dot at proportional opacity | Menu bar glyph |
 | Hollow dots | Outline only, from current value to projected value | Session projection |
 | Time marker | 2pt vertical stroke, or a short radial tick outside a ring | Share of the window already elapsed, on the session and the week |
+| Burn rate gauge | Ten 3.8pt dots at 6pt pitch under the burn rate value. The fill is the rate on a scale that ends a third past the 90th percentile, at least one dot. Two 2pt strokes, ink at 45 % and 10pt tall, mark the median and the 90th percentile of the active 15-minute windows of the last 14 days. Fill is `ink`, `warning` only in the high tier. The tier name and the share of windows below the rate live in the tooltip and the VoiceOver value, never as text on screen | Burn rate beside the session number, bars style |
 | Activity calendar | One dot per day, weeks in rows and weekdays in columns (first weekday of the system calendar). Levels by fresh tokens against the provider's busiest day of the period: no use is a 4pt `dotTrack` dot, then 8pt ink at 35 %, 60 % and 100 %. Today gets a 1pt ink ring, days after today are not drawn | Usage report, one calendar per provider |
 | Dot columns | Vertical stacks of dots | Session history in graphs. Three or more empty columns in a row collapse into one `dotTrack` band at most 6pt wide, and the week line breaks there. A week point alone between two gaps is drawn as a dot |
 
