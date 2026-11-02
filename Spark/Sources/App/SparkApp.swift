@@ -40,20 +40,31 @@ class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDele
         completionHandler()
     }
 
-    /// `spark://show` opens the popover, for tools that cannot click the menu bar, such as a Stream Deck.
+    /// `spark://show[?view=<id>]` opens the popover, for tools that cannot click the menu bar, such as a Stream Deck.
+    /// The view is only handed over once the popover can take it: written ahead of the click for a closed popover,
+    /// posted for an open one (which does not appear again), and dropped when there is no status button.
     func application(_ application: NSApplication, open urls: [URL]) {
-        if urls.contains(where: SparkURL.isShowRequest) { Self.openPopover() }
+        guard let url = urls.first(where: SparkURL.isShowRequest), let button = Self.statusButton() else { return }
+        let view = SparkURL.requestedView(url)
+        if button.isHighlighted {
+            if let view { NotificationCenter.default.post(name: SparkURL.viewRequested, object: view) }
+        } else {
+            if let view { UserDefaults.standard.set(view, forKey: SparkURL.pendingViewKey) }
+            button.performClick(nil)
+        }
     }
 
     /// The menu bar extra has no API to open its window, so this clicks its status item button.
     /// A click toggles, so an already open popover (button highlighted) is left alone.
     private static func openPopover() {
+        if let button = statusButton(), !button.isHighlighted { button.performClick(nil) }
+    }
+
+    private static func statusButton() -> NSStatusBarButton? {
         for window in NSApp.windows where window.className.contains("NSStatusBarWindow") {
-            if let button = window.contentView?.firstSubview(of: NSStatusBarButton.self) {
-                if !button.isHighlighted { button.performClick(nil) }
-                return
-            }
+            if let button = window.contentView?.firstSubview(of: NSStatusBarButton.self) { return button }
         }
+        return nil
     }
 
     private func setupContextMenu() {
