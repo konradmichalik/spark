@@ -75,3 +75,7 @@ With Codex signed in, a **Provider** filter (All, Claude, Codex) under the heade
 ## Data export
 
 **Settings → General → Data export → Export data for other apps** (off by default) writes the current usage state to `~/Library/Application Support/Spark/data.json` on every refresh, for external consumers such as a Stream Deck plugin. Turning it off deletes the file.
+
+## URL scheme
+
+`open spark://show` opens the popover, for tools that cannot click the menu bar, such as a Stream Deck button. A popover that is already open stays open. Any other `spark://` URL is ignored.

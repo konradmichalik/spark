@@ -16,6 +16,17 @@
     <string>APPL</string>
     <key>LSMinimumSystemVersion</key>
     <string>14.0</string>
+    <key>CFBundleURLTypes</key>
+    <array>
+        <dict>
+            <key>CFBundleURLName</key>
+            <string>com.konradmichalik.spark</string>
+            <key>CFBundleURLSchemes</key>
+            <array>
+                <string>spark</string>
+            </array>
+        </dict>
+    </array>
     <key>LSUIElement</key>
     <true/>
     <key>ATSApplicationFontsPath</key>
