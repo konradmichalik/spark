@@ -69,6 +69,16 @@ final class SparkURLTests: XCTestCase {
         }
     }
 
+    func testAPendingViewIsTakenOnce() throws {
+        let suite = "SparkURLTests.pending"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        defaults.set("active", forKey: SparkURL.pendingViewKey)
+
+        XCTAssertEqual(SparkURL.takePendingView(from: defaults), "active")
+        XCTAssertNil(SparkURL.takePendingView(from: defaults))
+    }
+
     func testInfoPlistRegistersTheScheme() throws {
         let types = try XCTUnwrap(Bundle(for: AppDelegate.self).infoDictionary?["CFBundleURLTypes"] as? [[String: Any]])
         let schemes = types.flatMap { $0["CFBundleURLSchemes"] as? [String] ?? [] }

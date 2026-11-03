@@ -14,6 +14,13 @@ enum SparkURL {
     /// UserDefaults key carrying a requested view from the URL handler to the popover.
     static let pendingViewKey = "pendingPopoverView"
 
+    /// The view id waiting from before the popover opened, removed so a request is applied once.
+    static func takePendingView(from defaults: UserDefaults = .standard) -> String? {
+        guard let id = defaults.string(forKey: pendingViewKey) else { return nil }
+        defaults.removeObject(forKey: pendingViewKey)
+        return id
+    }
+
     /// Posted with the view id when a request arrives while the popover is already open.
     static let viewRequested = Notification.Name("SparkURLViewRequested")
 

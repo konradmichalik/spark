@@ -52,6 +52,10 @@ struct MenuBarView: View {
             state.startActiveSessionTicker()
             applyRequestedView()
         }
+        // The popover window can stay alive between opens, then `onAppear` does not run again.
+        .onReceive(NotificationCenter.default.publisher(for: NSWindow.didBecomeKeyNotification)) { _ in
+            applyRequestedView()
+        }
         .onReceive(NotificationCenter.default.publisher(for: SparkURL.viewRequested)) { note in
             if let id = note.object as? String { show(view: id) }
         }
@@ -94,9 +98,7 @@ struct MenuBarView: View {
 
     /// A `spark://show?view=<id>` request waiting from before the popover opened is consumed once.
     private func applyRequestedView() {
-        let defaults = UserDefaults.standard
-        guard let id = defaults.string(forKey: SparkURL.pendingViewKey) else { return }
-        defaults.removeObject(forKey: SparkURL.pendingViewKey)
+        guard let id = SparkURL.takePendingView() else { return }
         show(view: id)
     }
 
